@@ -1,6 +1,5 @@
 const express = require("express");
 const fs = require("fs");
-const path = require("path");
 const cors = require("cors");
 const sendEmail = require("./email");
 const nodemailer = require("nodemailer");
