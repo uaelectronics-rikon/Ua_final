@@ -1,5 +1,6 @@
 const express = require("express");
 const fs = require("fs");
+const path = require("path");
 const cors = require("cors");
 const sendEmail = require("./email");
 const nodemailer = require("nodemailer");
@@ -16,7 +17,6 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // ✅ Serve frontend
 app.use(express.static(__dirname));
-const path = require("path");
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
