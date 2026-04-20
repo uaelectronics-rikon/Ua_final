@@ -227,14 +227,15 @@ nav{position:sticky;top:0;z-index:900;background:rgba(8,8,8,.97);backdrop-filter
 .search-wrap button{padding:0 1rem;background:var(--gold);border:none;font-size:.95rem;color:var(--black);font-weight:700;transition:background .2s;min-width:44px;white-space:nowrap}
 .search-wrap button:hover{background:var(--gold2)}
 
-.nav-actions{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
-.btn-gold{background:var(--gold);color:var(--black);padding:.48rem 1rem;border-radius:5px;font-size:.82rem;font-weight:700;transition:all .2s;font-family:'Oswald',sans-serif;letter-spacing:.5px}
+.nav-actions{display:flex;align-items:center;justify-content:flex-end;gap:.6rem;flex-shrink:0}
+.btn-gold{background:var(--gold);color:var(--black);padding:.5rem 1.1rem;border-radius:6px;font-size:.82rem;font-weight:700;transition:all .2s;font-family:'Oswald',sans-serif;letter-spacing:.5px;height:40px;display:flex;align-items:center;justify-content:center;white-space:nowrap}
 .btn-gold:hover{background:var(--gold2);box-shadow:var(--gold-glow)}
-.btn-outline{background:transparent;border:1px solid var(--gold);color:var(--gold);padding:.48rem 1rem;border-radius:5px;font-size:.82rem;font-weight:600;transition:all .2s}
+.btn-outline{background:transparent;border:1.5px solid var(--gold);color:var(--gold);padding:.5rem 1.1rem;border-radius:6px;font-size:.82rem;font-weight:600;transition:all .2s;height:40px;display:flex;align-items:center;justify-content:center;white-space:nowrap}
+.btn-outline:hover{background:var(--gold-light);color:var(--gold2)}
 .btn-outline:hover{background:var(--gold-light)}
 
-.cart-btn{position:relative;background:var(--black3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.48rem .9rem;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:.4rem;transition:all .2s;min-width:44px;justify-content:center}
-.cart-btn:hover{border-color:var(--gold);color:var(--gold)}
+.cart-btn{position:relative;background:var(--black3);border:1.5px solid var(--border);border-radius:6px;color:var(--text);padding:.5rem 1rem;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:.4rem;transition:all .2s;min-height:40px;justify-content:center;white-space:nowrap}
+.cart-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,162,39,.08)}
 .cart-count{position:absolute;top:-7px;right:-7px;background:var(--gold);color:var(--black);border-radius:50%;width:18px;height:18px;font-size:.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif}
 
 .cat-nav{background:var(--black2);border-bottom:1px solid var(--border2)}
@@ -718,9 +719,10 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   .gallery-thumbnails{grid-template-columns:repeat(3,1fr)}
 }
 @media(max-width:768px){
-  .nav-top{flex-wrap:wrap;gap:.5rem}
+  .nav-top{flex-wrap:wrap;gap:.5rem;justify-content:space-between}
   .search-wrap{order:3;width:100%;min-width:100%}
   .logo-sub{display:none}
+  .nav-actions{justify-content:flex-end;gap:.4rem}
   .footer-grid{grid-template-columns:1fr;text-align:center}
   .footer-desc{max-width:100%}
   .cat-cards{grid-template-columns:repeat(3,1fr)}
@@ -752,11 +754,14 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   body { font-size: 14px; }
   .cart-drawer{width:100vw}
   .cat-cards{grid-template-columns:repeat(2,1fr)}
-  .nav-top{padding:.65rem .85rem;gap:.35rem}
+  .nav-top{padding:.65rem .85rem;gap:.35rem;justify-content:space-between}
   .logo-main{font-size:1rem;letter-spacing:1px}
-  .search-wrap{min-width:140px}
+  .search-wrap{min-width:140px;order:3;width:100%}
   .search-wrap input{font-size:.8rem;padding:.45rem .6rem}
-  .nav-actions { gap: .3rem; }
+  .nav-actions{gap:.3rem;justify-content:flex-end}
+  #guestBtns{gap:.3rem}
+  .btn-gold,.btn-outline{padding:.42rem .75rem;font-size:.75rem;height:38px}
+  .cart-btn{padding:.42rem .8rem;height:38px}
   .chatbot-window{width:calc(100vw - 1rem);left:.5rem}
   .ann-bar{font-size:.65rem;padding:6px .6rem}
   .hero-inner{padding:1.5rem .8rem}
@@ -769,8 +774,6 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   .m-form-row{grid-template-columns:1fr}
   .checkout-steps .step{font-size:.65rem;padding:.5rem .4rem}
   .admin-stats{grid-template-columns:1fr 1fr}
-  .cart-btn{padding:.35rem .6rem;font-size:.7rem}
-  .btn-gold,.btn-outline{padding:.38rem .6rem;font-size:.7rem;font-weight:600}
   .footer-bottom{flex-direction:column;align-items:center;text-align:center}
   .footer-seals{justify-content:center;gap:.75rem}
   .products-grid{grid-template-columns:repeat(2,1fr);gap:.6rem}
@@ -797,7 +800,8 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   .cat-cards{grid-template-columns:repeat(2,1fr)}
   .hero h1{font-size:1.5rem}
   .products-grid{grid-template-columns:1fr}
-  .btn-gold,.btn-outline{font-size:.65rem;padding:.32rem .5rem}
+  .btn-gold,.btn-outline{font-size:.65rem;padding:.35rem .5rem;height:36px}
+  .cart-btn{padding:.35rem .65rem;height:36px}
   .checkout-steps .step{font-size:.6rem;padding:.4rem .3rem}
   .place-order-btn{font-size:.9rem;padding:.7rem .5rem}
   .form-grid{gap:.4rem}
@@ -1565,11 +1569,10 @@ nav, .cart-drawer, .modal-overlay { transform: translateZ(0); backface-visibilit
     </div>
 
     <div class="nav-actions">
-      <div class="cat-dropdown-wrap">
-      <div id="guestBtns" style="display:flex;gap:.4rem">
+      <div id="guestBtns" style="display:flex;gap:.4rem;align-items:center">
         <button class="btn-outline" onclick="showModal('loginModal')">LOGIN</button>
       </div>
-      <div id="userBtns" style="display:none;align-items:center;gap:.4rem">
+      <div id="userBtns" style="display:none;align-items:center;gap:.6rem">
         <div class="user-menu">
           <div class="u-avatar" id="uAvatar" onclick="toggleUD()" role="button" aria-label="User menu">U</div>
           <div class="u-dropdown" id="uDropdown" role="menu">
