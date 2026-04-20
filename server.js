@@ -17,6 +17,11 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // ✅ Serve frontend
 app.use(express.static(__dirname));
+const path = require("path");
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 
 // ✅ Serve Orders folder (PDFs)
 app.use('/Orders', express.static(path.join(__dirname, 'Orders')));
