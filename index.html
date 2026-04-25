@@ -168,6 +168,54 @@
    UA ELECTRONICS — GLOBAL TOKENS & RESET
    ============================================================ */
 :root {
+  /* Light Mode (Default) */
+  --black:   #ffffff;
+  --black2:  #f8f8f8;
+  --black3:  #f0f0f0;
+  --card:    #fafafa;
+  --card2:   #f5f5f5;
+  --gold:    #B8921F;
+  --gold2:   #9a741a;
+  --gold3:   #d4a824;
+  --gold-light: rgba(184,146,31,0.15);
+  --gold-glow:  0 0 28px rgba(184,146,31,0.25);
+  --text:    #1a1a1a;
+  --text2:   #333333;
+  --text3:   #555555;
+  --border:  rgba(184,146,31,0.3);
+  --border2: rgba(184,146,31,0.15);
+  --success: #2d7f2d;
+  --danger:  #c62828;
+  --radius:  10px;
+}
+
+/* Dark Mode - Detect device preference */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark Mode */
+    --black:   #080808;
+    --black2:  #111111;
+    --black3:  #1a1a1a;
+    --card:    #141414;
+    --card2:   #1e1e1e;
+    --gold:    #C9A227;
+    --gold2:   #F0C040;
+    --gold3:   #e8b820;
+    --gold-light: rgba(201,162,39,0.13);
+    --gold-glow:  0 0 28px rgba(201,162,39,0.32);
+    --text:    #f5f0e8;
+    --text2:   #9a8f7a;
+    --text3:   #6b6050;
+    --border:  rgba(201,162,39,0.2);
+    --border2: rgba(201,162,39,0.07);
+    --success: #4caf50;
+    --danger:  #e53935;
+    --radius:  10px;
+  }
+}
+
+/* Manual Dark Mode Toggle */
+body.dark-mode {
   --black:   #080808;
   --black2:  #111111;
   --black3:  #1a1a1a;
@@ -185,6 +233,28 @@
   --border2: rgba(201,162,39,0.07);
   --success: #4caf50;
   --danger:  #e53935;
+  --radius:  10px;
+}
+
+/* Manual Light Mode Toggle */
+body.light-mode {
+  --black:   #ffffff;
+  --black2:  #f8f8f8;
+  --black3:  #f0f0f0;
+  --card:    #fafafa;
+  --card2:   #f5f5f5;
+  --gold:    #B8921F;
+  --gold2:   #9a741a;
+  --gold3:   #d4a824;
+  --gold-light: rgba(184,146,31,0.15);
+  --gold-glow:  0 0 28px rgba(184,146,31,0.25);
+  --text:    #1a1a1a;
+  --text2:   #333333;
+  --text3:   #555555;
+  --border:  rgba(184,146,31,0.3);
+  --border2: rgba(184,146,31,0.15);
+  --success: #2d7f2d;
+  --danger:  #c62828;
   --radius:  10px;
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
@@ -237,6 +307,12 @@ nav{position:sticky;top:0;z-index:900;background:rgba(8,8,8,.97);backdrop-filter
 .cart-btn{position:relative;background:var(--black3);border:1.5px solid var(--border);border-radius:6px;color:var(--text);padding:.5rem 1rem;font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:.4rem;transition:all .2s;min-height:40px;justify-content:center;white-space:nowrap}
 .cart-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,162,39,.08)}
 .cart-count{position:absolute;top:-7px;right:-7px;background:var(--gold);color:var(--black);border-radius:50%;width:18px;height:18px;font-size:.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif}
+
+/* Theme Toggle Button */
+.theme-toggle{position:relative;background:var(--black3);border:1.5px solid var(--border);border-radius:6px;color:var(--text);padding:.5rem 1rem;font-size:1rem;font-weight:600;display:flex;align-items:center;justify-content:center;transition:all .3s ease;min-height:40px;min-width:40px;cursor:pointer;white-space:nowrap}
+.theme-toggle:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,162,39,.08);transform:scale(1.05)}
+.theme-toggle:active{transform:scale(0.95)}
+
 
 .cat-nav{background:var(--black2);border-bottom:1px solid var(--border2)}
 .cat-nav-inner{max-width:1400px;margin:0 auto;display:flex;overflow-x:auto;padding:0 1.25rem;scrollbar-width:none}
@@ -356,15 +432,15 @@ nav{position:sticky;top:0;z-index:900;background:rgba(8,8,8,.97);backdrop-filter
 .cd-sep{font-size:1.3rem;color:var(--gold);font-weight:700;align-self:flex-start;padding-top:.45rem}
 
 /* RIKON BAND */
-.rikon-band{background:linear-gradient(135deg,#0a0800,#1a1200 40%,#0a0800);border:1px solid var(--gold);border-radius:14px;padding:2.5rem;margin-bottom:3.25rem;position:relative;overflow:hidden}
+.rikon-band{background:linear-gradient(135deg,#0a0800,#1a1200 40%,#0a0800);border:1px solid var(--gold);border-radius:14px;padding:2.5rem;margin-bottom:3.25rem;position:relative;overflow:hidden;color:#f5f0e8}
 .rikon-band::before{content:'UA RIKON';position:absolute;right:-2rem;top:50%;transform:translateY(-50%);font-family:'Playfair Display',serif;font-size:8rem;font-weight:900;color:rgba(201,162,39,.04);white-space:nowrap;pointer-events:none}
 .rikon-inner{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:center;position:relative;z-index:1}
 .rikon-tag{font-family:'Oswald',sans-serif;font-size:.67rem;color:var(--gold);letter-spacing:4px;margin-bottom:.65rem}
-.rikon-h{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;line-height:1.1;margin-bottom:.85rem}
+.rikon-h{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;line-height:1.1;margin-bottom:.85rem;color:#ffffff}
 .rikon-h span{color:var(--gold2)}
-.rikon-p{color:var(--text2);line-height:1.68;font-size:.88rem;margin-bottom:1.25rem}
+.rikon-p{color:#e8dcc0;line-height:1.68;font-size:.88rem;margin-bottom:1.25rem}
 .rikon-feats{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.5rem}
-.rikon-feat{display:flex;align-items:center;gap:.55rem;font-size:.84rem;color:var(--text)}
+.rikon-feat{display:flex;align-items:center;gap:.55rem;font-size:.84rem;color:#f5f0e8}
 .rikon-feat-dot{width:6px;height:6px;background:var(--gold);border-radius:50%;flex-shrink:0}
 .rikon-product{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.75rem;text-align:center}
 .rikon-p-icon{font-size:6rem;margin-bottom:.85rem;line-height:1}
@@ -1583,6 +1659,7 @@ nav, .cart-drawer, .modal-overlay { transform: translateZ(0); backface-visibilit
           </div>
         </div>
       </div>
+      <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode" title="Toggle Dark/Light Mode">🌙</button>
       <button class="cart-btn" onclick="openCart()" aria-label="Open cart">
         🛒 <span class="d-none-sm">Cart</span>
         <div class="cart-count" id="cartCount">0</div>
@@ -1988,9 +2065,100 @@ nav, .cart-drawer, .modal-overlay { transform: translateZ(0); backface-visibilit
 
       <div style="display:flex;gap:.85rem;flex-wrap:wrap">
         <button class="hero-btn hero-btn-ghost" onclick="backToDelivery()" style="flex:0 0 auto">← Back</button>
-<button class="place-order-btn" onclick="startPayment()" id="placeOrderBtn">
+<button class="place-order-btn" onclick="placeOrder()" id="placeOrderBtn">
   PLACE ORDER 🎉
 </button>
+      </div>
+    </div>
+
+    <!-- STEP 3: CONFIRMATION -->
+    <div id="coStep3" style="display:none">
+      <div class="checkout-section" style="background:linear-gradient(135deg,rgba(45,127,45,0.08),rgba(45,127,45,0.02));border:1px solid rgba(45,127,45,0.3)">
+        <div style="text-align:center;margin-bottom:1.5rem">
+          <div style="font-size:3.5rem;margin-bottom:.5rem">✅</div>
+          <div class="cs-title" style="color:var(--success)">Order Confirmed!</div>
+          <p style="color:var(--text2);margin-top:.5rem;font-size:.95rem">Thank you for your order. Your payment has been received successfully.</p>
+        </div>
+      </div>
+
+      <!-- ORDER ID SECTION -->
+      <div class="checkout-section">
+        <div class="cs-title">📋 Your Order ID</div>
+        <div style="background:var(--gold-light);border:1px solid var(--gold);border-radius:10px;padding:1.5rem;text-align:center;margin-bottom:1rem">
+          <div style="font-size:.85rem;color:var(--text3);margin-bottom:.5rem">Order Number</div>
+          <div id="coConfOrderId" style="font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:800;color:var(--gold2);word-break:break-all">—</div>
+          <button onclick="copyCheckoutOrderId()" style="margin-top:.75rem;padding:.5rem 1rem;background:var(--gold);border:none;color:var(--black);border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;transition:all .2s">📋 Copy Order ID</button>
+        </div>
+      </div>
+
+      <!-- PAYMENT STATUS -->
+      <div class="checkout-section">
+        <div class="cs-title">💳 Payment Status</div>
+        <div id="coConfPayStatus" style="background:var(--black3);border:1px solid var(--border2);border-radius:10px;padding:1rem;font-size:.9rem;line-height:1.6"></div>
+      </div>
+
+      <!-- ORDER DETAILS -->
+      <div class="checkout-section">
+        <div class="cs-title">📦 Delivery Details</div>
+        <div style="background:var(--black3);border:1px solid var(--border2);border-radius:10px;padding:1rem">
+          <div style="margin-bottom:1rem">
+            <div style="font-size:.8rem;color:var(--text3);margin-bottom:.35rem">📍 Delivery Address</div>
+            <div id="coConfAddr" style="color:var(--text);font-weight:500;line-height:1.5">—</div>
+          </div>
+          <div>
+            <div style="font-size:.8rem;color:var(--text3);margin-bottom:.35rem">📞 Contact Number</div>
+            <div id="coConfPhone" style="color:var(--text);font-weight:500">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ORDER ITEMS -->
+      <div class="checkout-section">
+        <div class="cs-title">🛒 Order Items</div>
+        <div id="coConfItems" style="background:var(--black3);border:1px solid var(--border2);border-radius:10px;padding:1rem"></div>
+      </div>
+
+      <!-- TOTAL AMOUNT -->
+      <div class="checkout-section">
+        <div class="cs-title">💰 Order Total</div>
+        <div style="background:var(--gold-light);border:1px solid var(--gold);border-radius:10px;padding:1.25rem">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.5rem;font-size:.9rem">
+            <span style="color:var(--text2)">Subtotal:</span>
+            <span id="coConfSubtotal" style="color:var(--text)">₹0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:1rem;font-size:.9rem;border-bottom:1px solid rgba(184,146,31,0.2);padding-bottom:1rem">
+            <span style="color:var(--text2)">Shipping:</span>
+            <span id="coConfShipping" style="color:var(--text)">₹0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:1.1rem;font-weight:700">
+            <span style="color:var(--gold2)">Total Amount:</span>
+            <span id="coConfTotal" style="color:var(--gold2)">₹0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- EMAIL NOTIFICATION -->
+      <div class="checkout-section">
+        <div style="background:rgba(201,162,39,0.1);border:1px solid rgba(201,162,39,0.2);border-radius:10px;padding:1rem;text-align:center;font-size:.9rem">
+          <div style="margin-bottom:.35rem">📧 <strong>Confirmation email sent!</strong></div>
+          <div style="color:var(--text2);font-size:.85rem" id="coConfEmail">—</div>
+          <p style="color:var(--text3);font-size:.75rem;margin-top:.5rem">Check your email for order details and tracking information.</p>
+        </div>
+      </div>
+
+      <!-- EXPECTED DELIVERY -->
+      <div class="checkout-section">
+        <div style="background:var(--black3);border:1px solid var(--border2);border-radius:10px;padding:1rem;text-align:center">
+          <div style="font-size:.85rem;color:var(--text3);margin-bottom:.5rem">🚚 EXPECTED DELIVERY</div>
+          <div style="font-size:1.2rem;font-weight:700;color:var(--gold2)">2-8 Working Days</div>
+          <p style="font-size:.75rem;color:var(--text3);margin-top:.5rem">Free delivery on orders above ₹999</p>
+        </div>
+      </div>
+
+      <!-- ACTION BUTTONS -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:1.5rem">
+        <button class="hero-btn hero-btn-ghost" onclick="showPage('home')" style="width:100%">🛍️ Continue Shopping</button>
+        <button class="hero-btn hero-btn-gold" onclick="showPage('orders')" style="width:100%">📦 Track Order</button>
       </div>
     </div>
   </div>
@@ -2518,10 +2686,58 @@ let pendingOrderInfo = null;
 console.log('✓ State variables initialized', {allProducts: allProducts.length, cart: cart.length});
 
 /* ============================================================
+   THEME MODE SYSTEM
+   ============================================================ */
+function initTheme() {
+  const savedTheme = ls('ua_theme');
+  
+  if (savedTheme) {
+    applyTheme(savedTheme);
+  } else {
+    // Default to light mode for all devices
+    applyTheme('light');
+  }
+  
+  updateThemeButton();
+  console.log('✓ Theme initialized');
+}
+
+function toggleTheme() {
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  const newTheme = isDarkMode ? 'light' : 'dark';
+  applyTheme(newTheme);
+  ls('ua_theme', newTheme);
+  updateThemeButton();
+}
+
+function applyTheme(theme) {
+  const body = document.body;
+  if (theme === 'dark') {
+    body.classList.add('dark-mode');
+    body.classList.remove('light-mode');
+  } else {
+    body.classList.add('light-mode');
+    body.classList.remove('dark-mode');
+  }
+}
+
+function updateThemeButton() {
+  const isDarkMode = document.body.classList.contains('dark-mode');
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    themeBtn.textContent = isDarkMode ? '☀️' : '🌙';
+    themeBtn.title = isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+  }
+}
+
+/* ============================================================
    INIT
    ============================================================ */
 function init() {
   console.log('🔄 init() called - starting initialization...');
+  
+  // Initialize theme based on device preference
+  initTheme();
   
   // Handle cart anchor navigation when coming from product pages
   if (window.location.hash === '#cart') {
@@ -3087,8 +3303,10 @@ function goToPayment() {
   // Move to step 2
   document.getElementById('coStep1').style.display = 'none';
   document.getElementById('coStep2').style.display = 'block';
+  document.getElementById('coStep3').style.display = 'none';
   document.getElementById('step1').className = 'step done';
   document.getElementById('step2').className = 'step active';
+  document.getElementById('step3').className = 'step';
   renderOrderSummary('coSummary2');
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -3096,8 +3314,16 @@ function goToPayment() {
 function backToDelivery() {
   document.getElementById('coStep1').style.display = 'block';
   document.getElementById('coStep2').style.display = 'none';
+  document.getElementById('coStep3').style.display = 'none';
   document.getElementById('step1').className = 'step active';
   document.getElementById('step2').className = 'step';
+  document.getElementById('step3').className = 'step';
+}
+
+function copyCheckoutOrderId() {
+  const id = document.getElementById('coConfOrderId').innerText;
+  navigator.clipboard.writeText(id);
+  toast("✅ Order ID Copied!", "green");
 }
 
 function selectPM(method) {
@@ -3266,19 +3492,65 @@ function completeOrderPlacement(orderId, grand, isCOD, paymentId = null) {
   selectedPayment = '';
   pendingOrderInfo = null;
 
-  // Show success page
-  document.getElementById('successOrderId').textContent = '#' + orderId;
-  document.getElementById('successPayStatus').innerHTML = isCOD
-    ? `<span style="color:#ff6f00">📦 ₹${grand.toLocaleString('en-IN')} to be paid on delivery (COD)</span>`
-    : `<span style="color:var(--success)">✅ Payment of ₹${grand.toLocaleString('en-IN')} received successfully!</span>`;
-  
-  document.getElementById('succAddr').textContent = `${orderData.customer.addr1}, ${orderData.customer.addr2}, ${orderData.customer.city} - ${orderData.customer.pin}, ${orderData.customer.state}`;
-  document.getElementById('succPhone').textContent = orderData.customer.mobile;
-  document.getElementById('succTotal').textContent = `₹${orderData.grand.toLocaleString('en-IN')}`;
-
+  // Mark steps as completed
+  document.getElementById('step1').className = 'step done';
   document.getElementById('step2').className = 'step done';
   document.getElementById('step3').className = 'step active';
+  console.log('✓ Steps updated');
+
+  // Hide payment section
+  document.getElementById('coStep2').style.display = 'none';
   
+  // Show confirmation section
+  document.getElementById('coStep3').style.display = 'block';
+  console.log('✓ Confirmation section displayed');
+  
+  try {
+    // Populate confirmation details
+    document.getElementById('coConfOrderId').textContent = orderId;
+    document.getElementById('coConfEmail').textContent = orderData.customer.email;
+    document.getElementById('coConfAddr').textContent = `${orderData.customer.addr1}, ${orderData.customer.addr2}, ${orderData.customer.city} - ${orderData.customer.pin}, ${orderData.customer.state}`;
+    document.getElementById('coConfPhone').textContent = orderData.customer.mobile;
+    console.log('✓ Order info populated');
+    
+    // Payment status message
+    const payStatusHTML = isCOD
+      ? `<div style="color:#ff6f00;font-weight:600">📦 Amount: <strong>₹${grand.toLocaleString('en-IN')}</strong> to be paid on delivery</div><p style="margin-top:.5rem;font-size:.8rem;color:var(--text3)">Please keep exact change ready for the delivery personnel.</p>`
+      : `<div style="color:var(--success);font-weight:600">✅ Payment Successful!</div><div style="margin-top:.35rem;font-size:.9rem">Amount paid: <strong>₹${grand.toLocaleString('en-IN')}</strong></div><div style="font-size:.8rem;color:var(--text3);margin-top:.35rem">Payment ID: ${paymentId}</div>`;
+    document.getElementById('coConfPayStatus').innerHTML = payStatusHTML;
+    console.log('✓ Payment status populated');
+    
+    // Order items
+    const itemsHTML = orderData.items.map(item => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 0;border-bottom:1px solid rgba(184,146,31,0.1)">
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <div style="font-size:1.5rem">${item.icon}</div>
+          <div>
+            <div style="font-weight:600;color:var(--text)">${item.name}</div>
+            <div style="font-size:.75rem;color:var(--text3)">${item.brand} • Qty: ${item.qty}</div>
+          </div>
+        </div>
+        <div style="text-align:right;font-weight:600;color:var(--gold2)">₹${item.subtotal.toLocaleString('en-IN')}</div>
+      </div>
+    `).join('');
+    document.getElementById('coConfItems').innerHTML = itemsHTML;
+    console.log('✓ Order items populated');
+    
+    // Totals
+    document.getElementById('coConfSubtotal').textContent = `₹${total.toLocaleString('en-IN')}`;
+    document.getElementById('coConfShipping').textContent = shipping > 0 ? `₹${shipping.toLocaleString('en-IN')}` : 'FREE';
+    document.getElementById('coConfTotal').textContent = `₹${grand.toLocaleString('en-IN')}`;
+    console.log('✓ Totals populated');
+
+    // Scroll to top of confirmation
+    setTimeout(() => {
+      document.getElementById('coStep3').scrollIntoView({behavior: 'smooth'});
+    }, 100);
+  } catch(e) {
+    console.error('❌ Error populating confirmation:', e);
+    alert('Error showing confirmation. Please contact support.');
+  }
+
   // Conversion tracking
   if (typeof gtag !== 'undefined') {
     gtag('event', 'purchase', {
@@ -3308,7 +3580,6 @@ function completeOrderPlacement(orderId, grand, isCOD, paymentId = null) {
   }
   
   toast('✅ Order placed successfully!', 'green');
-  showPage('success');
 }
 
 /* ============================================================
@@ -4426,7 +4697,7 @@ setTimeout(function() {
 
 <!-- ========== ORDER CONFIRMATION MODAL ========== -->
 <div class="overlay" data-modal="confirmationModal" id="confirmationModalOverlay">
-  <div class="modal" id="confirmationModal" style="max-width: 450px;">
+  <div class="modal" id="confirmationModal" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
     <!-- Content will be dynamically inserted -->
   </div>
 </div>

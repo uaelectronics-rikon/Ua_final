@@ -468,30 +468,196 @@ function showOrderConfirmation(order, orderId) {
     return;
   }
 
-  // Update modal content
+  // Calculate delivery date (5-7 business days from now)
+  const deliveryDate = new Date();
+  deliveryDate.setDate(deliveryDate.getDate() + 6); // Default to 6 days (5-7 range)
+  const deliveryDateStr = deliveryDate.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Build product items HTML
+  const itemsHTML = order.items.map(item => `
+    <tr style="border-bottom: 1px solid var(--border2);">
+      <td style="padding: 12px 8px; font-weight: 600; color: var(--text);">${item.name}</td>
+      <td style="padding: 12px 8px; text-align: center; color: var(--text);">×${item.qty}</td>
+      <td style="padding: 12px 8px; text-align: right; color: var(--gold2); font-weight: 700;">₹${(item.price * item.qty).toLocaleString('en-IN')}</td>
+    </tr>
+  `).join('');
+
+  // Update modal content with comprehensive order details
   const content = modal.querySelector(".modal-content") || modal;
   content.innerHTML = `
-    <div class="modal-x" onclick="hideModal('confirmationModal')">✕</div>
-    <div style="text-align: center; padding: 20px;">
-      <div style="font-size: 3rem; margin-bottom: 15px;">✅</div>
-      <h2 style="color: #C9A227; margin-bottom: 10px;">ORDER PLACED SUCCESSFULLY</h2>
-      <p style="color: #999; margin-bottom: 20px;">Thank you for your order!</p>
-      
-      <div style="background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
-        <p><strong>Order ID:</strong> ${orderId}</p>
-        <p><strong>Total Amount:</strong> ₹${order.grand.toLocaleString("en-IN")}</p>
-        <p><strong>Payment Method:</strong> ${order.paymentMethod === "online" ? "Online Payment" : "Cash on Delivery"}</p>
-        <p><strong>Status:</strong> ${order.status}</p>
-        <p style="font-size: 0.9rem; color: #999; margin-top: 10px;">📧 Confirmation email has been sent to ${order.customer.email}</p>
+    <div class="modal-x" onclick="redirectToHome()" style="position: absolute; top: 12px; right: 12px; z-index: 10;">✕</div>
+    
+    <div style="padding: 2rem; background: var(--black);">
+      <!-- Step 3 Header -->
+      <div style="text-align: center; padding: 1rem 0; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border2);">
+        <p style="color: var(--gold); font-size: 0.8rem; letter-spacing: 3px; font-weight: 700; margin-bottom: 0.5rem;">STEP 3 OF 3</p>
+        <h2 style="color: var(--gold2); margin-bottom: 0.5rem; font-size: 1.8rem; font-weight: 900;">ORDER CONFIRMATION</h2>
       </div>
 
-      <button onclick="window.location.reload()" style="padding: 10px 25px; background: #C9A227; color: #080808; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
-        Continue Shopping
-      </button>
+      <!-- Success Header -->
+      <div style="text-align: center; padding: 1.5rem 0; border-bottom: 2px solid var(--border2); margin-bottom: 2rem;">
+        <div style="font-size: 3.5rem; margin-bottom: 1rem; animation: pulse 0.6s ease;">✅</div>
+        <h2 style="color: var(--gold2); margin-bottom: 0.5rem; font-size: 1.8rem; font-weight: 900;">ORDER CONFIRMED!</h2>
+        <p style="color: var(--text2); font-size: 0.95rem;">Your order has been placed successfully</p>
+      </div>
+
+      <!-- Order ID Section -->
+      <div style="background: var(--card); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--gold); margin-bottom: 1.5rem;">
+        <p style="color: var(--text3); font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 0.3rem;">ORDER ID</p>
+        <p style="color: var(--gold2); font-weight: 900; font-size: 1.3rem; font-family: monospace;">${orderId}</p>
+        <p style="color: var(--text3); font-size: 0.85rem; margin-top: 0.5rem;">📅 ${new Date(order.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      </div>
+
+      <!-- Delivery Info -->
+      <div style="background: linear-gradient(135deg, rgba(184,146,31,0.1), transparent); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1.5rem;">
+        <h3 style="color: var(--gold2); font-size: 0.95rem; font-weight: 700; margin-bottom: 0.8rem; letter-spacing: 1px;">🚚 EXPECTED DELIVERY</h3>
+        <p style="color: var(--text); font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem;">${deliveryDateStr}</p>
+        <p style="color: var(--text2); font-size: 0.85rem;">Estimated 5-7 business days from order date</p>
+        <p style="color: var(--text3); font-size: 0.8rem; margin-top: 0.5rem;">Free standard delivery on all orders above ₹999</p>
+      </div>
+
+      <!-- Customer Details -->
+      <div style="margin-bottom: 1.5rem;">
+        <h3 style="color: var(--gold); font-size: 1rem; font-weight: 700; margin-bottom: 1rem; letter-spacing: 1px;">👤 DELIVERY ADDRESS</h3>
+        <div style="background: var(--card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border2);">
+          <p style="color: var(--text); font-weight: 600; margin-bottom: 0.3rem;">${order.customer.name}</p>
+          <p style="color: var(--text2); font-size: 0.9rem; margin-bottom: 0.5rem; line-height: 1.5;">
+            ${order.customer.addr1}<br>
+            ${order.customer.addr2 ? order.customer.addr2 + '<br>' : ''}
+            ${order.customer.city}, ${order.customer.state} - ${order.customer.pin}<br>
+            <span style="color: var(--text3);">📱 ${order.customer.mobile}</span>
+          </p>
+          <p style="color: var(--text3); font-size: 0.85rem; margin-top: 0.5rem;">📧 ${order.customer.email}</p>
+        </div>
+      </div>
+
+      <!-- Order Items -->
+      <div style="margin-bottom: 1.5rem;">
+        <h3 style="color: var(--gold); font-size: 1rem; font-weight: 700; margin-bottom: 1rem; letter-spacing: 1px;">📦 ORDER ITEMS</h3>
+        <div style="background: var(--card); border-radius: 8px; overflow: hidden; border: 1px solid var(--border2);">
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background: var(--card2); border-bottom: 2px solid var(--border);">
+                <th style="padding: 12px 8px; text-align: left; color: var(--text2); font-weight: 600; font-size: 0.85rem;">PRODUCT</th>
+                <th style="padding: 12px 8px; text-align: center; color: var(--text2); font-weight: 600; font-size: 0.85rem;">QTY</th>
+                <th style="padding: 12px 8px; text-align: right; color: var(--text2); font-weight: 600; font-size: 0.85rem;">PRICE</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHTML}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Price Breakdown -->
+      <div style="background: var(--card); padding: 1.2rem; border-radius: 8px; border: 1px solid var(--border2); margin-bottom: 1.5rem;">
+        <h3 style="color: var(--gold); font-size: 1rem; font-weight: 700; margin-bottom: 1rem; letter-spacing: 1px;">💰 PRICE DETAILS</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 0; border-bottom: 1px solid var(--border2);">
+          <span style="color: var(--text2);">Subtotal</span>
+          <span style="color: var(--text); font-weight: 600;">₹${order.subtotal.toLocaleString('en-IN')}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 0; border-bottom: 1px solid var(--border2);">
+          <span style="color: var(--text2);">Delivery Charges</span>
+          <span style="color: ${order.shipping === 0 ? 'var(--success)' : 'var(--text)'}; font-weight: 600;">${order.shipping === 0 ? '✅ Free' : '₹' + order.shipping.toLocaleString('en-IN')}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-top: 2px solid var(--gold); background: rgba(184,146,31,0.05); padding: 1rem; margin-top: 0.5rem; border-radius: 6px;">
+          <span style="color: var(--gold2); font-weight: 700; font-size: 1.05rem;">TOTAL AMOUNT</span>
+          <span style="color: var(--gold2); font-weight: 900; font-size: 1.4rem;">₹${order.grand.toLocaleString('en-IN')}</span>
+        </div>
+      </div>
+
+      <!-- Payment & Status Info -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+        <div style="background: var(--card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border2);">
+          <p style="color: var(--text3); font-size: 0.8rem; letter-spacing: 1px; margin-bottom: 0.3rem;">PAYMENT METHOD</p>
+          <p style="color: var(--text); font-weight: 700; font-size: 1rem;">${order.paymentMethod === 'online' ? '💳 Online Payment' : '💵 Cash on Delivery'}</p>
+          <p style="color: var(--text2); font-size: 0.85rem; margin-top: 0.3rem;">${order.paymentStatus}</p>
+        </div>
+        <div style="background: var(--card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border2);">
+          <p style="color: var(--text3); font-size: 0.8rem; letter-spacing: 1px; margin-bottom: 0.3rem;">ORDER STATUS</p>
+          <p style="color: var(--gold2); font-weight: 700; font-size: 1rem;">🟡 ${order.status}</p>
+          <p style="color: var(--text2); font-size: 0.85rem; margin-top: 0.3rem;">Being processed</p>
+        </div>
+      </div>
+
+      <!-- Confirmation Email Notice -->
+      <div style="background: rgba(76,175,80,0.1); border: 1px solid rgba(76,175,80,0.3); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+        <p style="color: var(--success); font-size: 0.9rem;">✅ A confirmation email has been sent to <strong>${order.customer.email}</strong></p>
+        <p style="color: var(--text2); font-size: 0.8rem; margin-top: 0.5rem;">You can track your order from your account dashboard</p>
+      </div>
+
+      <!-- Auto-Redirect Timer -->
+      <div style="background: linear-gradient(135deg, rgba(30,144,255,0.1), rgba(30,144,255,0.05)); border: 1.5px solid rgba(30,144,255,0.3); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: center;">
+        <p style="color: var(--text2); font-size: 0.8rem; margin-bottom: 0.5rem;">REDIRECTING TO HOME IN</p>
+        <p id="redirectCountdown" style="color: #1E90FF; font-weight: 900; font-size: 1.8rem; letter-spacing: 2px;">02:00</p>
+        <p style="color: var(--text3); font-size: 0.75rem; margin-top: 0.5rem;">Or press the button below to go now</p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; gap: 1rem; justify-content: center;">
+        <button onclick="showPage('orders')" style="padding: 1rem 2rem; background: var(--gold); color: var(--black); border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.95rem; letter-spacing: 1px; transition: all 0.3s; flex: 1;">
+          📦 TRACK ORDER
+        </button>
+        <button onclick="redirectToHome()" style="padding: 1rem 2rem; background: var(--card2); border: 1.5px solid var(--gold); color: var(--gold); border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.95rem; letter-spacing: 1px; transition: all 0.3s; flex: 1;">
+          🏠 GO HOME NOW
+        </button>
+      </div>
     </div>
   `;
 
   showModal("confirmationModal");
+  
+  // Start countdown timer (2 minutes = 120 seconds)
+  startConfirmationCountdown(120);
+}
+
+/**
+ * Start countdown timer for auto-redirect
+ */
+function startConfirmationCountdown(seconds) {
+  let remainingSeconds = seconds;
+  
+  const countdownInterval = setInterval(() => {
+    const minutes = Math.floor(remainingSeconds / 60);
+    const secs = remainingSeconds % 60;
+    const timeStr = `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    
+    const countdownElement = document.getElementById('redirectCountdown');
+    if (countdownElement) {
+      countdownElement.textContent = timeStr;
+      
+      // Change color as time runs out
+      if (remainingSeconds <= 10) {
+        countdownElement.style.color = '#e53935';
+        countdownElement.style.fontSize = '2rem';
+      } else if (remainingSeconds <= 30) {
+        countdownElement.style.color = '#ff9800';
+      }
+    }
+    
+    remainingSeconds--;
+    
+    if (remainingSeconds < 0) {
+      clearInterval(countdownInterval);
+      redirectToHome();
+    }
+  }, 1000);
+  
+  // Store interval ID in case we need to clear it
+  window.confirmationCountdownInterval = countdownInterval;
+}
+
+/**
+ * Redirect to home page
+ */
+function redirectToHome() {
+  if (window.confirmationCountdownInterval) {
+    clearInterval(window.confirmationCountdownInterval);
+  }
+  hideModal("confirmationModal");
+  showPage('home');
+  window.scrollTo(0, 0);
 }
 
 // ======================== MODAL UTILITIES ========================
