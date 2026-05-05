@@ -189,6 +189,15 @@
   --radius:  10px;
 }
 
+/* ═══ PERFORMANCE OPTIMIZED ANIMATION TIMINGS ═══ */
+:root {
+  --fast-duration: 0.2s;
+  --normal-duration: 0.3s;
+  --slow-duration: 0.5s;
+  --easing-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --easing-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 /* Dark Mode - Detect device preference */
 @media (prefers-color-scheme: dark) {
   :root {
@@ -259,7 +268,7 @@ body.light-mode {
 }
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth;font-size:16px}
-body{font-family:'DM Sans',sans-serif;background:var(--black);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--black);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 img{max-width:100%;display:block}
 button{cursor:pointer;border:none;font-family:inherit}
 a{text-decoration:none;color:inherit}
@@ -267,6 +276,23 @@ input,select,textarea{font-family:inherit}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:var(--black2)}
 ::-webkit-scrollbar-thumb{background:var(--gold);border-radius:4px}
+
+/* ════════════════════════════════════════════════════════════
+   PERFORMANCE OPTIMIZATIONS - REDUCED MOTION
+   ════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   GLOBAL PERFORMANCE SETTINGS
+   ════════════════════════════════════════════════════════════ */
+html { scroll-behavior: smooth; font-size: 16px; }
 
 /* ============================================================
    PAGE SYSTEM — only one page visible at a time
@@ -592,8 +618,8 @@ nav{position:sticky;top:0;z-index:900;background:rgba(8,8,8,.97);backdrop-filter
 .hero-stat-num{font-family:'Playfair Display',serif;font-size:1.85rem;font-weight:800;color:var(--gold2);line-height:1}
 .hero-stat-lbl{font-size:.68rem;color:var(--text3);letter-spacing:2px;margin-top:2px}
 
-.hero-right{display:flex;flex-direction:column;gap:1.1rem;animation:fadeUp .6s .2s ease both}
-.hero-featured{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:2rem;position:relative;overflow:hidden;box-shadow:0 18px 55px rgba(0,0,0,.45),inset 0 1px 0 rgba(201,162,39,.18);animation:slideInUp .6s cubic-bezier(.34, 1.56, .64, 1);display:flex;align-items:center;justify-content:space-between;gap:30px}
+.hero-right{display:flex;flex-direction:column;gap:1.1rem;animation:fadeUp 0.5s 0.15s ease both}
+.hero-featured{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:2rem;position:relative;overflow:hidden;box-shadow:0 18px 55px rgba(0,0,0,.45),inset 0 1px 0 rgba(201,162,39,.18);animation:slideInUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);display:flex;align-items:center;justify-content:space-between;gap:30px;will-change:transform}
 
 .hero-featured::before{
   content:'';
@@ -1932,27 +1958,30 @@ footer{
 /* PRODUCTS GRID */
 .products-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(225px,1fr));
-  gap:1.1rem;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:1.5rem;
   margin-bottom:3.5rem;
-  animation:fadeInGrid .4s ease
+  animation:fadeInGrid 0.3s ease-out
 }
 
 @keyframes fadeInGrid{
-  from{opacity:0.5;transform:translateY(5px)}
+  from{opacity:0;transform:translateY(3px)}
   to{opacity:1;transform:translateY(0)}
 }
 
 /* PRODUCT CARD - ENHANCED */
 .p-card{
   background:var(--card);
-  border:1px solid var(--border2);
-  border-radius:12px;
+  border:2px solid var(--border2);
+  border-radius:14px;
   overflow:hidden;
-  transition:all .35s cubic-bezier(.34, 1.56, .64, 1);
+  transition:all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position:relative;
-  box-shadow:0 4px 12px rgba(0,0,0,.1);
-  animation:fadeInScale .5s ease-out backwards;
+  box-shadow:0 6px 20px rgba(0,0,0,.15), inset 0 0 0 rgba(201,162,39,0);
+  animation:fadeInScale 0.35s ease-out backwards;
+  will-change:transform,box-shadow;
+  backface-visibility:hidden;
+  perspective:1000px;
 }
 
 .p-card:nth-child(1) { animation-delay: 0.05s; }
@@ -1986,9 +2015,10 @@ footer{
 
 .p-card:hover{
   border-color:var(--gold);
-  transform:translateY(-12px) scale(1.03) rotateX(2deg);
-  box-shadow:0 25px 60px rgba(201,162,39,.35), 0 0 40px rgba(201,162,39,.2), inset 0 1px 0 rgba(201,162,39,.1);
-  animation:pulseBright 1.5s ease infinite;
+  transform:translateY(-12px) scale(1.08);
+  box-shadow:0 30px 70px rgba(201,162,39,.4), 0 0 50px rgba(201,162,39,.25);
+  animation:productGlow 1s ease-in-out infinite;
+  z-index:10;
 }
 
 .p-card:hover::before,
@@ -1999,19 +2029,20 @@ footer{
 /* BADGE STYLING - ENHANCED */
 .p-badge{
   position:absolute;
-  top:12px;
-  left:12px;
-  padding:6px 12px;
-  border-radius:8px;
+  top:14px;
+  left:14px;
+  padding:8px 14px;
+  border-radius:10px;
   font-family:'Oswald',sans-serif;
-  font-size:.7rem;
-  font-weight:700;
-  letter-spacing:1.8px;
+  font-size:.78rem;
+  font-weight:800;
+  letter-spacing:2px;
   z-index:3;
   animation:bounceScale .6s cubic-bezier(.34, 1.56, .64, 1) ease-out;
-  box-shadow:0 6px 18px rgba(0,0,0,.25);
+  box-shadow:0 8px 25px rgba(0,0,0,.35);
   text-transform:uppercase;
-  backdrop-filter:blur(8px);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.2);
 }
 
 .badge-new{
@@ -2040,11 +2071,11 @@ footer{
 
 /* PRODUCT IMAGE - ENHANCED */
 .p-img{
-  height:180px;
+  height:300px;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:5rem;
+  font-size:7rem;
   background:linear-gradient(135deg,var(--black2),var(--black3));
   position:relative;
   overflow:hidden;
@@ -2123,7 +2154,7 @@ footer{
   background:var(--card);
   position:relative;
   z-index:2;
-  animation:fadeInUp .5s ease-out;
+  animation:fadeInUp 0.35s ease-out;
 }
 
 .p-brand{
@@ -2133,23 +2164,25 @@ footer{
   font-family:'Oswald',sans-serif;
   margin-bottom:.4rem;
   font-weight:800;
-  animation:slideInDown .4s ease-out;
+  animation:slideInDown 0.25s ease-out;
   text-transform:uppercase;
 }
 
 .p-name{
-  font-size:.95rem;
-  font-weight:700;
-  margin-bottom:.5rem;
-  line-height:1.4;
+  font-size:1.15rem;
+  font-weight:800;
+  margin-bottom:.6rem;
+  line-height:1.5;
   color:var(--text);
-  transition:all .35s cubic-bezier(.34, 1.56, .64, 1);
-  animation:fadeInUp .4s ease-out;
+  transition:all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation:fadeInUp 0.3s ease-out;
+  letter-spacing:.3px;
 }
 
 .p-card:hover .p-name{
   color:var(--gold2);
-  transform:translateX(3px);
+  transform:translateX(3px) scale(1.04);
+  text-shadow:0 0 12px rgba(201,162,39,.35);
 }
 
 .p-rating{
@@ -2195,11 +2228,12 @@ footer{
 
 .p-price{
   font-family:'Playfair Display',serif;
-  font-size:1.5rem;
+  font-size:1.8rem;
   font-weight:900;
   color:var(--gold2);
   animation:slideInDown .4s ease-out;
   letter-spacing:-.5px;
+  text-shadow:0 2px 8px rgba(201,162,39,.3);
 }
 
 .p-mrp{
@@ -2222,53 +2256,58 @@ footer{
 }
 
 .p-spec{
-  font-size:.78rem;
+  font-size:.88rem;
   color:var(--text2);
   margin-bottom:1rem;
-  line-height:1.5;
+  line-height:1.6;
   animation:fadeInUp .45s ease-out;
+  font-weight:500;
 }
 
 /* ADD TO CART BUTTON - ENHANCED */
 .p-add{
   width:100%;
-  padding:.7rem .6rem;
+  padding:.9rem .8rem;
   background:transparent;
-  border:2px solid var(--gold);
+  border:2.5px solid var(--gold);
   color:var(--gold);
-  border-radius:8px;
+  border-radius:10px;
   font-family:'Oswald',sans-serif;
-  font-size:.9rem;
-  font-weight:700;
-  letter-spacing:1.5px;
-  transition:all .35s cubic-bezier(.34, 1.56, .64, 1);
+  font-size:1rem;
+  font-weight:800;
+  letter-spacing:1.8px;
+  transition:all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  min-height:45px;
+  min-height:50px;
   display:flex;
   align-items:center;
   justify-content:center;
   position:relative;
   cursor:pointer;
+  text-transform:uppercase;
+  box-shadow:0 4px 15px rgba(201,162,39,.2);
+  will-change:transform,box-shadow,color;
 }
 
 .p-add::before{
   content:'';
   position:absolute;
   inset:0;
-  background:var(--gold);
+  background:linear-gradient(135deg, var(--gold), var(--gold2));
   transform:scaleX(0);
   transform-origin:left;
-  transition:transform .3s cubic-bezier(.34, 1.56, .64, 1);
+  transition:transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   z-index:-1;
-  border-radius:4px;
+  border-radius:8px;
 }
 
 .p-add:hover{
   color:var(--black);
-  box-shadow:0 8px 20px rgba(201,162,39,.35), inset 0 0 15px rgba(201,162,39,.1);
-  transform:translateY(-2px);
+  box-shadow:0 10px 25px rgba(201,162,39,.4);
+  transform:translateY(-2px) scale(1.02);
+  border-color:var(--gold2);
 }
 
 .p-add:hover::before{
@@ -2283,7 +2322,7 @@ footer{
   background:var(--gold);
   color:var(--black);
   box-shadow:0 8px 20px rgba(201,162,39,.35);
-  animation:pulse 1s ease-in-out infinite;
+  animation:pulse 0.6s ease-in-out infinite;
 }
 
 .p-add.added{
@@ -2295,18 +2334,23 @@ footer{
 
 @media(max-width:480px){
   .p-add{
-    font-size:.75rem;
-    padding:.5rem .3rem;
-    letter-spacing:.9px;
-    min-height:38px;
+    font-size:.92rem;
+    padding:.8rem .6rem;
+    letter-spacing:1.5px;
+    min-height:48px;
+    font-weight:800;
+    border:2.5px solid var(--gold);
   }
 }
 
 @media(max-width:360px){
   .p-add{
-    font-size:.7rem;
-    padding:.42rem .25rem;
-    min-height:34px;
+    font-size:.98rem;
+    padding:.95rem .7rem;
+    min-height:52px;
+    font-weight:800;
+    border:2.5px solid var(--gold);
+    letter-spacing:1.8px;
   }
 }
 
@@ -2978,7 +3022,7 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   .admin-stats{grid-template-columns:1fr 1fr}
   .footer-bottom{flex-direction:column;align-items:center;text-align:center}
   .footer-seals{justify-content:center;gap:.75rem}
-  .products-grid{grid-template-columns:repeat(2,1fr);gap:.6rem}
+  .products-grid{grid-template-columns:repeat(2,1fr);gap:.9rem}
   .checkout-page{padding:1.25rem .75rem}
   .checkout-section{padding:1.25rem .9rem}
   .form-grid{gap:.5rem}
@@ -2992,7 +3036,14 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   .hero-featured{flex-direction:column;padding:15px;gap:12px}
   .hf-right img{width:160px;margin-top:12px}
   .hf-btn{padding:10px;font-size:.85rem;margin:10px auto 0}
-  .p-card{border-radius:8px}
+  .p-card{border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);border:2px solid var(--border2)}
+  .p-img{height:280px;font-size:5.9rem}
+  .p-name{font-size:1.12rem;font-weight:800;margin-bottom:.65rem;letter-spacing:.2px}
+  .p-price{font-size:1.75rem;text-shadow:0 2px 8px rgba(201,162,39,.25)}
+  .p-spec{font-size:.88rem;font-weight:500;line-height:1.6}
+  .p-rating{margin-bottom:.7rem}
+  .p-add{padding:.88rem .75rem;font-size:.98rem;min-height:50px;border:2.5px solid var(--gold);letter-spacing:1.5px;font-weight:800}
+  .p-badge{padding:7px 13px;font-size:.76rem;font-weight:800;box-shadow:0 8px 22px rgba(0,0,0,.3)}
   .cat-nav{display:none}
   .sec-title{font-size:1.8rem}
   .hero-stats{gap:.8rem;font-size:.8rem}
@@ -3001,7 +3052,15 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
 @media(max-width:360px){
   .cat-cards{grid-template-columns:repeat(2,1fr)}
   .hero h1{font-size:1.5rem}
-  .products-grid{grid-template-columns:1fr}
+  .products-grid{grid-template-columns:1fr;gap:1.1rem}
+  .p-card{border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.2);border:2.5px solid var(--border2)}
+  .p-img{height:340px;font-size:6.2rem}
+  .p-name{font-size:1.25rem;font-weight:800;margin-bottom:.7rem;letter-spacing:.3px}
+  .p-price{font-size:1.9rem;text-shadow:0 2px 8px rgba(201,162,39,.3)}
+  .p-spec{font-size:.9rem;font-weight:500;line-height:1.6}
+  .p-rating{margin-bottom:.8rem}
+  .p-add{padding:1rem .8rem;font-size:1rem;min-height:52px;border:2.5px solid var(--gold);letter-spacing:2px;font-weight:800}
+  .p-badge{padding:8px 15px;font-size:.8rem;font-weight:800;top:16px;left:16px;box-shadow:0 10px 28px rgba(0,0,0,.35)}
   .btn-gold,.btn-outline{font-size:.65rem;padding:.35rem .5rem;height:36px}
   .cart-btn{padding:.35rem .65rem;height:36px}
   .checkout-steps .step{font-size:.6rem;padding:.4rem .3rem}
@@ -3348,6 +3407,16 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   50% { 
     box-shadow: 0 0 20px rgba(201,162,39,0.7);
     transform: scale(1.02);
+  }
+}
+
+/* PRODUCT HIGHLIGHT GLOW */
+@keyframes productGlow {
+  0%, 100% { 
+    box-shadow: 0 30px 70px rgba(201,162,39,.35), 0 0 45px rgba(201,162,39,.15);
+  }
+  50% { 
+    box-shadow: 0 30px 85px rgba(201,162,39,.5), 0 0 60px rgba(201,162,39,.25);
   }
 }
 
@@ -4271,91 +4340,6 @@ nav, .cart-drawer, .modal-overlay {
 <div class="page active" id="page-home">
 
   <!-- HERO -->
-  <section class="hero" aria-label="Hero banner">
-    <div class="hero-bg"></div>
-    <div class="hero-grid"></div>
-    <div class="hero-inner">
-      <div>
-        <div class="hero-tag">✦ OFFICIAL UA RIKON DEALER — INDIA</div>
-        <h1>Smart <em>Home Appliances</em><br>Built for India</h1>
-        <p class="hero-desc">From precision Infrared Induction Cooktops to powerful Air Coolers, crystal-clear LED TVs, quiet Fans & booming Home Theatre systems — UA ELECTRONICS brings you the complete home experience.</p>
-        <div class="hero-cta">
-          <button class="hero-btn hero-btn-gold" onclick="scrollToProducts()">SHOP NOW ⚡</button>
-          <button class="hero-btn hero-btn-ghost" onclick="showPage('about')">About Us</button>
-        </div>
-        <div class="hero-stats">
-          <div class="hero-stat"><div class="hero-stat-num">5+</div><div class="hero-stat-lbl">CATEGORIES</div></div>
-          <div class="hero-stat"><div class="hero-stat-num">1L+</div><div class="hero-stat-lbl">HAPPY HOMES</div></div>
-          <div class="hero-stat"><div class="hero-stat-num">28</div><div class="hero-stat-lbl">STATES SERVED</div></div>
-          <div class="hero-stat"><div class="hero-stat-num">4.7★</div><div class="hero-stat-lbl">AVG RATING</div></div>
-        </div>
-      </div>
-    <div class="hero-right">
-<div class="hero-featured">
-
-  <!-- LEFT SIDE -->
-  <div class="hf-left">
-    <div class="hf-badge">⭐ BESTSELLER</div>
-
-    <div class="hf-brand">UA RIKON</div>
-    <div class="hf-name">Infrared Induction Cooktop</div>
-    <div class="hf-spec">
-      Touch Control · 2000W · Multi-Function · Auto Shut-Off
-    </div>
-
-    <div class="hf-features">
-      <div class="hf-feat">Energy Efficient</div>
-      <div class="hf-feat">Fast Heating</div>
-      <div class="hf-feat">Touch Panel</div>
-      <div class="hf-feat">Safety Timer</div>
-    </div>
-
-    <div class="hf-price-row">
-      <span class="hf-price">₹2,499</span>
-      <span class="hf-mrp">₹3,499</span>
-      <span class="hf-off">29% OFF</span>
-    </div>
-
-    <!-- ✅ FIXED BUTTON -->
-    <button class="hf-btn">ADD TO CART</button>
-  </div>
-
-  <!-- RIGHT SIDE IMAGE -->
-  <div class="hf-right" style="cursor:pointer" onclick="openHeroGallery(1)">
-    <img src="Image/ind1.png" alt="Induction Cooktop" style="cursor:pointer">
-    <div style="position:absolute;bottom:12px;right:12px;background:rgba(201,162,39,0.9);color:var(--black);padding:0.5rem 1rem;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer">🖼️ View Images</div>
-  </div>
-
-</div>
-
-<!-- HERO GALLERY MODAL -->
-<div class="hero-gallery-modal-overlay" id="heroGalleryOverlay" style="display:none">
-  <div class="hero-gallery-modal" id="heroGalleryModal">
-    <button class="hero-gallery-close" onclick="closeHeroGallery()" aria-label="Close">✕</button>
-    <div class="hero-gallery-container">
-      <div class="hero-gallery-main" id="heroGalleryMain">
-        <img id="heroGalleryImg" src="" alt="" style="width:100%;height:100%;object-fit:contain;padding:1rem">
-      </div>
-      <div class="hero-gallery-thumbnails" id="heroGalleryThumbs"></div>
-    </div>
-  </div>
-</div>
-
-</div>
-    </div>
-  </section>
-
-  <!-- TRUST BAR -->
-  <div class="trust-bar">
-    <div class="trust-inner">
-      <div class="trust-item"><span>🚚</span> Free Delivery ₹999+</div>
-      <div class="trust-item"><span>🔄</span> 10-Day Returns</div>
-      <div class="trust-item"><span>✅</span> 100% Genuine</div>
-      <div class="trust-item"><span>🔧</span> 1 Year Warranty</div>
-      <div class="trust-item"><span>📞</span> 24/7 Support</div>
-      <div class="trust-item"><span>🔒</span> Secure Payments</div>
-    </div>
-  </div>
 
   <!-- PREMIUM CAROUSEL SECTION (SAMSUNG-STYLE) -->
  <div class="carousel-section" id="carouselSection">
@@ -4471,7 +4455,91 @@ nav, .cart-drawer, .modal-overlay {
       </div>
       <button class="hero-btn hero-btn-gold" onclick="scrollToProducts()">VIEW DEALS →</button>
     </div>
+ <section class="hero" aria-label="Hero banner">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-inner">
+      <div>
+        <div class="hero-tag">✦ OFFICIAL UA RIKON DEALER — INDIA</div>
+        <h1>Smart <em>Home Appliances</em><br>Built for India</h1>
+        <p class="hero-desc">From precision Infrared Induction Cooktops to powerful Air Coolers, crystal-clear LED TVs, quiet Fans & booming Home Theatre systems — UA ELECTRONICS brings you the complete home experience.</p>
+        <div class="hero-cta">
+          <button class="hero-btn hero-btn-gold" onclick="scrollToProducts()">SHOP NOW ⚡</button>
+          <button class="hero-btn hero-btn-ghost" onclick="showPage('about')">About Us</button>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><div class="hero-stat-num">5+</div><div class="hero-stat-lbl">CATEGORIES</div></div>
+          <div class="hero-stat"><div class="hero-stat-num">1L+</div><div class="hero-stat-lbl">HAPPY HOMES</div></div>
+          <div class="hero-stat"><div class="hero-stat-num">28</div><div class="hero-stat-lbl">STATES SERVED</div></div>
+          <div class="hero-stat"><div class="hero-stat-num">4.7★</div><div class="hero-stat-lbl">AVG RATING</div></div>
+        </div>
+      </div>
+    <div class="hero-right">
+<div class="hero-featured">
 
+  <!-- LEFT SIDE -->
+  <div class="hf-left">
+    <div class="hf-badge">⭐ BESTSELLER</div>
+
+    <div class="hf-brand">UA RIKON</div>
+    <div class="hf-name">Infrared Induction Cooktop</div>
+    <div class="hf-spec">
+      Touch Control · 2000W · Multi-Function · Auto Shut-Off
+    </div>
+
+    <div class="hf-features">
+      <div class="hf-feat">Energy Efficient</div>
+      <div class="hf-feat">Fast Heating</div>
+      <div class="hf-feat">Touch Panel</div>
+      <div class="hf-feat">Safety Timer</div>
+    </div>
+
+    <div class="hf-price-row">
+      <span class="hf-price">₹2,499</span>
+      <span class="hf-mrp">₹3,499</span>
+      <span class="hf-off">29% OFF</span>
+    </div>
+
+    <!-- ✅ FIXED BUTTON -->
+    <button class="hf-btn">ADD TO CART</button>
+  </div>
+
+  <!-- RIGHT SIDE IMAGE -->
+  <div class="hf-right" style="cursor:pointer" onclick="openHeroGallery(1)">
+    <img src="Image/ind1.png" alt="Induction Cooktop" style="cursor:pointer">
+    <div style="position:absolute;bottom:12px;right:12px;background:rgba(201,162,39,0.9);color:var(--black);padding:0.5rem 1rem;border-radius:6px;font-size:0.75rem;font-weight:600;cursor:pointer">🖼️ View Images</div>
+  </div>
+
+</div>
+
+<!-- HERO GALLERY MODAL -->
+<div class="hero-gallery-modal-overlay" id="heroGalleryOverlay" style="display:none">
+  <div class="hero-gallery-modal" id="heroGalleryModal">
+    <button class="hero-gallery-close" onclick="closeHeroGallery()" aria-label="Close">✕</button>
+    <div class="hero-gallery-container">
+      <div class="hero-gallery-main" id="heroGalleryMain">
+        <img id="heroGalleryImg" src="" alt="" style="width:100%;height:100%;object-fit:contain;padding:1rem">
+      </div>
+      <div class="hero-gallery-thumbnails" id="heroGalleryThumbs"></div>
+    </div>
+  </div>
+</div>
+
+</div>
+    </div>
+  </section>
+
+  <!-- TRUST BAR -->
+  <div class="trust-bar">
+    <div class="trust-inner">
+      <div class="trust-item"><span>🚚</span> Free Delivery ₹999+</div>
+      <div class="trust-item"><span>🔄</span> 10-Day Returns</div>
+      <div class="trust-item"><span>✅</span> 100% Genuine</div>
+      <div class="trust-item"><span>🔧</span> 1 Year Warranty</div>
+      <div class="trust-item"><span>📞</span> 24/7 Support</div>
+      <div class="trust-item"><span>🔒</span> Secure Payments</div>
+    </div>
+  </div>
     <!-- RIKON BAND -->
     <div class="rikon-band">
       <div class="rikon-inner">
