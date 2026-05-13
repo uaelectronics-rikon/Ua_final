@@ -19,7 +19,7 @@ if (!GMAIL_USER || !GMAIL_PASS) {
   console.error("2. Create a new App Password (16 characters)");
   console.error("3. Set in .env or Render environment:");
   console.error("   EMAIL_USER=rikon@uaelectronicsindia.com");
-  console.error("   EMAIL_PASS=<16-char-app-password>");
+  console.error("   EMAIL_PASS=gwcmibdvgqisenqt");
   console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 }
 
