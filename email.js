@@ -45,31 +45,25 @@ if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
   console.log("📧 Email service: SendGrid (SMTP)");
 } else if (GMAIL_USER && GMAIL_PASS) {
   console.log("✅ Initializing Gmail email service...");
-transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  family: 4, // Force IPv4 (VERY IMPORTANT)
+  transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    family: 4, // Force IPv4 (VERY IMPORTANT)
 
-  auth: {
-    user: GMAIL_USER,
-    pass: GMAIL_PASS
-  },
+    auth: {
+      user: GMAIL_USER,
+      pass: GMAIL_PASS
+    },
 
-  tls: {
-    rejectUnauthorized: false
-  },
+    tls: {
+      rejectUnauthorized: false
+    },
 
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
 
-  pool: true,
-  maxConnections: 5,
-  maxMessages: 100,
-  rateDelta: 2000,
-  rateLimit: 14
-});
     pool: {
       maxConnections: 5,
       maxMessages: 100,
@@ -79,7 +73,7 @@ transporter = nodemailer.createTransport({
     debug: process.env.NODE_ENV === 'development',
     logger: process.env.NODE_ENV === 'development'
   });
-  console.log("📧 Email service: Gmail SMTP (Port 465)");
+  console.log("📧 Email service: Gmail SMTP (Port 587)");
   console.log("📧 Account: " + GMAIL_USER);
 } else {
   console.error("❌ CRITICAL: No valid email service configured!");
