@@ -1,8 +1,8 @@
 const nodemailer = require("nodemailer");
 require('dotenv').config();
 
-const GMAIL_USER = process.env.EMAIL_USER;
-const GMAIL_PASS = process.env.EMAIL_PASS;
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_PASS = process.env.GMAIL_PASS;
 const EMAIL_SERVICE = (process.env.EMAIL_SERVICE || 'gmail').toLowerCase();
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 
@@ -45,18 +45,31 @@ if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
   console.log("📧 Email service: SendGrid (SMTP)");
 } else if (GMAIL_USER && GMAIL_PASS) {
   console.log("✅ Initializing Gmail email service...");
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: GMAIL_USER,
-      pass: GMAIL_PASS
-    },
-    tls: {
-      rejectUnauthorized: false
-    },
+transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  family: 4, // Force IPv4 (VERY IMPORTANT)
+
+  auth: {
+    user: GMAIL_USER,
+    pass: GMAIL_PASS
+  },
+
+  tls: {
+    rejectUnauthorized: false
+  },
+
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100,
+  rateDelta: 2000,
+  rateLimit: 14
+});
     pool: {
       maxConnections: 5,
       maxMessages: 100,
