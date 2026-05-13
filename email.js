@@ -4,22 +4,50 @@ require('dotenv').config();
 const GMAIL_USER = process.env.GMAIL_USER || "rikon@uaelectronicsindia.com";
 const GMAIL_PASS = process.env.GMAIL_PASS || "tyrrizfwnfxblmwc";
 
-const transporter = nodemailer.createTransporter({
-  service: 'gmail',
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: GMAIL_USER,
-    pass: GMAIL_PASS
-  },
-  pool: {
-    maxConnections: 5,
-    maxMessages: 100,
-    rateDelta: 4000,
-    rateLimit: 14
-  }
-});
+// Try SendGrid first (recommended for hosting), fallback to Gmail
+const EMAIL_SERVICE = process.env.EMAIL_SERVICE || 'sendgrid'; // 'sendgrid' or 'gmail'
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+
+let transporter;
+
+if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
+  // SendGrid configuration (recommended for hosting)
+  transporter = nodemailer.createTransport({
+    host: "smtp.sendgrid.net",
+    port: 587,
+    secure: false,
+    auth: {
+      user: "apikey",
+      pass: SENDGRID_API_KEY
+    },
+    pool: {
+      maxConnections: 5,
+      maxMessages: 100,
+      rateDelta: 4000,
+      rateLimit: 14
+    }
+  });
+  console.log("📧 Using SendGrid for email delivery");
+} else {
+  // Gmail fallback (may not work on hosting)
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+      user: GMAIL_USER,
+      pass: GMAIL_PASS
+    },
+    pool: {
+      maxConnections: 5,
+      maxMessages: 100,
+      rateDelta: 4000,
+      rateLimit: 14
+    }
+  });
+  console.log("📧 Using Gmail SMTP (may be blocked by hosting providers)");
+}
 
 // Verify connection on startup
 transporter.verify((error, success) => {
