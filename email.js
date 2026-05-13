@@ -1,8 +1,8 @@
 const nodemailer = require("nodemailer");
 require('dotenv').config();
 
-const GMAIL_USER = process.env.GMAIL_USER || "rikon@uaelectronicsindia.com";
-const GMAIL_PASS = process.env.GMAIL_PASS || "tyrrizfwnfxblmwc";
+const GMAIL_USER = process.env.EMAIL_USER || "rikon@uaelectronicsindia.com";
+const GMAIL_PASS = process.env.EMAIL_PASS || "sujlrraktxqvxnng";
 
 // Try SendGrid first (recommended for hosting), fallback to Gmail
 const EMAIL_SERVICE = (process.env.EMAIL_SERVICE || 'gmail').toLowerCase();
