@@ -1,16 +1,32 @@
 const nodemailer = require("nodemailer");
 require('dotenv').config();
 
-const GMAIL_USER = process.env.EMAIL_USER || "rikon@uaelectronicsindia.com";
-const GMAIL_PASS = process.env.EMAIL_PASS || "sujlrraktxqvxnng";
-
-// Try SendGrid first (recommended for hosting), fallback to Gmail
+const GMAIL_USER = process.env.EMAIL_USER;
+const GMAIL_PASS = process.env.EMAIL_PASS;
 const EMAIL_SERVICE = (process.env.EMAIL_SERVICE || 'gmail').toLowerCase();
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+
+// ============================================
+// VALIDATION: Check required environment variables
+// ============================================
+if (!GMAIL_USER || !GMAIL_PASS) {
+  console.error("\n❌ CRITICAL ERROR: Email credentials missing!");
+  console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.error("❌ EMAIL_USER (Gmail address) not set");
+  console.error("❌ EMAIL_PASS (Gmail App Password) not set");
+  console.error("\n🔧 HOW TO FIX:");
+  console.error("1. Go to: https://myaccount.google.com/apppasswords");
+  console.error("2. Create a new App Password (16 characters)");
+  console.error("3. Set in .env or Render environment:");
+  console.error("   EMAIL_USER=rikon@uaelectronicsindia.com");
+  console.error("   EMAIL_PASS=<16-char-app-password>");
+  console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+}
 
 let transporter;
 
 if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
+  console.log("✅ Initializing SendGrid email service...");
   transporter = nodemailer.createTransport({
     host: "smtp.sendgrid.net",
     port: 587,
@@ -26,8 +42,9 @@ if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
       rateLimit: 14
     }
   });
-  console.log("📧 Using SendGrid for email delivery");
-} else {
+  console.log("📧 Email service: SendGrid (SMTP)");
+} else if (GMAIL_USER && GMAIL_PASS) {
+  console.log("✅ Initializing Gmail email service...");
   transporter = nodemailer.createTransport({
     service: 'gmail',
     host: "smtp.gmail.com",
@@ -43,22 +60,62 @@ if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
     pool: {
       maxConnections: 5,
       maxMessages: 100,
-      rateDelta: 4000,
+      rateDelta: 2000,
       rateLimit: 14
-    }
+    },
+    debug: process.env.NODE_ENV === 'development',
+    logger: process.env.NODE_ENV === 'development'
   });
-  console.log("📧 Using Gmail SMTP with secure SSL on port 465 (Render-friendly configuration)");
+  console.log("📧 Email service: Gmail SMTP (Port 465)");
+  console.log("📧 Account: " + GMAIL_USER);
+} else {
+  console.error("❌ CRITICAL: No valid email service configured!");
+  console.error("   Supported: SendGrid (SENDGRID_API_KEY) or Gmail (EMAIL_USER + EMAIL_PASS)");
 }
 
-// Verify connection on startup
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ Email transporter verification failed:", error.message);
-    console.error("🔧 Check your GMAIL_USER and GMAIL_PASS in .env file");
-  } else {
-    console.log("✅ Email transporter ready and verified!");
-  }
-});
+// ============================================
+// CONNECTION VERIFICATION
+// ============================================
+if (transporter) {
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error("\n❌ EMAIL SERVICE VERIFICATION FAILED");
+      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.error("Error:", error.message);
+      console.error("Error Code:", error.code);
+      
+      if (error.code === 'EAUTH') {
+        console.error("\n🔧 AUTHENTICATION FAILED (EAUTH)");
+        console.error("   Possible causes:");
+        console.error("   1. EMAIL_PASS is not a Gmail App Password");
+        console.error("   2. Wrong email/password combination");
+        console.error("   3. 2FA not enabled on Gmail account");
+        console.error("\n📖 Solution:");
+        console.error("   1. Enable 2-Step Verification: https://myaccount.google.com/security");
+        console.error("   2. Create App Password: https://myaccount.google.com/apppasswords");
+        console.error("   3. Use the 16-character password in EMAIL_PASS");
+      } else if (error.code === 'ENOTFOUND') {
+        console.error("\n🔧 NETWORK ERROR (ENOTFOUND)");
+        console.error("   Cannot reach Gmail servers");
+        console.error("   Check internet connection");
+      } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
+        console.error("\n🔧 CONNECTION TIMEOUT (" + error.code + ")");
+        console.error("   Gmail server not responding");
+        console.error("   May work after server restart");
+      }
+      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+    } else {
+      console.log("\n✅ EMAIL SERVICE VERIFIED SUCCESSFULLY!");
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.log("✅ Account: " + GMAIL_USER);
+      console.log("✅ Ready to send emails");
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+    }
+  });
+} else {
+  console.error("\n❌ FATAL: Email transporter could not be initialized");
+  console.error("   Check your environment variables\n");
+}
 
 function validateEmail(email) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -68,33 +125,61 @@ function validateEmail(email) {
 async function sendEmailWithRetry(mailOptions, retries = 3, delay = 1000) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
+      console.log(`📤 Sending email (Attempt ${attempt}/${retries})...`);
+      console.log(`   To: ${mailOptions.to}`);
+      
       const info = await transporter.sendMail(mailOptions);
-      console.log(`✅ Email sent successfully on attempt ${attempt}:`, info.messageId);
+      
+      console.log(`✅ Email sent successfully on attempt ${attempt}`);
+      console.log(`   Message ID: ${info.messageId}`);
+      console.log(`   To: ${mailOptions.to}`);
+      
       return { success: true, messageId: info.messageId };
     } catch (error) {
-      console.error(`❌ Email attempt ${attempt} failed:`, error.message);
+      console.error(`\n❌ Email attempt ${attempt} FAILED`);
+      console.error(`   Error: ${error.message}`);
+      console.error(`   Code: ${error.code}`);
+      console.error(`   To: ${mailOptions.to}`);
 
       if (attempt < retries) {
-        console.log(`⏳ Retrying in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2; // Exponential backoff
+        const waitTime = delay * Math.pow(2, attempt - 1);
+        console.log(`⏳ Retrying in ${waitTime}ms... (Exponential backoff)`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
       } else {
-        // Final attempt failed - provide specific guidance
+        // Final attempt failed - provide detailed guidance
+        console.error("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.error("❌ All email sending attempts FAILED");
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        
         if (error.code === 'EAUTH') {
-          console.error('🔧 EAUTH Error: Check Gmail credentials in .env file');
-          console.error('🔧 Make sure App Password is correct and 2FA is enabled');
+          console.error('🔧 AUTHENTICATION ERROR (EAUTH)');
+          console.error('   • EMAIL_PASS must be a Gmail App Password (16 chars)');
+          console.error('   • Create one: https://myaccount.google.com/apppasswords');
+          console.error('   • Must have 2FA enabled first');
         } else if (error.code === 'ENOTFOUND') {
-          console.error('🔧 ENOTFOUND Error: Check internet connection');
-        } else if (error.code === 'ETIMEDOUT') {
-          console.error('🔧 ETIMEDOUT Error: Gmail servers may be busy, try again later');
+          console.error('🔧 NETWORK ERROR (ENOTFOUND)');
+          console.error('   • Cannot reach Gmail servers');
+          console.error('   • Check internet connection');
+          console.error('   • May be blocked by firewall/ISP');
+        } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
+          console.error('🔧 CONNECTION TIMEOUT (" + error.code + ")');
+          console.error('   • Gmail server is slow or not responding');
+          console.error('   • Try again in a few moments');
+          console.error('   • Consider using SendGrid as alternative');
+        } else {
+          console.error('🔧 UNKNOWN ERROR');
+          console.error('   • Check email credentials');
+          console.error('   • Verify Gmail account status');
+          console.error('   • Check .env or Render environment variables');
         }
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
         throw error;
       }
     }
   }
 }
 
-async function sendEmail(to, orderData) {
+async function sendEmail(to, orderData, pdfFilePath = null) {
   try {
     // Validate email before sending
     if (!validateEmail(to)) {
@@ -299,11 +384,37 @@ async function sendEmail(to, orderData) {
       text: `Order Confirmed\n\nOrder ID: ${orderData.orderId}\n\nThank you for your order from UA Electronics!\n\nItems:\n${orderData.items?.map(item => `- ${item.name} x${item.qty} = ₹${item.subtotal}`).join('\n') || 'N/A'}\n\nTotal: ₹${(orderData.grand || 0).toLocaleString('en-IN')}\n\nDelivery Address: ${orderData.customer?.addr1 || 'N/A'}, ${orderData.customer?.city || 'N/A'}\n\nFor any queries, contact support@uaelectronics.in`
     };
 
+    // Attach PDF if provided
+    if (pdfFilePath) {
+      const pathModule = require('path');
+      const fsModule = require('fs');
+      
+      // Check if file exists
+      if (fsModule.existsSync(pdfFilePath)) {
+        mailOptions.attachments = [
+          {
+            filename: `${orderData.orderId}-receipt.pdf`,
+            path: pdfFilePath,
+            contentType: 'application/pdf'
+          }
+        ];
+        console.log(`📎 PDF attached to email: ${pdfFilePath}`);
+      } else {
+        console.warn(`⚠️ PDF file not found at: ${pdfFilePath}`);
+      }
+    }
+
     const result = await sendEmailWithRetry(mailOptions);
+    console.log(`\\n✅ ORDER EMAIL SENT SUCCESSFULLY\\n   Order: ${orderData.orderId}\\n   Recipient: ${to}\\n`);
     return result.success;
   } catch (error) {
-    console.error("❌ Email sending failed after all retries:", error.message);
-    throw error; // Re-throw so caller can handle
+    console.error(`\\n❌ FAILED TO SEND EMAIL FOR ORDER: ${orderData.orderId}`);
+    console.error(`   Recipient: ${to}`);
+    console.error(`   Error: ${error.message}\\n`);
+    
+    // Don't re-throw - let the order be saved even if email fails
+    // The error is already logged
+    return false;
   }
 }
 

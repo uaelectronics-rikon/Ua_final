@@ -173,7 +173,7 @@ function generateOrderPDF(orderData) {
         console.log("✅ PDF saved:", filePath);
         if (!resolved) {
           resolved = true;
-          resolve({ success: true, fileName, filePath: `/Orders/${fileName}` });
+          resolve({ success: true, fileName, filePath: filePath, urlPath: `/Orders/${fileName}` });
         }
       });
 
@@ -333,23 +333,29 @@ app.post("/save-order", async (req, res) => {
 
     console.log("✅ Order saved successfully:", newOrder.orderId);
 
-    // 📩 Send Email - await for completion before responding
+    // � Generate PDF FIRST - before sending email
+    let pdfFilePath = null;
     try {
-      if (newOrder.customer?.email) {
-        await sendEmail(newOrder.customer.email, newOrder);
-        console.log("✅ Email sent successfully for order:", newOrder.orderId);
+      if (newOrder.orderId) {
+        const pdfResult = await generateOrderPDF(newOrder);
+        pdfFilePath = pdfResult.filePath;
+        console.log("✅ PDF generated successfully:", pdfFilePath);
       }
-    } catch (emailError) {
-      console.error("❌ Email sending failed:", emailError.message);
-      // Don't fail the order if email fails, but log it
+    } catch (pdfError) {
+      console.error("⚠️ PDF generation error:", pdfError.message);
+      // Continue with email even if PDF generation fails
     }
 
-    // 📄 Generate PDF - async
-    if (newOrder.orderId) {
-      // Call PDF generation in background
-      generateOrderPDF(newOrder).catch(err => {
-        console.error("⚠️ PDF generation error:", err.message);
-      });
+    // 📩 Send Email with PDF attachment
+    if (newOrder.customer?.email) {
+      const emailSent = await sendEmail(newOrder.customer.email, newOrder, pdfFilePath);
+      if (emailSent) {
+        console.log("✅ Order confirmation email sent successfully:", newOrder.orderId);
+      } else {
+        console.warn("⚠️ Email send failed but order was saved. Customer may not receive confirmation.");
+      }
+    } else {
+      console.warn("⚠️ No customer email provided - skipping email notification");
     }
 
     res.json({ success: true, orderId: newOrder.orderId, message: "Order placed successfully" });
@@ -627,7 +633,8 @@ app.post("/test-email", async (req, res) => {
       return res.status(400).json({ error: "Email address required", success: false });
     }
 
-    console.log("📧 Testing email to:", email);
+    console.log("\n📧 SENDING TEST EMAIL");
+    console.log("   Recipient:", email);
 
     const testOrder = {
       orderId: 'TEST-' + Date.now(),
@@ -659,11 +666,25 @@ app.post("/test-email", async (req, res) => {
       status: 'Confirmed'
     };
 
-    await sendEmail(email, testOrder);
-    console.log("✅ Test email sent successfully to:", email);
-    res.json({ success: true, message: "Test email sent successfully", recipient: email });
+    const emailSent = await sendEmail(email, testOrder);
+    
+    if (emailSent) {
+      console.log("✅ TEST EMAIL SENT SUCCESSFULLY\n");
+      res.json({ 
+        success: true, 
+        message: "✅ Test email sent successfully! Check your inbox (and spam folder) in 1-2 minutes.", 
+        recipient: email 
+      });
+    } else {
+      console.log("❌ TEST EMAIL FAILED - Check logs above for details\n");
+      res.status(500).json({ 
+        success: false, 
+        error: "Email send failed", 
+        details: "Check server logs for detailed error messages"
+      });
+    }
   } catch (error) {
-    console.error("❌ Test email failed:", error.message);
+    console.error("❌ Test email exception:", error.message);
     res.status(500).json({ 
       success: false, 
       error: "Failed to send test email", 
