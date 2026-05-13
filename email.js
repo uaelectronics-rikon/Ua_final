@@ -1,17 +1,77 @@
 const nodemailer = require("nodemailer");
+require('dotenv').config();
 
-const transporter = nodemailer.createTransport({
+const GMAIL_USER = process.env.GMAIL_USER || "rikon@uaelectronicsindia.com";
+const GMAIL_PASS = process.env.GMAIL_PASS || "tyrrizfwnfxblmwc";
+
+const transporter = nodemailer.createTransporter({
+  service: 'gmail',
   host: "smtp.gmail.com",
   port: 587,
   secure: false,
   auth: {
-    user: "rikon@uaelectronicsindia.com",
-    pass: "oyuhmygqokqcyegh"
+    user: GMAIL_USER,
+    pass: GMAIL_PASS
+  },
+  pool: {
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 4000,
+    rateLimit: 14
   }
 });
 
+// Verify connection on startup
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ Email transporter verification failed:", error.message);
+    console.error("🔧 Check your GMAIL_USER and GMAIL_PASS in .env file");
+  } else {
+    console.log("✅ Email transporter ready and verified!");
+  }
+});
+
+function validateEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+async function sendEmailWithRetry(mailOptions, retries = 3, delay = 1000) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`✅ Email sent successfully on attempt ${attempt}:`, info.messageId);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      console.error(`❌ Email attempt ${attempt} failed:`, error.message);
+
+      if (attempt < retries) {
+        console.log(`⏳ Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // Exponential backoff
+      } else {
+        // Final attempt failed - provide specific guidance
+        if (error.code === 'EAUTH') {
+          console.error('🔧 EAUTH Error: Check Gmail credentials in .env file');
+          console.error('🔧 Make sure App Password is correct and 2FA is enabled');
+        } else if (error.code === 'ENOTFOUND') {
+          console.error('🔧 ENOTFOUND Error: Check internet connection');
+        } else if (error.code === 'ETIMEDOUT') {
+          console.error('🔧 ETIMEDOUT Error: Gmail servers may be busy, try again later');
+        }
+        throw error;
+      }
+    }
+  }
+}
+
 async function sendEmail(to, orderData) {
   try {
+    // Validate email before sending
+    if (!validateEmail(to)) {
+      throw new Error(`Invalid email address: ${to}`);
+    }
+
     // Format items table
     let itemsHtml = '';
     if (orderData.items && orderData.items.length > 0) {
@@ -29,10 +89,10 @@ async function sendEmail(to, orderData) {
     }
 
     const customerName = orderData.customer?.name || 'Valued Customer';
-    const orderDate = new Date(orderData.date).toLocaleDateString('en-IN', { 
-      day: '2-digit', 
-      month: 'short', 
-      year: 'numeric' 
+    const orderDate = new Date(orderData.date).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
     });
 
     const emailHTML = `
@@ -59,7 +119,7 @@ async function sendEmail(to, orderData) {
           .items-table th { background: #C9A227; color: #080808; padding: 12px; text-align: left; font-weight: bold; }
           .items-table td { padding: 10px; border-bottom: 1px solid #eee; }
           .items-table th:nth-child(2), .items-table td:nth-child(2) { text-align: center; }
-          .items-table th:nth-child(3), .items-table td:nth-child(3), 
+          .items-table th:nth-child(3), .items-table td:nth-child(3),
           .items-table th:nth-child(4), .items-table td:nth-child(4) { text-align: right; }
           .totals { background: #fff; padding: 20px; border-radius: 4px; margin-bottom: 20px; }
           .total-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
@@ -192,18 +252,31 @@ async function sendEmail(to, orderData) {
       </html>
     `;
 
-    const info = await transporter.sendMail({
-      from: '"UA Electronics" <rikon@uaelectronicsindia.com>',
+    const mailOptions = {
+      from: {
+        name: 'UA Electronics',
+        email: GMAIL_USER
+      },
       to: to,
-      subject: `Order Confirmed - ${orderData.orderId} | UA Electronics`,
-      html: emailHTML
-    });
+      subject: `Order Confirmed - ${orderData.orderId} | UA Electronics India`,
+      html: emailHTML,
+      // Headers to improve deliverability and prevent spam
+      headers: {
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'high',
+        'X-Mailer': 'UA-Electronics-OrderSystem/1.0',
+        'List-Unsubscribe': '<mailto:support@uaelectronics.in?subject=unsubscribe>'
+      },
+      // Add text version too for better compatibility
+      text: `Order Confirmed\n\nOrder ID: ${orderData.orderId}\n\nThank you for your order from UA Electronics!\n\nItems:\n${orderData.items?.map(item => `- ${item.name} x${item.qty} = ₹${item.subtotal}`).join('\n') || 'N/A'}\n\nTotal: ₹${(orderData.grand || 0).toLocaleString('en-IN')}\n\nDelivery Address: ${orderData.customer?.addr1 || 'N/A'}, ${orderData.customer?.city || 'N/A'}\n\nFor any queries, contact support@uaelectronics.in`
+    };
 
-    console.log("✅ Email sent successfully:", info.response);
-    return true;
+    const result = await sendEmailWithRetry(mailOptions);
+    return result.success;
   } catch (error) {
-    console.log("❌ Email Error:", error.message);
-    return false;
+    console.error("❌ Email sending failed after all retries:", error.message);
+    throw error; // Re-throw so caller can handle
   }
 }
 

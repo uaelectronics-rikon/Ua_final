@@ -315,7 +315,7 @@ function generateOrderPDF(orderData) {
 }
 
 
-app.post("/save-order", (req, res) => {
+app.post("/save-order", async (req, res) => {
   try {
     const newOrder = req.body;
 
@@ -351,14 +351,18 @@ app.post("/save-order", (req, res) => {
 
     orders.push(newOrder);
     fs.writeFileSync(DATA_FILE, JSON.stringify(orders, null, 2));
-    
+
     console.log("✅ Order saved successfully:", newOrder.orderId);
 
-    // 📩 Send Email - async, don't wait for it
-    if (newOrder.customer?.email) {
-      sendEmail(newOrder.customer.email, newOrder).catch(err => {
-        console.error("⚠️ Email sending error:", err.message);
-      });
+    // 📩 Send Email - await for completion before responding
+    try {
+      if (newOrder.customer?.email) {
+        await sendEmail(newOrder.customer.email, newOrder);
+        console.log("✅ Email sent successfully for order:", newOrder.orderId);
+      }
+    } catch (emailError) {
+      console.error("❌ Email sending failed:", emailError.message);
+      // Don't fail the order if email fails, but log it
     }
 
     // 📄 Generate PDF - async
