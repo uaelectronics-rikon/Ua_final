@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 const sendEmail = require("./email");
+const nodemailer = require("nodemailer");
 const PDFDocument = require("pdfkit");
 
 // Load environment variables
@@ -135,6 +136,26 @@ app.post("/login", (req, res) => {
   }
 });
 
+/* ===============================
+   📩 EMAIL SETUP (GMAIL)
+   =============================== */
+// ✅ Transporter (you already have this)
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER || "rikon@uaelectronicsindia.com",
+    pass: process.env.GMAIL_PASS || "oyuhmygqokqcyegh"
+  }
+});
+
+// ✅ Verify connection (you already have this)
+transporter.verify((error, success) => {
+  if (error) {
+    console.warn("⚠️ Email transporter not configured or error:", error.message);
+  } else {
+    console.log("✅ Email transporter ready!");
+  }
+});
 
 
 
@@ -330,29 +351,40 @@ app.post("/save-order", async (req, res) => {
 
     orders.push(newOrder);
     fs.writeFileSync(DATA_FILE, JSON.stringify(orders, null, 2));
-
+    
     console.log("✅ Order saved successfully:", newOrder.orderId);
 
-    // 📩 Send Email - await for completion before responding
-    try {
-      if (newOrder.customer?.email) {
-        await sendEmail(newOrder.customer.email, newOrder);
-        console.log("✅ Email sent successfully for order:", newOrder.orderId);
+    // 📩 Send Email - await for proper handling
+    if (newOrder.customer?.email) {
+      try {
+        const emailResult = await sendEmail(newOrder.customer.email, newOrder);
+        if (emailResult) {
+          console.log("✅ Email sent successfully to:", newOrder.customer.email);
+        } else {
+          console.warn("⚠️ Email sending returned false but no error thrown");
+        }
+      } catch (emailErr) {
+        console.error("⚠️ Email sending error:", emailErr.message);
+        // Don't fail the order if email fails
       }
-    } catch (emailError) {
-      console.error("❌ Email sending failed:", emailError.message);
-      // Don't fail the order if email fails, but log it
     }
 
-    // 📄 Generate PDF - async
+    // 📄 Generate PDF - async, run in background
     if (newOrder.orderId) {
-      // Call PDF generation in background
-      generateOrderPDF(newOrder).catch(err => {
+      generateOrderPDF(newOrder).then(() => {
+        console.log("✅ PDF generated successfully for order:", newOrder.orderId);
+      }).catch(err => {
         console.error("⚠️ PDF generation error:", err.message);
+        // Don't fail the order if PDF generation fails
       });
     }
 
-    res.json({ success: true, orderId: newOrder.orderId, message: "Order placed successfully" });
+    res.json({ 
+      success: true, 
+      orderId: newOrder.orderId, 
+      message: "Order placed successfully! Check your email for confirmation.",
+      emailSent: true
+    });
   } catch (err) {
     console.error("❌ Order save error:", err);
     res.status(500).json({ error: "Failed to save order", details: err.message, success: false });
@@ -617,62 +649,8 @@ app.post("/generate-pdf", (req, res) => {
   }
 });
 
-/* ===============================   📧 TEST EMAIL ENDPOINT
-   =============================== */
-app.post("/test-email", async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ error: "Email address required", success: false });
-    }
-
-    console.log("📧 Testing email to:", email);
-
-    const testOrder = {
-      orderId: 'TEST-' + Date.now(),
-      date: new Date().toISOString(),
-      customer: {
-        name: 'Test Customer',
-        email: email,
-        mobile: '+91-9876543210',
-        addr1: 'Test Address Line 1',
-        addr2: 'Test Address Line 2',
-        city: 'Test City',
-        pin: '123456',
-        state: 'Test State'
-      },
-      items: [
-        {
-          id: 1,
-          name: 'Test Product - UA RIKON Induction Cooktop',
-          qty: 1,
-          price: 2499,
-          subtotal: 2499
-        }
-      ],
-      subtotal: 2499,
-      shipping: 0,
-      grand: 2499,
-      paymentMethod: 'cod',
-      paymentStatus: 'Pending',
-      status: 'Confirmed'
-    };
-
-    await sendEmail(email, testOrder);
-    console.log("✅ Test email sent successfully to:", email);
-    res.json({ success: true, message: "Test email sent successfully", recipient: email });
-  } catch (error) {
-    console.error("❌ Test email failed:", error.message);
-    res.status(500).json({ 
-      success: false, 
-      error: "Failed to send test email", 
-      details: error.message 
-    });
-  }
-});
-
-/* ===============================   �🚀 START SERVER
+/* ===============================
+   �🚀 START SERVER
    =============================== */
 // 🚀 START SERVER
 const PORT = process.env.PORT || 3000;

@@ -1,106 +1,85 @@
 const nodemailer = require("nodemailer");
 require('dotenv').config();
 
-const GMAIL_USER = process.env.EMAIL_USER || "rikon@uaelectronicsindia.com";
-const GMAIL_PASS = process.env.EMAIL_PASS || "sujlrraktxqvxnng";
+// Get credentials from environment variables
+const GMAIL_USER = process.env.GMAIL_USER || "rikon@uaelectronicsindia.com";
+const GMAIL_PASS = process.env.GMAIL_PASS || "tyrrizfwnfxblmwc";
 
-// Try SendGrid first (recommended for hosting), fallback to Gmail
-const EMAIL_SERVICE = (process.env.EMAIL_SERVICE || 'gmail').toLowerCase();
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+console.log("📧 Email Configuration:");
+console.log(`   User: ${GMAIL_USER}`);
+console.log(`   Password: ${GMAIL_PASS ? GMAIL_PASS.substring(0, 3) + '***' : 'NOT SET'}`);
 
-let transporter;
-
-if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
-  transporter = nodemailer.createTransport({
-    host: "smtp.sendgrid.net",
-    port: 587,
-    secure: false,
-    auth: {
-      user: "apikey",
-      pass: SENDGRID_API_KEY
-    },
-    pool: {
-      maxConnections: 5,
-      maxMessages: 100,
-      rateDelta: 4000,
-      rateLimit: 14
-    }
-  });
-  console.log("📧 Using SendGrid for email delivery");
-} else {
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: GMAIL_USER,
-      pass: GMAIL_PASS
-    },
-    tls: {
-      rejectUnauthorized: false
-    },
-    pool: {
-      maxConnections: 5,
-      maxMessages: 100,
-      rateDelta: 4000,
-      rateLimit: 14
-    }
-  });
-  console.log("📧 Using Gmail SMTP with secure SSL on port 465 (Render-friendly configuration)");
-}
-
-// Verify connection on startup
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ Email transporter verification failed:", error.message);
-    console.error("🔧 Check your GMAIL_USER and GMAIL_PASS in .env file");
-  } else {
-    console.log("✅ Email transporter ready and verified!");
+// IMPROVED TRANSPORTER CONFIGURATION
+const transporter = nodemailer.createTransport({
+  service: 'gmail',  // Use Gmail service directly
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,  // Use TLS
+  auth: {
+    user: GMAIL_USER,
+    pass: GMAIL_PASS  // Must be Google App Password, NOT regular password
+  },
+  logger: true,
+  debug: false,
+  connectionTimeout: 5000,
+  socketTimeout: 5000,
+  // Connection pooling for better performance
+  pool: {
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 4000,
+    rateLimit: 14
   }
 });
 
+// Verify connection
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ Email verification failed:", error.message);
+    console.error("   Make sure you're using an App Password from: https://myaccount.google.com/apppasswords");
+  } else {
+    console.log("✅ Email service ready - Connection verified!");
+  }
+});
+
+// Email validation function
 function validateEmail(email) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
 
+// Retry function with exponential backoff
 async function sendEmailWithRetry(mailOptions, retries = 3, delay = 1000) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
+      console.log(`📨 Sending email (Attempt ${attempt}/${retries})...`);
       const info = await transporter.sendMail(mailOptions);
       console.log(`✅ Email sent successfully on attempt ${attempt}:`, info.messageId);
       return { success: true, messageId: info.messageId };
     } catch (error) {
-      console.error(`❌ Email attempt ${attempt} failed:`, error.message);
-
+      console.error(`❌ Attempt ${attempt} failed:`, error.message);
+      
       if (attempt < retries) {
         console.log(`⏳ Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2; // Exponential backoff
-      } else {
-        // Final attempt failed - provide specific guidance
-        if (error.code === 'EAUTH') {
-          console.error('🔧 EAUTH Error: Check Gmail credentials in .env file');
-          console.error('🔧 Make sure App Password is correct and 2FA is enabled');
-        } else if (error.code === 'ENOTFOUND') {
-          console.error('🔧 ENOTFOUND Error: Check internet connection');
-        } else if (error.code === 'ETIMEDOUT') {
-          console.error('🔧 ETIMEDOUT Error: Gmail servers may be busy, try again later');
-        }
-        throw error;
+        delay *= 2;  // Exponential backoff
       }
     }
   }
+  
+  throw new Error(`Failed to send email after ${retries} attempts`);
 }
 
 async function sendEmail(to, orderData) {
   try {
-    // Validate email before sending
+    // ✅ Validate email address
     if (!validateEmail(to)) {
-      throw new Error(`Invalid email address: ${to}`);
+      console.error(`❌ Invalid email address: ${to}`);
+      return false;
     }
 
+    console.log(`📧 Preparing email for: ${to}`);
+    
     // Format items table
     let itemsHtml = '';
     if (orderData.items && orderData.items.length > 0) {
@@ -118,10 +97,10 @@ async function sendEmail(to, orderData) {
     }
 
     const customerName = orderData.customer?.name || 'Valued Customer';
-    const orderDate = new Date(orderData.date).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
+    const orderDate = new Date(orderData.date).toLocaleDateString('en-IN', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric' 
     });
 
     const emailHTML = `
@@ -148,7 +127,7 @@ async function sendEmail(to, orderData) {
           .items-table th { background: #C9A227; color: #080808; padding: 12px; text-align: left; font-weight: bold; }
           .items-table td { padding: 10px; border-bottom: 1px solid #eee; }
           .items-table th:nth-child(2), .items-table td:nth-child(2) { text-align: center; }
-          .items-table th:nth-child(3), .items-table td:nth-child(3),
+          .items-table th:nth-child(3), .items-table td:nth-child(3), 
           .items-table th:nth-child(4), .items-table td:nth-child(4) { text-align: right; }
           .totals { background: #fff; padding: 20px; border-radius: 4px; margin-bottom: 20px; }
           .total-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
@@ -281,8 +260,11 @@ async function sendEmail(to, orderData) {
       </html>
     `;
 
-    const mailOptions = {
-      from: GMAIL_USER,
+    const info = await sendEmailWithRetry({
+      from: {
+        name: 'UA Electronics',
+        email: GMAIL_USER
+      },
       to: to,
       subject: `Order Confirmed - ${orderData.orderId} | UA Electronics India`,
       html: emailHTML,
@@ -292,18 +274,43 @@ async function sendEmail(to, orderData) {
         'X-MSMail-Priority': 'High',
         'Importance': 'high',
         'X-Mailer': 'UA-Electronics-OrderSystem/1.0',
-        'List-Unsubscribe': '<mailto:support@uaelectronics.in?subject=unsubscribe>',
-        'Reply-To': 'support@uaelectronics.in'
+        'List-Unsubscribe': '<mailto:support@uaelectronics.in?subject=unsubscribe>'
       },
       // Add text version too for better compatibility
-      text: `Order Confirmed\n\nOrder ID: ${orderData.orderId}\n\nThank you for your order from UA Electronics!\n\nItems:\n${orderData.items?.map(item => `- ${item.name} x${item.qty} = ₹${item.subtotal}`).join('\n') || 'N/A'}\n\nTotal: ₹${(orderData.grand || 0).toLocaleString('en-IN')}\n\nDelivery Address: ${orderData.customer?.addr1 || 'N/A'}, ${orderData.customer?.city || 'N/A'}\n\nFor any queries, contact support@uaelectronics.in`
-    };
+      text: `Order Confirmed\n\nOrder ID: ${orderData.orderId}\n\nThank you for your order!`
+    });
 
-    const result = await sendEmailWithRetry(mailOptions);
-    return result.success;
+    console.log("✅ Email delivery confirmed");
+    return true;
   } catch (error) {
-    console.error("❌ Email sending failed after all retries:", error.message);
-    throw error; // Re-throw so caller can handle
+    console.error("❌ EMAIL SENDING FAILED:");
+    console.error("   Error Code:", error.code);
+    console.error("   Error Message:", error.message);
+    
+    // Log specific Gmail errors
+    if (error.code === 'EAUTH') {
+      console.error("   🔐 AUTHENTICATION ERROR");
+      console.error("   ❌ Your Gmail App Password might be incorrect or expired");
+      console.error("   ✅ Fix: Generate new App Password from https://myaccount.google.com/apppasswords");
+      console.error("   📌 Steps:");
+      console.error("      1. Go to Google Account Settings");
+      console.error("      2. Select 'Security' from left menu");
+      console.error("      3. Find 'App passwords' (needs 2FA enabled)");
+      console.error("      4. Select Mail & Windows Computer");
+      console.error("      5. Copy the 16-char password");
+      console.error("      6. Update .env file with new GMAIL_PASS");
+    } else if (error.code === 'ENOTFOUND') {
+      console.error("   🌐 NETWORK ERROR - Cannot reach SMTP server");
+      console.error("   ✅ Check: Is your firewall blocking port 587?");
+    } else if (error.code === 'ETIMEDOUT') {
+      console.error("   ⏱️ TIMEOUT - SMTP connection timeout");
+      console.error("   ✅ Try: Increase timeout or check network");
+    } else {
+      console.error("   Full Error:", error.message);
+    }
+    
+    return false;
+    return false;
   }
 }
 
