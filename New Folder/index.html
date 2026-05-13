@@ -442,6 +442,12 @@ nav{position:sticky;top:0;z-index:900;background:rgba(8,8,8,.97);backdrop-filter
   box-shadow:0 4px 12px rgba(201,162,39,.35);
 }
 
+@keyframes bounceScale{
+  0%{transform:scale(0.3);opacity:0}
+  50%{transform:scale(1.2)}
+  100%{transform:scale(1);opacity:1}
+}
+
 /* THEME TOGGLE */
 .theme-toggle{
   position:relative;
@@ -5970,17 +5976,23 @@ function updateCartCount() {
     const t = cart.reduce((s, c) => s + c.qty, 0);
     const counterEl = document.getElementById('cartCount');
     if (counterEl) {
-      counterEl.textContent = t;
+      counterEl.textContent = t > 0 ? t : '0';
+      // Add animation
+      if (t > 0) {
+        counterEl.style.animation = 'none';
+        setTimeout(() => {
+          counterEl.style.animation = 'bounceScale 0.4s ease-out';
+        }, 10);
+      }
     }
     const headerEl = document.getElementById('cartItemCount');
     if (headerEl) {
-      headerEl.textContent = t;
+      headerEl.textContent = t > 0 ? t : '0';
     }
     console.log('🛒 Cart count updated:', t, 'items');
   } catch(e) {
     console.error('❌ Error updating cart count:', e);
   }
-  document.getElementById('cartItemCount').textContent = t;
 }
 
 function openCart() {
@@ -7543,6 +7555,31 @@ setTimeout(function() {
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="checkout.js"></script>
+
+<!-- ========== CART DRAWER ========== -->
+<div class="drawer-backdrop" id="drawerBackdrop" onclick="closeCart()"></div>
+
+<div class="cart-drawer" id="cartDrawer">
+  <div class="cart-hd">
+    <h3>🛒 Your Cart</h3>
+    <button class="cart-x" onclick="closeCart()" title="Close cart">✕</button>
+  </div>
+  
+  <div class="cart-body" id="cartBody">
+    <!-- Cart items will be rendered here -->
+  </div>
+  
+  <div class="cart-ft" id="cartFt" style="display:none">
+    <div class="cart-total-row">
+      <span>Total:</span>
+      <strong id="cartTotal">₹0</strong>
+    </div>
+    <div id="cartSave" class="cart-save"></div>
+    <button class="checkout-b" onclick="goCheckout()">PROCEED TO CHECKOUT →</button>
+    <button class="clear-cart-btn" onclick="clearCart()">🗑 CLEAR CART</button>
+  </div>
+</div>
+
 <script>
 let currentSlide = 0;
 const slides = document.querySelectorAll(".carousel-slide");

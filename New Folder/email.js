@@ -1,13 +1,24 @@
 const nodemailer = require("nodemailer");
+require('dotenv').config();
+
+// Get credentials from environment variables
+const GMAIL_USER = process.env.GMAIL_USER || "rikon@uaelectronicsindia.com";
+const GMAIL_PASS = process.env.GMAIL_PASS || "oyuhmygqokqcyegh";
+
+console.log("📧 Email Configuration:");
+console.log(`   User: ${GMAIL_USER}`);
+console.log(`   Password: ${GMAIL_PASS ? GMAIL_PASS.substring(0, 3) + '***' : 'NOT SET'}`);
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
   secure: false,
   auth: {
-    user: "rikon@uaelectronicsindia.com",
-    pass: "oyuhmygqokqcyegh"
-  }
+    user: GMAIL_USER,
+    pass: GMAIL_PASS
+  },
+  logger: true,
+  debug: true
 });
 
 async function sendEmail(to, orderData) {
@@ -202,7 +213,21 @@ async function sendEmail(to, orderData) {
     console.log("✅ Email sent successfully:", info.response);
     return true;
   } catch (error) {
-    console.log("❌ Email Error:", error.message);
+    console.error("❌ EMAIL ERROR DETAILS:");
+    console.error("   Error Code:", error.code);
+    console.error("   Error Message:", error.message);
+    console.error("   Full Error:", error);
+    
+    // Log specific Gmail errors
+    if (error.code === 'EAUTH') {
+      console.error("   🔐 AUTHENTICATION ERROR - Check Gmail credentials and app password");
+      console.error("   📌 Go to: https://myaccount.google.com/apppasswords");
+    } else if (error.code === 'ENOTFOUND') {
+      console.error("   🌐 NETWORK ERROR - Cannot reach SMTP server (firewall/network blocked)");
+    } else if (error.code === 'ETIMEDOUT') {
+      console.error("   ⏱️ TIMEOUT ERROR - SMTP connection timeout");
+    }
+    
     return false;
   }
 }
