@@ -5,13 +5,12 @@ const GMAIL_USER = process.env.GMAIL_USER || "rikon@uaelectronicsindia.com";
 const GMAIL_PASS = process.env.GMAIL_PASS || "tyrrizfwnfxblmwc";
 
 // Try SendGrid first (recommended for hosting), fallback to Gmail
-const EMAIL_SERVICE = process.env.EMAIL_SERVICE || 'sendgrid'; // 'sendgrid' or 'gmail'
+const EMAIL_SERVICE = (process.env.EMAIL_SERVICE || 'gmail').toLowerCase();
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 
 let transporter;
 
 if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
-  // SendGrid configuration (recommended for hosting)
   transporter = nodemailer.createTransport({
     host: "smtp.sendgrid.net",
     port: 587,
@@ -29,15 +28,17 @@ if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
   });
   console.log("📧 Using SendGrid for email delivery");
 } else {
-  // Gmail fallback (may not work on hosting)
   transporter = nodemailer.createTransport({
     service: 'gmail',
     host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
+    port: 465,
+    secure: true,
     auth: {
       user: GMAIL_USER,
       pass: GMAIL_PASS
+    },
+    tls: {
+      rejectUnauthorized: false
     },
     pool: {
       maxConnections: 5,
@@ -46,7 +47,7 @@ if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
       rateLimit: 14
     }
   });
-  console.log("📧 Using Gmail SMTP (may be blocked by hosting providers)");
+  console.log("📧 Using Gmail SMTP with secure SSL on port 465 (Render-friendly configuration)");
 }
 
 // Verify connection on startup
@@ -281,10 +282,7 @@ async function sendEmail(to, orderData) {
     `;
 
     const mailOptions = {
-      from: {
-        name: 'UA Electronics',
-        email: GMAIL_USER
-      },
+      from: `UA Electronics <${GMAIL_USER}>`,
       to: to,
       subject: `Order Confirmed - ${orderData.orderId} | UA Electronics India`,
       html: emailHTML,

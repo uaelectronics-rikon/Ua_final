@@ -3,7 +3,6 @@ const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 const sendEmail = require("./email");
-const nodemailer = require("nodemailer");
 const PDFDocument = require("pdfkit");
 
 // Load environment variables
@@ -136,26 +135,6 @@ app.post("/login", (req, res) => {
   }
 });
 
-/* ===============================
-   📩 EMAIL SETUP (GMAIL)
-   =============================== */
-// ✅ Transporter (you already have this)
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER || "rikon@uaelectronicsindia.com",
-    pass: process.env.GMAIL_PASS || "oyuhmygqokqcyegh"
-  }
-});
-
-// ✅ Verify connection (you already have this)
-transporter.verify((error, success) => {
-  if (error) {
-    console.warn("⚠️ Email transporter not configured or error:", error.message);
-  } else {
-    console.log("✅ Email transporter ready!");
-  }
-});
 
 
 
