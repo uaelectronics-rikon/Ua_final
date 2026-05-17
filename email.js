@@ -1,8 +1,9 @@
 const nodemailer = require("nodemailer");
 require('dotenv').config();
 
-const GMAIL_USER = process.env.GMAIL_USER;
-const GMAIL_PASS = process.env.GMAIL_PASS;
+// ✅ FIX 1: Use EMAIL_USER / EMAIL_PASS (matches .env and server.js)
+const GMAIL_USER = process.env.EMAIL_USER;
+const GMAIL_PASS = process.env.EMAIL_PASS;
 const EMAIL_SERVICE = (process.env.EMAIL_SERVICE || 'gmail').toLowerCase();
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 
@@ -27,6 +28,7 @@ let transporter;
 
 if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
   console.log("✅ Initializing SendGrid email service...");
+  // ✅ FIX 2: pool options must be at the top level, not nested
   transporter = nodemailer.createTransport({
     host: "smtp.sendgrid.net",
     port: 587,
@@ -35,21 +37,21 @@ if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
       user: "apikey",
       pass: SENDGRID_API_KEY
     },
-    pool: {
-      maxConnections: 5,
-      maxMessages: 100,
-      rateDelta: 4000,
-      rateLimit: 14
-    }
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 4000,
+    rateLimit: 14
   });
   console.log("📧 Email service: SendGrid (SMTP)");
 } else if (GMAIL_USER && GMAIL_PASS) {
   console.log("✅ Initializing Gmail email service...");
+  // ✅ FIX 2: pool options must be at the top level, not nested
   transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
     secure: false,
-    family: 4, // Force IPv4 (VERY IMPORTANT)
+    family: 4, // Force IPv4
 
     auth: {
       user: GMAIL_USER,
@@ -64,12 +66,12 @@ if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
     greetingTimeout: 10000,
     socketTimeout: 10000,
 
-    pool: {
-      maxConnections: 5,
-      maxMessages: 100,
-      rateDelta: 2000,
-      rateLimit: 14
-    },
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 2000,
+    rateLimit: 14,
+
     debug: process.env.NODE_ENV === 'development',
     logger: process.env.NODE_ENV === 'development'
   });
@@ -90,7 +92,7 @@ if (transporter) {
       console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       console.error("Error:", error.message);
       console.error("Error Code:", error.code);
-      
+
       if (error.code === 'EAUTH') {
         console.error("\n🔧 AUTHENTICATION FAILED (EAUTH)");
         console.error("   Possible causes:");
@@ -106,7 +108,7 @@ if (transporter) {
         console.error("   Cannot reach Gmail servers");
         console.error("   Check internet connection");
       } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
-        console.error("\n🔧 CONNECTION TIMEOUT (" + error.code + ")");
+        console.error("\n🔧 CONNECTION TIMEOUT (" + error.code + ")"); // ✅ FIX 3: was broken string literal
         console.error("   Gmail server not responding");
         console.error("   May work after server restart");
       }
@@ -134,13 +136,13 @@ async function sendEmailWithRetry(mailOptions, retries = 3, delay = 1000) {
     try {
       console.log(`📤 Sending email (Attempt ${attempt}/${retries})...`);
       console.log(`   To: ${mailOptions.to}`);
-      
+
       const info = await transporter.sendMail(mailOptions);
-      
+
       console.log(`✅ Email sent successfully on attempt ${attempt}`);
       console.log(`   Message ID: ${info.messageId}`);
       console.log(`   To: ${mailOptions.to}`);
-      
+
       return { success: true, messageId: info.messageId };
     } catch (error) {
       console.error(`\n❌ Email attempt ${attempt} FAILED`);
@@ -153,11 +155,10 @@ async function sendEmailWithRetry(mailOptions, retries = 3, delay = 1000) {
         console.log(`⏳ Retrying in ${waitTime}ms... (Exponential backoff)`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       } else {
-        // Final attempt failed - provide detailed guidance
         console.error("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         console.error("❌ All email sending attempts FAILED");
         console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        
+
         if (error.code === 'EAUTH') {
           console.error('🔧 AUTHENTICATION ERROR (EAUTH)');
           console.error('   • EMAIL_PASS must be a Gmail App Password (16 chars)');
@@ -169,7 +170,7 @@ async function sendEmailWithRetry(mailOptions, retries = 3, delay = 1000) {
           console.error('   • Check internet connection');
           console.error('   • May be blocked by firewall/ISP');
         } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
-          console.error('🔧 CONNECTION TIMEOUT (" + error.code + ")');
+          console.error('🔧 CONNECTION TIMEOUT (' + error.code + ')'); // ✅ FIX 3: proper string concat
           console.error('   • Gmail server is slow or not responding');
           console.error('   • Try again in a few moments');
           console.error('   • Consider using SendGrid as alternative');
@@ -188,7 +189,11 @@ async function sendEmailWithRetry(mailOptions, retries = 3, delay = 1000) {
 
 async function sendEmail(to, orderData, pdfFilePath = null) {
   try {
-    // Validate email before sending
+    if (!transporter) {
+      console.error("❌ Email transporter not initialized — check EMAIL_USER and EMAIL_PASS in .env");
+      return false;
+    }
+
     if (!validateEmail(to)) {
       throw new Error(`Invalid email address: ${to}`);
     }
@@ -247,38 +252,28 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
           .total-row:last-child { border-bottom: none; }
           .total-label { font-weight: bold; }
           .grand-total { background: #080808; color: #C9A227; padding: 15px; border-radius: 4px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; margin-top: 10px; }
-          .shipping-info { background: #fff; padding: 15px; border-radius: 4px; margin-bottom: 15px; }
-          .shipping-info h4 { color: #C9A227; margin-top: 0; }
-          .shipping-info p { margin: 5px 0; }
           .timeline { background: #fff; padding: 15px; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #C9A227; }
           .timeline h4 { color: #080808; margin-top: 0; }
           .timeline p { color: #666; margin: 5px 0; }
           .footer { background: #080808; color: #f5f0e8; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; font-size: 12px; }
           .footer a { color: #C9A227; text-decoration: none; }
-          .footer a:hover { text-decoration: underline; }
           .badge { display: inline-block; background: #C9A227; color: #080808; padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 10px; }
           .divider { height: 1px; background: #C9A227; margin: 15px 0; }
         </style>
       </head>
       <body>
         <div class="container">
-          <!-- Header -->
           <div class="header">
             <h1>✅ Order Confirmed</h1>
             <p>Thank you for shopping with UA Electronics!</p>
           </div>
-
-          <!-- Main Content -->
           <div class="content">
-            <!-- Order Summary -->
             <div class="order-header">
               <h2 style="margin-bottom: 15px;">Order Summary</h2>
               <div class="order-id">Order ID: ${orderData.orderId}</div>
               <div style="color: #666; font-size: 14px; margin-top: 5px;">Placed on: ${orderDate}</div>
               <div class="badge">Status: ${orderData.status || 'Confirmed'}</div>
             </div>
-
-            <!-- Customer Information -->
             <div class="section-title">📍 Delivery Information</div>
             <div class="customer-info">
               <p><strong>Name:</strong> ${customerName}</p>
@@ -289,8 +284,6 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
               <p><strong>State:</strong> ${orderData.customer?.state || 'N/A'}</p>
               ${orderData.customer?.notes ? `<p><strong>Special Notes:</strong> ${orderData.customer.notes}</p>` : ''}
             </div>
-
-            <!-- Order Items -->
             <div class="section-title">📦 Order Items</div>
             <table class="items-table">
               <thead>
@@ -301,12 +294,8 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
                   <th>Subtotal</th>
                 </tr>
               </thead>
-              <tbody>
-                ${itemsHtml}
-              </tbody>
+              <tbody>${itemsHtml}</tbody>
             </table>
-
-            <!-- Price Breakdown -->
             <div class="totals">
               <div class="total-row">
                 <span class="total-label">Subtotal:</span>
@@ -321,22 +310,16 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
                 <span>₹${(orderData.grand || 0).toLocaleString('en-IN')}</span>
               </div>
             </div>
-
-            <!-- Payment Details -->
             <div class="section-title">💳 Payment Information</div>
             <div class="customer-info">
               <p><strong>Payment Method:</strong> ${orderData.paymentMethod === 'online' ? '💳 Online (Razorpay)' : '💵 Cash on Delivery (COD)'}</p>
               <p><strong>Payment Status:</strong> ${orderData.paymentStatus || 'N/A'}</p>
             </div>
-
-            <!-- Timeline -->
             <div class="timeline">
               <h4>⏱️ Estimated Delivery Timeline</h4>
               <p>📅 <strong>2-8 Working Days</strong></p>
               <p>Your order will be processed and shipped soon. You'll receive a tracking update via email.</p>
             </div>
-
-            <!-- Additional Info -->
             <div style="background: #fff; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
               <h4 style="color: #080808; margin-top: 0;">✨ Why Choose UA Electronics?</h4>
               <ul style="margin: 10px 0; padding-left: 20px;">
@@ -347,21 +330,11 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
               </ul>
             </div>
           </div>
-
-          <!-- Footer -->
           <div class="footer">
-            <p style="margin-bottom: 10px; font-size: 13px;">
-              <strong>Need Help? Contact Us</strong>
-            </p>
-            <p style="margin: 5px 0;">
-              📧 Email: <a href="mailto:support@uaelectronics.in">support@uaelectronics.in</a>
-            </p>
-            <p style="margin: 5px 0;">
-              📞 Phone: <strong>+91-96503-55125-UA-RIKON</strong>
-            </p>
-            <p style="margin: 5px 0;">
-              🌐 Website: <a href="https://uaelectronicsindia.com">uaelectronicsindia.com</a>
-            </p>
+            <p style="margin-bottom: 10px; font-size: 13px;"><strong>Need Help? Contact Us</strong></p>
+            <p style="margin: 5px 0;">📧 Email: <a href="mailto:support@uaelectronics.in">support@uaelectronics.in</a></p>
+            <p style="margin: 5px 0;">📞 Phone: <strong>+91-96503-55125-UA-RIKON</strong></p>
+            <p style="margin: 5px 0;">🌐 Website: <a href="https://uaelectronicsindia.com">uaelectronicsindia.com</a></p>
             <div class="divider"></div>
             <p style="margin-top: 10px; color: #999;">
               © 2026 UA Electronics. All rights reserved.<br>
@@ -374,11 +347,11 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
     `;
 
     const mailOptions = {
-      from: GMAIL_USER,
+      // ✅ FIX 4: Proper "Name <email>" format for better deliverability
+      from: `"UA Electronics" <${GMAIL_USER}>`,
       to: to,
       subject: `Order Confirmed - ${orderData.orderId} | UA Electronics India`,
       html: emailHTML,
-      // Headers to improve deliverability and prevent spam
       headers: {
         'X-Priority': '1',
         'X-MSMail-Priority': 'High',
@@ -387,16 +360,12 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
         'List-Unsubscribe': '<mailto:support@uaelectronics.in?subject=unsubscribe>',
         'Reply-To': 'support@uaelectronics.in'
       },
-      // Add text version too for better compatibility
       text: `Order Confirmed\n\nOrder ID: ${orderData.orderId}\n\nThank you for your order from UA Electronics!\n\nItems:\n${orderData.items?.map(item => `- ${item.name} x${item.qty} = ₹${item.subtotal}`).join('\n') || 'N/A'}\n\nTotal: ₹${(orderData.grand || 0).toLocaleString('en-IN')}\n\nDelivery Address: ${orderData.customer?.addr1 || 'N/A'}, ${orderData.customer?.city || 'N/A'}\n\nFor any queries, contact support@uaelectronics.in`
     };
 
     // Attach PDF if provided
     if (pdfFilePath) {
-      const pathModule = require('path');
       const fsModule = require('fs');
-      
-      // Check if file exists
       if (fsModule.existsSync(pdfFilePath)) {
         mailOptions.attachments = [
           {
@@ -412,15 +381,12 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
     }
 
     const result = await sendEmailWithRetry(mailOptions);
-    console.log(`\\n✅ ORDER EMAIL SENT SUCCESSFULLY\\n   Order: ${orderData.orderId}\\n   Recipient: ${to}\\n`);
+    console.log(`\n✅ ORDER EMAIL SENT SUCCESSFULLY\n   Order: ${orderData.orderId}\n   Recipient: ${to}\n`);
     return result.success;
   } catch (error) {
-    console.error(`\\n❌ FAILED TO SEND EMAIL FOR ORDER: ${orderData.orderId}`);
+    console.error(`\n❌ FAILED TO SEND EMAIL FOR ORDER: ${orderData.orderId}`);
     console.error(`   Recipient: ${to}`);
-    console.error(`   Error: ${error.message}\\n`);
-    
-    // Don't re-throw - let the order be saved even if email fails
-    // The error is already logged
+    console.error(`   Error: ${error.message}\n`);
     return false;
   }
 }
