@@ -48,7 +48,7 @@ if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
   console.log("✅ Initializing Gmail email service...");
   // ✅ FIX 2: pool options must be at the top level, not nested
   transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
+    host: "smtp-relay.gmail.com", // ✅ Google Workspace SMTP Relay (works on Render)
     port: 587,
     secure: false,
     family: 4, // Force IPv4
@@ -75,7 +75,7 @@ if (EMAIL_SERVICE === 'sendgrid' && SENDGRID_API_KEY) {
     debug: process.env.NODE_ENV === 'development',
     logger: process.env.NODE_ENV === 'development'
   });
-  console.log("📧 Email service: Gmail SMTP (Port 587)");
+  console.log("📧 Email service: Google Workspace SMTP Relay (Port 587)");
   console.log("📧 Account: " + GMAIL_USER);
 } else {
   console.error("❌ CRITICAL: No valid email service configured!");
