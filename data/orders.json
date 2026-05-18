@@ -770,5 +770,39 @@
     "paymentId": null,
     "paid": false,
     "status": "Confirmed"
+  },
+  {
+    "orderId": "UAE1779044860829",
+    "date": "2026-05-17T19:07:40.830Z",
+    "customer": {
+      "name": "Ayush Jha",
+      "mobile": "+91 87784 435545",
+      "email": "aj1004890@gmail.com",
+      "pin": "201007",
+      "addr1": "FLAT & HOUSE NO 445, BUILDING 2",
+      "addr2": "MG Road AREA",
+      "city": "Ghaziabad",
+      "state": "Rajasthan",
+      "notes": ""
+    },
+    "items": [
+      {
+        "id": 2,
+        "name": "UA RIKON Pro Induction Cooktop Gold",
+        "brand": "UA RIKON",
+        "icon": "🍳",
+        "price": 3199,
+        "qty": 1,
+        "subtotal": 3199
+      }
+    ],
+    "subtotal": 3199,
+    "shipping": 0,
+    "grand": 3199,
+    "paymentMethod": "Cash on Delivery",
+    "paymentStatus": "Pending",
+    "paymentId": null,
+    "paid": false,
+    "status": "Confirmed"
   }
 ]
