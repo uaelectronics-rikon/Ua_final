@@ -1,0 +1,402 @@
+✅ Initializing Gmail email service...
+[2026-05-18 01:06:09] DEBUG Creating transport: nodemailer (8.0.5; +https://nodemailer.com/; SMTP (pool)/8.0.5[client:8.0.5])
+📧 Email service: Google Workspace SMTP Relay (Port 587)
+📧 Account: rikon@uaelectronicsindia.com
+✅ Payment Method: Cash on Delivery (COD) Only - No Online Payments
+
+==================================================
+🚀 UA ELECTRONICS SERVER STARTED
+==================================================
+📱 Server running on port: 3000
+📧 Email: ✅ Configured
+💳 Payment Method: ✅ Cash on Delivery (COD) Only
+📄 PDF Order Receipts: ✅ Auto-generated and stored in /Orders folder
+==================================================
+
+[2026-05-18 01:06:10] DEBUG [44FK0Z8wmkA] Resolved smtp-relay.gmail.com as 192.178.211.28 [cache miss]
+[2026-05-18 01:06:10] INFO  [44FK0Z8wmkA] Connection established to 192.178.211.28:587
+[2026-05-18 01:06:10] DEBUG [44FK0Z8wmkA] S: 220 smtp-relay.gmail.com ESMTP 00721157ae682-7cc9bc0daf2sm1976297b3.25 - gsmtp
+[2026-05-18 01:06:10] DEBUG [44FK0Z8wmkA] C: EHLO [127.0.0.1]
+[2026-05-18 01:06:10] DEBUG [44FK0Z8wmkA] S: 421-4.7.0 Try again later, closing connection. (EHLO)
+[2026-05-18 01:06:10] DEBUG [44FK0Z8wmkA] S: 421-4.7.0  For more information, go to
+[2026-05-18 01:06:10] DEBUG [44FK0Z8wmkA] S: 421 4.7.0  https://support.google.com/a/answer/3221692 00721157ae682-7cc9bc0daf2sm1976297b3.25 - gsmtp
+[2026-05-18 01:06:10] WARN  [44FK0Z8wmkA] Server terminates connection. response=421-4.7.0 Try again later, closing connection. (EHLO)
+[2026-05-18 01:06:10] WARN  [44FK0Z8wmkA] 421-4.7.0  For more information, go to
+[2026-05-18 01:06:10] WARN  [44FK0Z8wmkA] 421 4.7.0  https://support.google.com/a/answer/3221692 00721157ae682-7cc9bc0daf2sm1976297b3.25 - gsmtp: 421-4.7.0 Try again later, closing connection. (EHLO)
+[2026-05-18 01:06:10] WARN  [44FK0Z8wmkA] 421-4.7.0  For more information, go to
+[2026-05-18 01:06:10] WARN  [44FK0Z8wmkA] 421 4.7.0  https://support.google.com/a/answer/3221692 00721157ae682-7cc9bc0daf2sm1976297b3.25 - gsmtp
+[2026-05-18 01:06:10] DEBUG [44FK0Z8wmkA] Closing connection to the server using "end"
+
+❌ EMAIL SERVICE VERIFICATION FAILED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Error: Server terminates connection. response=421-4.7.0 Try again later, closing connection. (EHLO)
+421-4.7.0  For more information, go to
+421 4.7.0  https://support.google.com/a/answer/3221692 00721157ae682-7cc9bc0daf2sm1976297b3.25 - gsmtp: 421-4.7.0 Try again later, closing connection. (EHLO)
+421-4.7.0  For more information, go to
+421 4.7.0  https://support.google.com/a/answer/3221692 00721157ae682-7cc9bc0daf2sm1976297b3.25 - gsmtp
+Error Code: ECONNECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 Saving order: UAE1779066462797
+✅ Order saved successfully: UAE1779066462797
+📝 Generating PDF: /home/lucifer/Desktop/Updated & Working /Orders/UAE1779066462797-receipt.pdf
+✅ PDF saved: /home/lucifer/Desktop/Updated & Working /Orders/UAE1779066462797-receipt.pdf
+✅ PDF generated successfully: /home/lucifer/Desktop/Updated & Working /Orders/UAE1779066462797-receipt.pdf
+📎 PDF attached to email: /home/lucifer/Desktop/Updated & Working /Orders/UAE1779066462797-receipt.pdf
+📤 Sending email (Attempt 1/3)...
+   To: aj1004890@gmail.com
+[2026-05-18 01:07:42] DEBUG Sending mail using SMTP (pool)/8.0.5[client:8.0.5]
+[2026-05-18 01:07:42] INFO  [#1] Created new pool resource #1
+[2026-05-18 01:07:42] DEBUG [#1] Assigned message <6bc8e61a-014a-de13-5572-2257d6cffdd0@uaelectronicsindia.com> to #1 (1)
+[2026-05-18 01:07:42] DEBUG [pLNTixu2a90] Resolved smtp-relay.gmail.com as 2404:6800:4000:1025::1c [cache hit]
+[2026-05-18 01:07:45] INFO  [pLNTixu2a90] Connection to 2404:6800:4000:1025::1c failed, trying 192.178.211.28
+[2026-05-18 01:07:45] INFO  [pLNTixu2a90] Connection established to 192.178.211.28:587
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] S: 220 smtp-relay.gmail.com ESMTP 71dfb90a1353d-5760f7e3b9fsm657518e0c.6 - gsmtp
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] C: EHLO [127.0.0.1]
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] S: 250-smtp-relay.gmail.com at your service, [160.202.36.125]
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] S: 250-SIZE 157286400
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] S: 250-8BITMIME
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] S: 250-STARTTLS
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] S: 250-ENHANCEDSTATUSCODES
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] S: 250-PIPELINING
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] S: 250-CHUNKING
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] S: 250 SMTPUTF8
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] C: STARTTLS
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] S: 220 2.0.0 Ready to start TLS
+[2026-05-18 01:07:46] INFO  [pLNTixu2a90] Connection upgraded with STARTTLS
+[2026-05-18 01:07:46] DEBUG [pLNTixu2a90] C: EHLO [127.0.0.1]
+[2026-05-18 01:07:47] DEBUG [pLNTixu2a90] S: 250-smtp-relay.gmail.com at your service, [160.202.36.125]
+[2026-05-18 01:07:47] DEBUG [pLNTixu2a90] S: 250-SIZE 157286400
+[2026-05-18 01:07:47] DEBUG [pLNTixu2a90] S: 250-8BITMIME
+[2026-05-18 01:07:47] DEBUG [pLNTixu2a90] S: 250-AUTH LOGIN PLAIN XOAUTH2 PLAIN-CLIENTTOKEN OAUTHBEARER XOAUTH
+[2026-05-18 01:07:47] DEBUG [pLNTixu2a90] S: 250-ENHANCEDSTATUSCODES
+[2026-05-18 01:07:47] DEBUG [pLNTixu2a90] S: 250-PIPELINING
+[2026-05-18 01:07:47] DEBUG [pLNTixu2a90] S: 250-CHUNKING
+[2026-05-18 01:07:47] DEBUG [pLNTixu2a90] S: 250 SMTPUTF8
+[2026-05-18 01:07:47] DEBUG [pLNTixu2a90] SMTP handshake finished
+[2026-05-18 01:07:47] DEBUG [pLNTixu2a90] C: AUTH PLAIN AHJpa29uQHVhZWxlY3Ryb25pY3NpbmRpYS5jb20ALyogc2VjcmV0ICov
+[2026-05-18 01:07:47] DEBUG [pLNTixu2a90] S: 235 2.7.0 Accepted
+[2026-05-18 01:07:47] INFO  [pLNTixu2a90] User "rikon@uaelectronicsindia.com" authenticated
+[2026-05-18 01:07:47] INFO  [#1] Sending message <6bc8e61a-014a-de13-5572-2257d6cffdd0@uaelectronicsindia.com> using #1 to <aj1004890@gmail.com>
+[2026-05-18 01:07:47] DEBUG [pLNTixu2a90] C: MAIL FROM:<rikon@uaelectronicsindia.com>
+[2026-05-18 01:07:48] DEBUG [pLNTixu2a90] S: 250 2.1.0 OK 71dfb90a1353d-5760f7e3b9fsm657518e0c.6 - gsmtp
+[2026-05-18 01:07:48] DEBUG [pLNTixu2a90] C: RCPT TO:<aj1004890@gmail.com>
+[2026-05-18 01:07:48] DEBUG [pLNTixu2a90] S: 250 2.1.5 OK 71dfb90a1353d-5760f7e3b9fsm657518e0c.6 - gsmtp
+[2026-05-18 01:07:48] DEBUG [pLNTixu2a90] C: DATA
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] S: 354 Go ahead 71dfb90a1353d-5760f7e3b9fsm657518e0c.6 - gsmtp
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] X-Priority: 1
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] X-Msmail-Priority: High
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Importance: high
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] X-Mailer: UA-Electronics-OrderSystem/1.0
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] List-Unsubscribe: <mailto:support@uaelectronics.in?subject=unsubscribe>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Reply-To: support@uaelectronics.in
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] From: UA Electronics <rikon@uaelectronicsindia.com>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] To: aj1004890@gmail.com
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Subject: Order Confirmed - UAE1779066462797 | UA Electronics India
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Message-ID: <6bc8e61a-014a-de13-5572-2257d6cffdd0@uaelectronicsindia.com>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Date: Mon, 18 May 2026 01:07:42 +0000
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] MIME-Version: 1.0
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Content-Type: multipart/mixed; boundary="--_NmP-7d14e6d98beff913-Part_1"
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] ----_NmP-7d14e6d98beff913-Part_1
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Content-Type: multipart/alternative;
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]  boundary="--_NmP-7d14e6d98beff913-Part_2"
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] ----_NmP-7d14e6d98beff913-Part_2
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Content-Type: text/plain; charset=utf-8
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Content-Transfer-Encoding: quoted-printable
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Order Confirmed
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Order ID: UAE1779066462797
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Thank you for your order from =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] UA Electronics!
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Items:
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] - INFRARED Induction Cooktop Prestige Gold Series =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] G-22X x2 =3D =E2=82=B94998
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Total: =E2=82=B94,998
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Delivery Address: Flat =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 56 B Town, Ghaziabad
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] For any queries, contact support@uaelectronics.=
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] in
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] ----_NmP-7d14e6d98beff913-Part_2
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Content-Type: text/html; charset=utf-8
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Content-Transfer-Encoding: quoted-printable
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]       <!DOCTYPE html>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]       <html>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]       <head>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]         <meta =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] charset=3D"UTF-8">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]         <meta name=3D"viewport" content=3D"width=3Ddevic=
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] e-width, initial-scale=3D1.0">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]         <style>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           body { =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 1.6; color: #333; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .container { max-width: 600px; margin: 0 =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] auto; background: #ffffff; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .header { background: #080808; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] color: #C9A227; padding: 30px; text-align: center; border-radius: 8px 8px 0=
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]  0; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .header h1 { margin: 0; font-size: 28px; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .header p { margin: 5px 0 0 0; color: #f5f0e8; font-size: 14px; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .content { padding: 30px; background: #f5f0e8; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .order-header { background: #fff; padding: 20px; border-left: 4px=
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]  solid #C9A227; margin-bottom: 20px; border-radius: 4px; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .order-header h2 { color: #C9A227; margin-top: 0; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .order-id { font-size: 16px; font-weight: bold; color: #080808; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .section-title { color: #080808; font-size: 16px; font-weight: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] bold; margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] #C9A227; padding-bottom: 8px; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .customer-info { background: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] #fff; padding: 15px; border-radius: 4px; margin-bottom: 15px; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .customer-info p { margin: 5px 0; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .customer-info =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] strong { color: #080808; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .items-table { width: 100%; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] border-collapse: collapse; background: #fff; margin-bottom: 20px; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] border-radius: 4px; overflow: hidden; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .items-table th { =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] background: #C9A227; color: #080808; padding: 12px; text-align: left; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] font-weight: bold; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .items-table td { padding: 10px; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] border-bottom: 1px solid #eee; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .items-table th:nth-child(2), .=
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] items-table td:nth-child(2) { text-align: center; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .items-table th:nth-child(3), .items-table td:nth-child(3),
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .items-table th:nth-child(4), .items-table td:nth-child(4) { =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] text-align: right; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .totals { background: #fff; padding: 20px; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] border-radius: 4px; margin-bottom: 20px; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .total-row { display: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] solid #eee; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .total-row:last-child { border-bottom: none; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .total-label { font-weight: bold; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .grand-total { =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] background: #080808; color: #C9A227; padding: 15px; border-radius: 4px; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] font-size: 18px; font-weight: bold; display: flex; justify-content: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] space-between; margin-top: 10px; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .timeline { background: #fff; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] padding: 15px; border-radius: 4px; margin-bottom: 20px; border-left: 4px =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] solid #C9A227; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .timeline h4 { color: #080808; margin-top: 0; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .timeline p { color: #666; margin: 5px 0; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .footer { background: #080808; color: #f5f0e8; padding: 20px; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] text-align: center; border-radius: 0 0 8px 8px; font-size: 12px; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .footer a { color: #C9A227; text-decoration: none; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .badge { display: inline-block; background: #C9A227; color: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] #080808; padding: 5px 10px; border-radius: 20px; font-size: 12px; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] font-weight: bold; margin-bottom: 10px; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           .divider { height: 1px;=
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]  background: #C9A227; margin: 15px 0; }
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]         </style>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]       </head>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]       <body>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]         <div class=3D"container">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           <div =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] class=3D"header">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <h1>=E2=9C=85 Order Confirmed</h1>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <p>Thank you for shopping with UA Electronics!</p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           <div class=3D"content">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <div =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] class=3D"order-header">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <h2 style=3D"margin-bottom: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 15px;">Order Summary</h2>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <div class=3D"order-id">Order ID: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] UAE1779066462797</div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <div style=3D"color: #666; font-size: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 14px; margin-top: 5px;">Placed on: 18 May 2026</div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <div class=3D"badge">Status: Confirmed</div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <div class=3D"section-title">=F0=9F=93=8D =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Delivery Information</div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <div class=3D"customer-info">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <p><strong>Name:</strong> Ayush</p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] <p><strong>Email:</strong> aj1004890@gmail.com</p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] <p><strong>Mobile:</strong> +91 98765 89075</p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] <p><strong>Address:</strong> Flat 56 B Town , MG Road Area 34</p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <p><strong>City:</strong> Ghaziabad - 234234</p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <p><strong>State:</strong> Uttar Pradesh</p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]              =20
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <div class=3D"section-title">=F0=9F=93=A6 =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Order Items</div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <table class=3D"items-table">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <thead>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                 <tr>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                   <th =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] style=3D"text-align: left;">Product Name</th>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                   =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] <th>Quantity</th>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                   <th>Unit Price</th>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                   <th>Subtotal</th>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                 </tr>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               </thead>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <tbody>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           <tr =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] style=3D"background-color: #f9f9f9;">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <td style=3D"padding: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 10px; border-bottom: 1px solid #eee;">INFRARED Induction Cooktop Prestige =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Gold Series G-22X</td>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <td style=3D"padding: 10px; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] border-bottom: 1px solid #eee; text-align: center;">=C3=972</td>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <td style=3D"padding: 10px; border-bottom: 1px solid #eee; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] text-align: right;">=E2=82=B92,499</td>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <td style=3D"padding: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 10px; border-bottom: 1px solid #eee; text-align: right;">=E2=82=B94,=
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 998</td>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           </tr>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]         </tbody>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             </table>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <div class=3D"totals">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <div class=3D"total-row">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                 <span class=3D"total-label">Subtotal:</span>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                 <span>=E2=82=B94,998</span>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <div class=3D"total-row">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                 <span =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] class=3D"total-label">Delivery Charge:</span>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                 =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] <span>=E2=82=B90</span>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <div =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] class=3D"grand-total">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                 <span>TOTAL AMOUNT:</span>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                 <span>=E2=82=B94,998</span>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <div class=3D"section-title">=F0=9F=92=B3 =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Payment Information</div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <div class=3D"customer-info">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <p><strong>Payment Method:</strong> =F0=9F=92=B5 Cash on =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Delivery (COD)</p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <p><strong>Payment Status:</strong> =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Pending</p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <div class=3D"timeline">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <h4>=E2=8F=B1=EF=B8=8F Estimated Delivery Timeline</h4>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <p>=F0=9F=93=85 <strong>2-8 Working Days</strong></p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <p>Your order will be processed and shipped soon. You'll =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] receive a tracking update via email.</p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <div style=3D"background: #fff; padding: 15px; border-radius: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 4px; margin-bottom: 20px;">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <h4 style=3D"color: #080808; =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] margin-top: 0;">=E2=9C=A8 Why Choose UA Electronics?</h4>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               <ul style=3D"margin: 10px 0; padding-left: 20px;">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                 <li>=E2=9C=85 Pan India Delivery</li>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                 <li>=E2=9C=85 1 Year Manufacturer Warranty</li>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                 <li>=E2=9C=85 10-Day Easy Returns</li>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]                 <li>=E2=9C=85 24/7 Customer Support</li>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               </ul>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           <div class=3D"footer">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <p style=3D"margin-bottom: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 10px; font-size: 13px;"><strong>Need Help? Contact Us</strong></p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <p style=3D"margin: 5px 0;">=F0=9F=93=A7 Email: <a =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] href=3D"mailto:support@uaelectronics.in">support@uaelectronics.in</a></p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <p style=3D"margin: 5px 0;">=F0=9F=93=9E Phone: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] <strong>+91-96503-55125-UA-RIKON</strong></p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <p =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] style=3D"margin: 5px 0;">=F0=9F=8C=90 Website: <a href=3D"https://uaelectro=
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] nicsindia.com">uaelectronicsindia.com</a></p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <div =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] class=3D"divider"></div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             <p style=3D"margin-top: 10px; color: =
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] #999;">
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               =C2=A9 2026 UA Electronics. All rights reserved.<br>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]               This is an automated email. Please do not reply to this email=
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] ..
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]             </p>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]           </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]         </div>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]       </body>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]       </html>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90]    =20
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] ----_NmP-7d14e6d98beff913-Part_2--
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] ----_NmP-7d14e6d98beff913-Part_1
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Content-Type: application/pdf; name=UAE1779066462797-receipt.pdf
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Content-Transfer-Encoding: base64
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Content-Disposition: attachment; filename=UAE1779066462797-receipt.pdf
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] JVBERi0xLjMKJf////8KNyAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDEgMCBSCi9NZWRp
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] YUJveCBbMCAwIDU5NS4yOCA4NDEuODldCi9Db250ZW50cyA1IDAgUgovUmVzb3VyY2VzIDYgMCBS
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Cj4+CmVuZG9iago2IDAgb2JqCjw8Ci9Qcm9jU2V0IFsvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdl
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] QyAvSW1hZ2VJXQovRm9udCA8PAovRjIgOCAwIFIKL0YxIDkgMCBSCj4+Cj4+CmVuZG9iago1IDAg
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] b2JqCjw8Ci9MZW5ndGggMTMxMgovRmlsdGVyIC9GbGF0ZURlY29kZQo+PgpzdHJlYW0KeJzFWNuK
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 40YQffdX9A9sbd2rGwY/LLlA3pLMW8jDjiVDIBsIC/n+UC3J9lg7juUNicHDSMjdp0+dOlUlKliw
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] vKOCpSpBbeXwaffnjr50+8PzfJ8KNYJKXCIU3Gp5/rR7/x0X1vJ83P3yZLYvhuVJiVFND2oqpsb7
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] wnn3qKM2FZN9wV/L8w+7b593P+7efzP+9dth/On7D+XweYfgZfl+PvxxByZWAhIrYQ5kEyQqhBMk
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] PXp+mos3Jz8wJkidQRpr05cZ9FFHRlW3fM4t+BVMw9IMWvl99/M15A7kPrCGJVhB4sQd6QLUWFXN
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] uMMyFTVthqavYNy3BTYg09MWvGwRcyhc83yM2lTl48THxMwUPjUhCQlpguLiouLC/TpuBk+uPuW+
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] W3eT581B6HSwJcjqFOp2PoqQVEYdnKYDR2MUlvz6rQNsC6UHQTQ+waEFThd/M89wTpxa62yP6j3Q
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] g9K+tLyv2lJ5N1nlsnzvh2YNlFfZMDr5MBFlnajEoZ2gsBCv28XmGlB9tdPgR2dvmUnn3fhFmhCj
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] NKkS4mKMUrvKQuyBvcVBVlubD0659XljJ/8oJCgoOm2o6LE8x6OLH314AAArhK4QkKtrsFvm0AXZ
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 7odUKqOYOKMy4ywP3RfqmXncF7LyFOEjH1LCGmkIfnRyzXjlsp4cimh/Irw6xcfubzw9xUOXu4hO
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] fx84GAlQvT6YSVykms2uEdrvpnFhOgzlOah7zLWivirdrDYQXaWbYW7ZfWtfiHqy6aCmo+l/m3QW
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Di1WpOGUYulF0lMtU9DH1IEObqFe/eh6oRNxSuoY/ehLUTp4C98XtvI0Fad302LbY2tuoLQF5hL3
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 9IiLyM/izadcvfnot6tD1Mpi3JQoXCOL/MUlWq0FgV7fYdvAvxJYrP3YTHrILwVgmvS/4dSzoOYf
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 2b+uE26w8mZhHrJoTVGwmKLgvWa/S0vwl4nirodTkOJmN7UxwdBAfM3fRWuirXM3/EMT95qUrwKl
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] VSDw1C+1GVNLF9ps2cJvLWgp763JJPXN5TC4d51bq5r6m0tKmHOoHzMZ/XDdnoo7BJdPOztffKFb
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] fUSw6gikpyJ/ikFaq7FSb1i72aYThHn6RZvNK0vr0V86cJxqxGZWetysAnpcgRB+JGZm0Gq9Worx
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] pQnzQVSabJVCj5sJNGxfWlb5kItKvY6aIgKrL3E7Xf4bkdOoYFSUHUhx1aNdC+qiT3sb8j1MMDQp
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] SgpW17veLGZdLtnOsMerxjEB4f9XXDQQVGtRJLC6ZMJ5tMr+rQ+Vx9m+dSo0Sno4TyU3aL09Bacw
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] QiHBd2HcA1iBkIqYgTe/Tl3LnoN89BfGdL2p9QxjdD8XHsbNoXcwUyuiBtz4ettsatIFApdSFuHp
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 5PX1XL5122ggVYuIQq115VOpt+5JkX30mL4cwrQ9wyGErAgraF3b4SvmgsJmaffi3bIbnnr77Nr7
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] wDH2vJO4aP0ewFTDrAgp4EW2nQgP63RPbUSf9FQx8h3HipXNrBswsRVBAY+VxpLkHuYsBbTMWIxx
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] 2H7MGiAmVrgJcKx0Zdhb6PHSMjYzaaCNrXBlqL4S0Ty6DtJybBUU4SEhCUnaztZGRCsBqlrhYFBf
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] iekiG4brt1QP+DFjWGFnQF9p5Nz493J9jtjtuYOx2UN6JTMrbARuK81IT/7eord9IZ2mC5qsaOmL
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] J7DBF7PmmM3bhCjH/O3hcAdFsv42kW0lsMuOO99t5nyW/1nO+DkWJS+dovGqIf8bovh8ZgplbmRz
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] dHJlYW0KZW5kb2JqCjExIDAgb2JqCihQREZLaXQpCmVuZG9iagoxMiAwIG9iagooUERGS2l0KQpl
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] bmRvYmoKMTMgMCBvYmoKKEQ6MjAyNjA1MTgwMTA3NDJaKQplbmRvYmoKMTAgMCBvYmoKPDwKL1By
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] b2R1Y2VyIDExIDAgUgovQ3JlYXRvciAxMiAwIFIKL0NyZWF0aW9uRGF0ZSAxMyAwIFIKPj4KZW5k
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] b2JqCjkgMCBvYmoKPDwKL1R5cGUgL0ZvbnQKL0Jhc2VGb250IC9IZWx2ZXRpY2EKL1N1YnR5cGUg
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] L1R5cGUxCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9U
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] eXBlIC9Gb250Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGQKL1N1YnR5cGUgL1R5cGUxCi9FbmNv
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] ZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iago0IDAgb2JqCjw8Cj4+CmVuZG9iagozIDAg
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] b2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyAxIDAgUgovTmFtZXMgMiAwIFIKPj4KZW5kb2Jq
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] CjEgMCBvYmoKPDwKL1R5cGUgL1BhZ2VzCi9Db3VudCAxCi9LaWRzIFs3IDAgUl0KPj4KZW5kb2Jq
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] CjIgMCBvYmoKPDwKL0Rlc3RzIDw8CiAgL05hbWVzIFsKXQo+Pgo+PgplbmRvYmoKeHJlZgowIDE0
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMjA1MyAwMDAwMCBuIAowMDAwMDAyMTEwIDAwMDAw
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] IG4gCjAwMDAwMDE5OTEgMDAwMDAgbiAKMDAwMDAwMTk3MCAwMDAwMCBuIAowMDAwMDAwMjI0IDAw
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] MDAwIG4gCjAwMDAwMDAxMjUgMDAwMDAgbiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAxODY4
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] IDAwMDAwIG4gCjAwMDAwMDE3NzEgMDAwMDAgbiAKMDAwMDAwMTY5NSAwMDAwMCBuIAowMDAwMDAx
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] NjA5IDAwMDAwIG4gCjAwMDAwMDE2MzQgMDAwMDAgbiAKMDAwMDAwMTY1OSAwMDAwMCBuIAp0cmFp
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] bGVyCjw8Ci9TaXplIDE0Ci9Sb290IDMgMCBSCi9JbmZvIDEwIDAgUgovSUQgWzw4YjM3MjZlY2Iz
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] YTEwMDE3ZjY1NjcxYmZmZGQ3ZDg0NT4gPDhiMzcyNmVjYjNhMTAwMTdmNjU2NzFiZmZkZDdkODQ1
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] Pl0KPj4Kc3RhcnR4cmVmCjIxNTcKJSVFT0YK
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] ----_NmP-7d14e6d98beff913-Part_1--
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] .
+[2026-05-18 01:07:49] INFO  [pLNTixu2a90] <13231 bytes encoded mime message (source size 13084 bytes)>
+[2026-05-18 01:07:49] DEBUG [pLNTixu2a90] S: 250 2.0.0 OK  1779066469 71dfb90a1353d-5760f7e3b9fsm657518e0c.6 - gsmtp
+✅ Email sent successfully on attempt 1
+   Message ID: <6bc8e61a-014a-de13-5572-2257d6cffdd0@uaelectronicsindia.com>
+   To: aj1004890@gmail.com
+
+✅ ORDER EMAIL SENT SUCCESSFULLY
+   Order: UAE1779066462797
+   Recipient: aj1004890@gmail.com
+
+✅ Order confirmation email sent successfully: UAE1779066462797
+[2026-05-18 01:07:49] DEBUG [#1] Connection #1 became available
+📝 Generating PDF: /home/lucifer/Desktop/Updated & Working /Orders/UAE1779066462797-receipt.pdf
+📄 PDF document stream completed, waiting for write finish...
+✅ PDF saved successfully: /home/lucifer/Desktop/Updated & Working /Orders/UAE1779066462797-receipt.pdf
+[2026-05-18 01:07:59] WARN  [pLNTixu2a90] Timeout
+[2026-05-18 01:07:59] WARN  [#1] Pool Error for #1: Timeout
+[2026-05-18 01:07:59] DEBUG [pLNTixu2a90] Closing connection to the server using "end"
+[2026-05-18 01:07:59] INFO  [#1] Connection #1 was closed
