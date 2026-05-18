@@ -1026,40 +1026,13 @@ nav{position:sticky;top:0;z-index:900;background:rgba(8,8,8,.97);backdrop-filter
   z-index: 2;
 }
 
-/* Background images for each slide */
-.carousel-slide:nth-child(1) {
-  background-image: url('Image/induction.png');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-}
-
-.carousel-slide:nth-child(2) {
-  background-image: linear-gradient(135deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35)), url('Image/tv.png');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-}
-
-.carousel-slide:nth-child(3) {
-  background-image: linear-gradient(135deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35)), url('Image/home.png');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-}
-
-.carousel-slide:nth-child(4) {
-  background-image: linear-gradient(135deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35)), url('Image/cooler.png');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-}
-
+/* Background images removed — replaced by .slide-video background videos */
+.carousel-slide:nth-child(1),
+.carousel-slide:nth-child(2),
+.carousel-slide:nth-child(3),
+.carousel-slide:nth-child(4),
 .carousel-slide:nth-child(5) {
-  background-image: linear-gradient(135deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35)), url('Image/fan.png');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  background: #000;
 }
 
 .carousel-slide.active {
@@ -1142,7 +1115,17 @@ nav{position:sticky;top:0;z-index:900;background:rgba(8,8,8,.97);backdrop-filter
   transform: translateY(-1px) scale(0.98);
 }
 
-/* Product Image in Content */
+/* Background Video in Carousel Slide */
+.slide-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* Product Image in Front */
 .carousel-slide img {
   position: absolute;
   max-width: 400px;
@@ -1294,6 +1277,10 @@ nav{position:sticky;top:0;z-index:900;background:rgba(8,8,8,.97);backdrop-filter
     padding-left: 60px;
   }
 
+  .slide-video {
+    max-width: 300px;
+    right: 2%;
+  }
   .carousel-slide img {
     max-width: 300px;
     right: 2%;
@@ -1323,6 +1310,15 @@ nav{position:sticky;top:0;z-index:900;background:rgba(8,8,8,.97);backdrop-filter
     padding: 40px 20px;
   }
 
+  .slide-video {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
   .carousel-slide img {
     display: none;
   }
@@ -2995,6 +2991,8 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   .gallery-thumbnails{grid-template-columns:repeat(3,1fr);gap:.6rem}
   .gallery-product-name{font-size:1.3rem}
   .gallery-current-price{font-size:1.5rem}
+  .gallery-thumb{aspect-ratio:1}
+  .gallery-thumb:hover{transform:translateY(-3px)}
 }
 @media(max-width:480px){
   body { font-size: 14px; }
@@ -3025,6 +3023,10 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   .products-grid{grid-template-columns:repeat(2,1fr);gap:.9rem}
   .checkout-page{padding:1.25rem .75rem}
   .checkout-section{padding:1.25rem .9rem}
+  .gallery-modal{width:98%;max-height:95vh}
+  .gallery-main-image{min-height:200px;border-radius:12px}
+  .gallery-thumbnails{grid-template-columns:repeat(4,1fr);gap:.5rem}
+  .gallery-thumb{border-radius:8px}
   .form-grid{gap:.5rem}
   .fg input,.fg select,.fg textarea{padding:.5rem .65rem;font-size:.8rem;border-radius:5px}
   .pay-opt{padding:.65rem;gap:.5rem}
@@ -3680,15 +3682,25 @@ nav, .cart-drawer, .modal-overlay {
 .gallery-main-image {
   width: 100%;
   aspect-ratio: 4/3;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  background: linear-gradient(135deg, var(--card), var(--black3));
+  border: 2px solid var(--border);
+  border-radius: 16px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 4rem;
-  min-height: 300px;
+  min-height: 320px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 8px 24px rgba(201,162,39,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.gallery-main-image:hover {
+  border-color: var(--gold);
+  box-shadow: 0 12px 36px rgba(201,162,39,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+  transform: translateY(-2px);
 }
 
 .gallery-main-image img {
@@ -3696,18 +3708,51 @@ nav, .cart-drawer, .modal-overlay {
   height: 100%;
   object-fit: contain;
   padding: 1rem;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.gallery-main-image video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: rgba(0,0,0,0.3);
+  animation: fadeIn 0.4s ease-out;
+}
+
+.gallery-video-play-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  background: rgba(201,162,39,0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.gallery-main-image:hover .gallery-video-play-indicator {
+  opacity: 1;
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 .gallery-thumbnails {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.75rem;
+  margin-top: 1rem;
 }
 
 .gallery-thumb {
   aspect-ratio: 1;
   border: 2px solid var(--border2);
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
   display: flex;
@@ -3715,19 +3760,38 @@ nav, .cart-drawer, .modal-overlay {
   justify-content: center;
   font-size: 1.5rem;
   background: var(--card);
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.gallery-thumb:hover img {
+  transform: scale(1.08);
 }
 
 .gallery-thumb:hover,
 .gallery-thumb.active {
   border-color: var(--gold);
-  box-shadow: 0 0 12px rgba(201,162,39,0.3);
+  box-shadow: 0 0 16px rgba(201,162,39,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+  transform: translateY(-3px);
+}
+
+.gallery-thumb.active {
+  background: linear-gradient(135deg, rgba(201,162,39,0.2), rgba(201,162,39,0.05));
 }
 
 .gallery-info {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  animation: slideUp 0.5s ease-out 0.1s both;
 }
 
 .gallery-product-name {
@@ -3984,6 +4048,11 @@ nav, .cart-drawer, .modal-overlay {
 @keyframes slideUp {
   from { transform: translateY(30px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.8; }
 }
 
 /* HERO GALLERY */
@@ -4360,6 +4429,7 @@ nav, .cart-drawer, .modal-overlay {
           <p>Flat ₹500 OFF + Fast Cooking</p>
       <button class="cat-btn" onclick="filterCat('Induction',this)">Shop Now</button>
         </div>
+        <video class="slide-video" src="Image/induction.mp4" autoplay muted loop playsinline poster="Image/induction.png"></video>
         <img src="Image/induction.png" alt="Induction">
       </div>
 
@@ -4372,6 +4442,7 @@ nav, .cart-drawer, .modal-overlay {
           <p>Smart Viewing Experience</p>
           <button class="cat-btn" onclick="filterCat('LED TV',this)">Shop Now</button>
         </div>
+        <video class="slide-video" src="Image/tv.mp4" muted loop playsinline poster="Image/tv.png"></video>
         <img src="Image/tv.png" alt="TV">
       </div>
 
@@ -4382,14 +4453,16 @@ nav, .cart-drawer, .modal-overlay {
           <p>Cinema at Home</p>
           <button class="cat-btn" onclick="filterCat('Home Theatre',this)">Shop Now</button>
         </div>
+        <video class="slide-video" src="Image/home.mp4" muted loop playsinline poster="Image/home.png"></video>
         <img src="Image/home.png" alt="Home Theatre">
       </div>
-       <div class="carousel-slide">
+      <div class="carousel-slide">
         <div class="slide-content">
           <h2>Air Coolers</h2>
           <p>Stay Cool This Summer</p>
           <button class="cat-btn" onclick="filterCat('Cooler',this)">Shop Now</button>
         </div>
+        <video class="slide-video" src="Image/cooler.mp4" muted loop playsinline poster="Image/cooler.png"></video>
         <img src="Image/cooler.png" alt="Cooler">
       </div>
 
@@ -4400,6 +4473,7 @@ nav, .cart-drawer, .modal-overlay {
           <p>High Speed + Energy Saving</p>
           <button class="cat-btn" onclick="filterCat('Fan',this)">Shop Now</button>
         </div>
+        <video class="slide-video" src="Image/fan.mp4" muted loop playsinline poster="Image/fan.png"></video>
         <img src="Image/fan.png" alt="Fan">
       </div>
 
@@ -5209,7 +5283,8 @@ nav, .cart-drawer, .modal-overlay {
     </div>
     <div class="gallery-container">
       <div class="gallery-images">
-        <div class="gallery-main-image" id="galleryMainImage">
+        <div class="gallery-main-image" id="galleryMainImage" onclick="playProductVideo()" style="cursor: pointer;">
+          <div class="gallery-video-play-indicator">▶</div>
           📦
         </div>
         <div class="gallery-thumbnails" id="galleryThumbnails">
@@ -5365,28 +5440,28 @@ console.log('✓ Constants initialized');
    PRODUCTS DATA
    ============================================================ */
 const defaultProducts = [
-  {id:1,  name:'INFRARED Induction Cooktop Prestige Gold Series G-22X',  brand:'UA RIKON',category:'Induction',   icon:'🍳',image:'Image/ind1.png',images:['Image/ind11.png','Image/ind12.png','Image/ind13.png','Image/ind14.png'],colors:['Black','Silver','White','Stainless Steel'],price:2499, mrp:3499, rating:4.8,reviews:1842,spec:'2000W · Touch Control · 6 Cooking Modes · Auto Shut-Off',description:'High-performance induction cooktop with touch control. Heats 40% faster than traditional stoves. Perfect for Indian cooking with multi-cook modes.',badge:'bestseller'},
-  {id:2,  name:'UA RIKON Pro Induction Cooktop Gold',  brand:'UA RIKON',category:'Induction',   icon:'🍳',image:'Image/ind2.png',images:['Image/ind21.png','Image/ind22.png','Image/ind23.png','Image/ind24.png'],colors:['Black','Silver','White','Gold'],price:3199, mrp:4299, rating:4.7,reviews:976, spec:'2200W · Gold Edition · 8 Modes · Crystal Glass Panel',description:'Premium gold edition induction cooktop with crystal glass top. Enhanced design with 8 different cooking modes for versatile cooking.',badge:'new'},
-  {id:3,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool4.png',images:['Image/cool41.png','Image/cool42.png','Image/cool43.png','Image/cool44.png'],colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
-  {id:4,  name:'UA RIKON Desert Air Cooler 50L',       brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool1.png',images:['Image/cool11.png','Image/cool12.png','Image/cool13.png','Image/cool14.png'],colors:['White','Gray','Black'],price:7499, mrp:9999, rating:4.6,reviews:1234,spec:'50L Tank · 3 Speed · Honeycomb Pad · Remote Included',description:'Powerful desert cooler with 50L capacity. Cools large spaces efficiently with honeycomb cooling pads and remote control.',badge:'hot'},
-  {id:5,  name:'UA RIKON Tower Air Cooler 30L',        brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool2.png',images:['Image/cool21.png','Image/cool22.png','Image/cool23.png','Image/cool24.png'],colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
-  {id:6,  name:'UA RIKON Personal Room Cooler 20L',    brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool3.png',images:['Image/cool31.png','Image/cool32.png','Image/cool33.png','Image/cool34.png'],colors:['White','Gray','Black'],price:3999, mrp:5499, rating:4.4,reviews:432, spec:'20L · Portable · 3 Speeds · Humidity Control',description:'Portable personal room cooler. Perfect for bedrooms with humidity control and 3 variable speed settings.',badge:'sale'},
-  {id:7,  name:'UA RIKON 43" Full HD LED Smart TV',    brand:'UA RIKON',category:'LED TV',      icon:'📺',image:'Image/led1.png',images:['Image/led11.png','Image/led12.png','Image/led13.png','Image/led14.png'],colors:['Black'],price:18999,mrp:24999,rating:4.5,reviews:2341,spec:'43" · 1920×1080 · Android 11 · WiFi + HDMI × 3',description:'Crystal clear Full HD display with Android 11. Built-in WiFi for streaming movies and shows directly from popular apps.',badge:'bestseller'},
-  {id:8,  name:'UA RIKON 32" HD LED Smart TV',         brand:'UA RIKON',category:'LED TV',      icon:'📺',image:'Image/led2.png',images:['Image/led21.png','Image/led22.png','Image/led23.png','Image/led24.png'],colors:['Black'],price:10999,mrp:14999,rating:4.3,reviews:1567,spec:'32" · HD Ready · Built-in WiFi · 2×HDMI · USB',description:'Compact 32-inch HD Ready display perfect for any room. Fast WiFi connectivity for seamless streaming experience.',badge:''},
-  {id:9,  name:'UA RIKON 55" 4K Smart LED TV',         brand:'UA RIKON',category:'LED TV',      icon:'📺',image:'Image/led3.png',images:['Image/led31.png','Image/led32.png','Image/led33.png','Image/led34.png'],colors:['Black'],price:32999,mrp:44999,rating:4.7,reviews:654, spec:'55" · 4K UHD · Dolby Vision · Android Smart · BT',description:'Stunning 4K UHD picture quality with Dolby Vision support. Immersive viewing experience with Android Smart TV functionality.',badge:'new'},
-  {id:10, name:'UA RIKON Premium Ceiling Fan 48"',     brand:'UA RIKON',category:'Fan',         icon:'🌀',image:'Image/fan1.png',images:['Image/fan11.png','Image/fan12.png','Image/fan13.png','Image/fan14.png'],colors:['Black','White','Silver','Brown'],price:2299, mrp:2999, rating:4.6,reviews:3241,spec:'48" · 380RPM · 5 Blades · High Speed · 70W',description:'Premium 48-inch ceiling fan with high speed motor. Durable construction with optimized blade design for maximum air circulation.',badge:'bestseller'},
-  {id:11, name:'UA RIKON Table Fan 400mm',             brand:'UA RIKON',category:'Fan',         icon:'🌀',image:'Image/fan2.png',images:['Image/fan21.png','Image/fan22.png','Image/fan23.png','Image/fan24.png'],colors:['Black','White','Silver'],price:1299, mrp:1799, rating:4.4,reviews:987, spec:'400mm · 3 Speed · Metal Body · Oscillation',description:'Compact 400mm table fan with metal construction. 3-speed settings with oscillation for better air distribution across the room.',badge:''},
-  {id:12, name:'UA RIKON Tower Fan with Remote',       brand:'UA RIKON',category:'Fan',         icon:'🌀',image:'Image/fan3.png',images:['Image/fan31.png','Image/fan32.png','Image/fan33.png','Image/fan34.png'],colors:['Black','White','Silver','Gray'],price:4299, mrp:5999, rating:4.5,reviews:432, spec:'45" Tower · 12 Speed · Timer · Remote · Silent',description:'Sleek tower fan with remote control. 12 speed levels and inbuilt timer for easy operation and energy efficiency.',badge:'new'},
-  {id:13, name:'UA RIKON UB-80 BOOM BOX (21 inch) 80W',       brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic1.png',images:['Image/mic11.png','Image/mic12.png','Image/mic13.png','Image/mic14.png'],colors:['Black'],price:7999, mrp:10999,rating:4.7,reviews:1123,spec:'80W · 5.1 Channel · Dolby · BT · FM · USB · Remote',description:'Immersive 5.1 channel home theatre with 100W output. Dolby enhanced sound with Bluetooth connectivity for wireless audio streaming.',badge:'hot'},
-  {id:14, name:'UA RIKON 2.1 Music System 60W',        brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic2.png',images:['Image/mic21.png','Image/mic22.png','Image/mic23.png','Image/mic24.png'],colors:['Black','Silver'],price:3999, mrp:5499, rating:4.5,reviews:876, spec:'60W · 2.1 Channel · BT 5.0 · FM · AUX · LED Display',description:'Powerful 2.1 music system perfect for music lovers. Bluetooth 5.0 with FM tuner and AUX input for versatile connectivity.',badge:''},
-  {id:15, name:'UA RIKON Soundbar 80W 2.1',            brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic3.png',images:['Image/mic31.png','Image/mic32.png','Image/mic33.png','Image/mic34.png'],colors:['Black','Silver'],price:5499, mrp:7999, rating:4.6,reviews:543, spec:'80W · 2.1 Soundbar · HDMI ARC · BT · Optical · Bass Boost',description:'Premium soundbar with 80W dual channel output. HDMI ARC, Bluetooth, and optical connectivity for all your entertainment needs.',badge:'new'},
-  {id:16, name:'UA RIKON Portable BT Speaker Pro',     brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic4.png',images:['Image/mic41.png','Image/mic42.png','Image/mic43.png','Image/mic44.png'],colors:['Black','Silver','Blue'],price:2999, mrp:4499, rating:4.5,reviews:654, spec:'20W · Portable · 360° Sound · 12h Battery · IPX5',description:'Compact portable Bluetooth speaker with 360-degree sound coverage. 12-hour battery life and IPX5 waterproof rating perfect for outdoor use.',badge:''},
-  {id:17, name:'UA RIKON Mini Tower Speaker',         brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic5.png',images:['Image/mic51.png','Image/mic52.png','Image/mic53.png','Image/mic54.png'],colors:['Black','White'],price:4299, mrp:5999, rating:4.4,reviews:432, spec:'50W · 2.0 Channel · BT 5.0 · FM · USB',description:'Compact tower speaker with powerful bass and crystal clear treble. Perfect for small rooms with Bluetooth and FM connectivity.',badge:''},
-  {id:18, name:'UA RIKON Bass Booster Subwoofer',      brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic6.png',images:['Image/mic61.png','Image/mic62.png','Image/mic63.png','Image/mic64.png'],colors:['Black'],price:3499, mrp:4999, rating:4.6,reviews:321, spec:'40W · Deep Bass · 8" Subwoofer · RCA Connection',description:'Dedicated subwoofer delivering deep bass for enhanced audio experience. Compatible with most home theatre and sound systems.',badge:'sale'},
-  {id:19, name:'UA RIKON 4K Projector Bundle',          brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic7.png',images:['Image/mic71.png','Image/mic72.png','Image/mic73.png','Image/mic74.png'],colors:['Black'],price:18999, mrp:24999, rating:4.7,reviews:187, spec:'4K UHD · 3000 Lumens · WiFi · HDMI × 2',description:'Premium 4K projector for your home entertainment. Perfect for movies and gaming with 3000 lumens brightness and WiFi connectivity.',badge:'hot'},
-  {id:20, name:'UA RIKON Karaoke Mixer System',         brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic8.png',images:['Image/mic81.png','Image/mic82.png','Image/mic83.png','Image/mic84.png'],colors:['Black','Silver'],price:6999, mrp:8999, rating:4.5,reviews:267, spec:'120W · Karaoke · Bluetooth · USB · Reverb',description:'Complete karaoke system with dual microphones and mixer. Perfect for parties with echo, reverb, and balance controls.',badge:''},
-  {id:21, name:'UA RIKON Studio Monitor Speakers',      brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic9.png',images:['Image/mic91.png','Image/mic92.png','Image/mic93.png','Image/mic94.png'],colors:['Black','White'],price:8999, mrp:11999, rating:4.6,reviews:198, spec:'40W × 2 · Studio Grade · RCA × 2 · 3.5mm',description:'Professional studio monitor speakers for accurate audio reproduction. Ideal for music production and monitoring.',badge:'new'},
-  {id:22, name:'UA RIKON Surround Speaker Pair',        brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic0.png',images:['Image/mic01.png','Image/mic02.png','Image/mic03.png','Image/mic04.png'],colors:['Black','White'],price:4499, mrp:5999, rating:4.4,reviews:276, spec:'30W × 2 · Wireless · 5.1 Compatible · Wall Mount',description:'Wireless surround speakers to enhance your home theatre setup. Easy wall mounting for perfect sound immersion.',badge:''},
+  {id:1,  name:'INFRARED Induction Cooktop Prestige Gold Series G-22X',  brand:'UA RIKON',category:'Induction',   icon:'🍳',image:'Image/ind1.png',images:['Image/ind11.png','Image/ind12.png','Image/ind13.png','Image/ind14.png'],video:'Image/ind1.mp4',colors:['Black','Silver','White','Stainless Steel'],price:2499, mrp:3499, rating:4.8,reviews:1842,spec:'2000W · Touch Control · 6 Cooking Modes · Auto Shut-Off',description:'High-performance induction cooktop with touch control. Heats 40% faster than traditional stoves. Perfect for Indian cooking with multi-cook modes.',badge:'bestseller'},
+  {id:2,  name:'UA RIKON Pro Induction Cooktop Gold',  brand:'UA RIKON',category:'Induction',   icon:'🍳',image:'Image/ind2.png',images:['Image/ind21.png','Image/ind22.png','Image/ind23.png','Image/ind24.png'],video:'Image/ind2.mp4',colors:['Black','Silver','White','Gold'],price:3199, mrp:4299, rating:4.7,reviews:976, spec:'2200W · Gold Edition · 8 Modes · Crystal Glass Panel',description:'Premium gold edition induction cooktop with crystal glass top. Enhanced design with 8 different cooking modes for versatile cooking.',badge:'new'},
+   {id:13, name:'UA RIKON UB-80 BOOM BOX (21 inch) 80W',       brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic1.png',images:['Image/mic11.png','Image/mic12.png','Image/mic13.png','Image/mic14.png'],video:'Image/mic1.mp4',colors:['Black'],price:7999, mrp:10999,rating:4.7,reviews:1123,spec:'80W · 5.1 Channel · Dolby · BT · FM · USB · Remote',description:'Immersive 5.1 channel home theatre with 100W output. Dolby enhanced sound with Bluetooth connectivity for wireless audio streaming.',badge:'hot'},
+  {id:14, name:'UA RIKON 2.1 Music System 60W',        brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic2.png',images:['Image/mic21.png','Image/mic22.png','Image/mic23.png','Image/mic24.png'],video:'Image/mic2.mp4',colors:['Black','Silver'],price:3999, mrp:5499, rating:4.5,reviews:876, spec:'60W · 2.1 Channel · BT 5.0 · FM · AUX · LED Display',description:'Powerful 2.1 music system perfect for music lovers. Bluetooth 5.0 with FM tuner and AUX input for versatile connectivity.',badge:''},
+  {id:15, name:'UA RIKON UB-60 BOOM BOX (22 inch) 60W',            brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic3.png',images:['Image/mic31.png','Image/mic32.png','Image/mic33.png','Image/mic34.png'],video:'Image/mic3.mp4',colors:['Black','Silver'],price:5499, mrp:7999, rating:4.6,reviews:543, spec:'80W · 2.1 Soundbar · HDMI ARC · BT · Optical · Bass Boost',description:'Premium soundbar with 80W dual channel output. HDMI ARC, Bluetooth, and optical connectivity for all your entertainment needs.',badge:'new'},
+  {id:16, name:'UA RIKON Portable BT Speaker Pro',     brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic4.png',images:['Image/mic41.png','Image/mic42.png','Image/mic43.png','Image/mic44.png'],video:'Image/mic4.mp4',colors:['Black','Silver','Blue'],price:2999, mrp:4499, rating:4.5,reviews:654, spec:'20W · Portable · 360° Sound · 12h Battery · IPX5',description:'Compact portable Bluetooth speaker with 360-degree sound coverage. 12-hour battery life and IPX5 waterproof rating perfect for outdoor use.',badge:''},
+  {id:17, name:'UA RIKON Mini Tower Speaker',         brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic5.png',images:['Image/mic51.png','Image/mic52.png','Image/mic53.png','Image/mic54.png'],video:'Image/mic5.mp4',colors:['Black','White'],price:4299, mrp:5999, rating:4.4,reviews:432, spec:'50W · 2.0 Channel · BT 5.0 · FM · USB',description:'Compact tower speaker with powerful bass and crystal clear treble. Perfect for small rooms with Bluetooth and FM connectivity.',badge:''},
+  {id:18, name:'UA RIKON Bass Booster Subwoofer',      brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic6.png',images:['Image/mic61.png','Image/mic62.png','Image/mic63.png','Image/mic64.png'],video:'Image/mic6.mp4',colors:['Black'],price:3499, mrp:4999, rating:4.6,reviews:321, spec:'40W · Deep Bass · 8" Subwoofer · RCA Connection',description:'Dedicated subwoofer delivering deep bass for enhanced audio experience. Compatible with most home theatre and sound systems.',badge:'sale'},
+  {id:19, name:'UA RIKON 4K Projector Bundle',          brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic7.png',images:['Image/mic71.png','Image/mic72.png','Image/mic73.png','Image/mic74.png'],video:'Image/mic7.mp4',colors:['Black'],price:18999, mrp:24999, rating:4.7,reviews:187, spec:'4K UHD · 3000 Lumens · WiFi · HDMI × 2',description:'Premium 4K projector for your home entertainment. Perfect for movies and gaming with 3000 lumens brightness and WiFi connectivity.',badge:'hot'},
+  {id:20, name:'UA RIKON Karaoke Mixer System',         brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic8.png',images:['Image/mic81.png','Image/mic82.png','Image/mic83.png','Image/mic84.png'],video:'Image/mic8.mp4',colors:['Black','Silver'],price:6999, mrp:8999, rating:4.5,reviews:267, spec:'120W · Karaoke · Bluetooth · USB · Reverb',description:'Complete karaoke system with dual microphones and mixer. Perfect for parties with echo, reverb, and balance controls.',badge:''},
+  {id:21, name:'UA RIKON Studio Monitor Speakers',      brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic9.png',images:['Image/mic91.png','Image/mic92.png','Image/mic93.png','Image/mic94.png'],video:'Image/mic9.mp4',colors:['Black','White'],price:8999, mrp:11999, rating:4.6,reviews:198, spec:'40W × 2 · Studio Grade · RCA × 2 · 3.5mm',description:'Professional studio monitor speakers for accurate audio reproduction. Ideal for music production and monitoring.',badge:'new'},
+  {id:22, name:'UA RIKON Surround Speaker Pair',        brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic0.png',images:['Image/mic01.png','Image/mic02.png','Image/mic03.png','Image/mic04.png'],video:'Image/mic0.mp4',colors:['Black','White'],price:4499, mrp:5999, rating:4.4,reviews:276, spec:'30W × 2 · Wireless · 5.1 Compatible · Wall Mount',description:'Wireless surround speakers to enhance your home theatre setup. Easy wall mounting for perfect sound immersion.',badge:''},
+  {id:3,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool4.png',images:['Image/cool41.png','Image/cool42.png','Image/cool43.png','Image/cool44.png'],video:'Image/cool4.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
+  {id:4,  name:'UA RIKON Desert Air Cooler 50L',       brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool1.png',images:['Image/cool11.png','Image/cool12.png','Image/cool13.png','Image/cool14.png'],video:'Image/cool1.mp4',colors:['White','Gray','Black'],price:7499, mrp:9999, rating:4.6,reviews:1234,spec:'50L Tank · 3 Speed · Honeycomb Pad · Remote Included',description:'Powerful desert cooler with 50L capacity. Cools large spaces efficiently with honeycomb cooling pads and remote control.',badge:'hot'},
+  {id:5,  name:'UA RIKON Tower Air Cooler 30L',        brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool2.png',images:['Image/cool21.png','Image/cool22.png','Image/cool23.png','Image/cool24.png'],video:'Image/cool2.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
+  {id:6,  name:'UA RIKON Personal Room Cooler 20L',    brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool3.png',images:['Image/cool31.png','Image/cool32.png','Image/cool33.png','Image/cool34.png'],video:'Image/cool3.mp4',colors:['White','Gray','Black'],price:3999, mrp:5499, rating:4.4,reviews:432, spec:'20L · Portable · 3 Speeds · Humidity Control',description:'Portable personal room cooler. Perfect for bedrooms with humidity control and 3 variable speed settings.',badge:'sale'},
+  {id:7,  name:'UA RIKON 43" Full HD LED Smart TV',    brand:'UA RIKON',category:'LED TV',      icon:'📺',image:'Image/led1.png',images:['Image/led11.png','Image/led12.png','Image/led13.png','Image/led14.png'],video:'Image/led1.mp4',colors:['Black'],price:18999,mrp:24999,rating:4.5,reviews:2341,spec:'43" · 1920×1080 · Android 11 · WiFi + HDMI × 3',description:'Crystal clear Full HD display with Android 11. Built-in WiFi for streaming movies and shows directly from popular apps.',badge:'bestseller'},
+  {id:8,  name:'UA RIKON 32" HD LED Smart TV',         brand:'UA RIKON',category:'LED TV',      icon:'📺',image:'Image/led2.png',images:['Image/led21.png','Image/led22.png','Image/led23.png','Image/led24.png'],video:'Image/led2.mp4',colors:['Black'],price:10999,mrp:14999,rating:4.3,reviews:1567,spec:'32" · HD Ready · Built-in WiFi · 2×HDMI · USB',description:'Compact 32-inch HD Ready display perfect for any room. Fast WiFi connectivity for seamless streaming experience.',badge:''},
+  {id:9,  name:'UA RIKON 55" 4K Smart LED TV',         brand:'UA RIKON',category:'LED TV',      icon:'📺',image:'Image/led3.png',images:['Image/led31.png','Image/led32.png','Image/led33.png','Image/led34.png'],video:'Image/led3.mp4',colors:['Black'],price:32999,mrp:44999,rating:4.7,reviews:654, spec:'55" · 4K UHD · Dolby Vision · Android Smart · BT',description:'Stunning 4K UHD picture quality with Dolby Vision support. Immersive viewing experience with Android Smart TV functionality.',badge:'new'},
+  {id:10, name:'UA RIKON Premium Ceiling Fan 48"',     brand:'UA RIKON',category:'Fan',         icon:'🌀',image:'Image/fan1.png',images:['Image/fan11.png','Image/fan12.png','Image/fan13.png','Image/fan14.png'],video:'Image/fan1.mp4',colors:['Black','White','Silver','Brown'],price:2299, mrp:2999, rating:4.6,reviews:3241,spec:'48" · 380RPM · 5 Blades · High Speed · 70W',description:'Premium 48-inch ceiling fan with high speed motor. Durable construction with optimized blade design for maximum air circulation.',badge:'bestseller'},
+  {id:11, name:'UA RIKON Table Fan 400mm',             brand:'UA RIKON',category:'Fan',         icon:'🌀',image:'Image/fan2.png',images:['Image/fan21.png','Image/fan22.png','Image/fan23.png','Image/fan24.png'],video:'Image/fan2.mp4',colors:['Black','White','Silver'],price:1299, mrp:1799, rating:4.4,reviews:987, spec:'400mm · 3 Speed · Metal Body · Oscillation',description:'Compact 400mm table fan with metal construction. 3-speed settings with oscillation for better air distribution across the room.',badge:''},
+  {id:12, name:'UA RIKON Tower Fan with Remote',       brand:'UA RIKON',category:'Fan',         icon:'🌀',image:'Image/fan3.png',images:['Image/fan31.png','Image/fan32.png','Image/fan33.png','Image/fan34.png'],video:'Image/fan3.mp4',colors:['Black','White','Silver','Gray'],price:4299, mrp:5999, rating:4.5,reviews:432, spec:'45" Tower · 12 Speed · Timer · Remote · Silent',description:'Sleek tower fan with remote control. 12 speed levels and inbuilt timer for easy operation and energy efficiency.',badge:'new'},
 ];
 
 const FAQS = [
@@ -5809,7 +5884,7 @@ function renderProducts(prods) {
     return `<div class="p-card" itemscope itemtype="https://schema.org/Product">
       ${p.badge ? `<div class="p-badge badge-${p.badge}">${p.badge.toUpperCase()}</div>` : ''}
       <div class="p-img" aria-hidden="true" onclick="openGallery(${p.id})" role="button" tabindex="0" style="cursor:pointer">
-        ${p.image ? `<img src="${p.image}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;padding:.5rem">` : `<span itemprop="image" style="display:inline-block;width:100%;text-align:center">${p.icon || '📦'}</span>`}
+        ${p.video ? `<video width="100%" height="100%" style="object-fit:contain;padding:.5rem" autoplay muted loop playsinline><source src="${p.video}" type="video/mp4"></video><div class="gallery-video-play-indicator">▶</div>` : p.image ? `<img itemprop="image" src="${p.image}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;padding:.5rem" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:3rem">${p.icon || '📦'}</span>` : `<span itemprop="image" style="display:inline-block;width:100%;text-align:center;padding:2rem;font-size:3rem">${p.icon || '📦'}</span>`}
         <div class="p-wl ${wl?'active':''}" onclick="toggleWishlist(${p.id},event)" role="button" aria-label="${wl?'Remove from':'Add to'} wishlist">${wl?'❤️':'🤍'}</div>
       </div>
       <div class="p-info">
@@ -7254,6 +7329,7 @@ document.addEventListener('keydown', e => {
    ============================================================ */
 let currentGalleryProduct = null;
 let currentGalleryImageIndex = 0;
+let currentGalleryIsVideo = false;
 
 /* Hero Gallery Variables */
 let currentHeroImageIndex = 0;
@@ -7399,11 +7475,29 @@ function openGallery(productId) {
   
   // Display thumbnails
   const thumbnailsDiv = document.getElementById('galleryThumbnails');
-  thumbnailsDiv.innerHTML = images.map((img, idx) => `
-    <div class="gallery-thumb ${idx === 0 ? 'active' : ''}" onclick="switchGalleryImage(${idx})" style="cursor:pointer;background:url('${img}') center/contain no-repeat var(--card);">
+  
+  // Create thumbnails: First video (if available), then images
+  let thumbnailsHTML = '';
+  
+  // Add video thumbnail first if video exists
+  if (product.video) {
+    thumbnailsHTML += `
+      <div class="gallery-thumb active" onclick="switchGalleryImage(0)" style="cursor:pointer;background:linear-gradient(135deg, rgba(201,162,39,0.3), rgba(0,0,0,0.5));display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:1.8rem;">🎬</span>
+      </div>
+    `;
+  }
+  
+  // Add image thumbnails
+  thumbnailsHTML += images.map((img, idx) => `
+    <div class="gallery-thumb" onclick="switchGalleryImage(${idx + 1})" style="cursor:pointer;background:url('${img}') center/cover no-repeat var(--card);">
+      <img src="${img}" alt="Product image ${idx + 1}" style="display:none">
       ${!img || img.includes('undefined') ? product.icon || '📦' : ''}
     </div>
   `).join('');
+  
+  // Limit to 4 thumbnails (video + 3 images, or 4 images if no video)
+  thumbnailsDiv.innerHTML = thumbnailsHTML;
   
   // Display main image
   updateGalleryMainImage();
@@ -7422,22 +7516,43 @@ function updateGalleryMainImage() {
   if (!currentGalleryProduct) return;
   
   const images = generateProductImages(currentGalleryProduct.id);
-  const currentImage = images[currentGalleryImageIndex];
   const mainImageDiv = document.getElementById('galleryMainImage');
   
-  // Display actual product image if available
-  if (currentImage && !currentImage.includes('undefined')) {
-    mainImageDiv.innerHTML = `<img src="${currentImage}" alt="${currentGalleryProduct.name}" style="width:100%;height:100%;object-fit:contain;padding:1rem;max-width:100%">`;
-  } else if (currentGalleryProduct.image) {
-    mainImageDiv.innerHTML = `<img src="${currentGalleryProduct.image}" alt="${currentGalleryProduct.name}" style="width:100%;height:100%;object-fit:contain;padding:1rem">`;
+  // If viewing the video (index 0), show video
+  if (currentGalleryImageIndex === 0 && currentGalleryProduct.video) {
+    currentGalleryIsVideo = true;
+    mainImageDiv.innerHTML = `<video width="100%" height="100%" style="object-fit:contain;background:rgba(0,0,0,0.3);" autoplay muted loop><source src="${currentGalleryProduct.video}" type="video/mp4"></video>`;
   } else {
-    mainImageDiv.innerHTML = currentGalleryProduct.icon || '📦';
+    currentGalleryIsVideo = false;
+    // Display image
+    const currentImage = images[currentGalleryImageIndex - 1] || images[0];
+    if (currentImage && !currentImage.includes('undefined')) {
+      mainImageDiv.innerHTML = `<img src="${currentImage}" alt="${currentGalleryProduct.name}" style="width:100%;height:100%;object-fit:contain;padding:1rem;max-width:100%">`;
+    } else if (currentGalleryProduct.image) {
+      mainImageDiv.innerHTML = `<img src="${currentGalleryProduct.image}" alt="${currentGalleryProduct.name}" style="width:100%;height:100%;object-fit:contain;padding:1rem">`;
+    } else {
+      mainImageDiv.innerHTML = currentGalleryProduct.icon || '📦';
+    }
   }
   
   // Update thumbnails
   document.querySelectorAll('.gallery-thumb').forEach((thumb, idx) => {
     thumb.classList.toggle('active', idx === currentGalleryImageIndex);
   });
+}
+
+function playProductVideo() {
+  if (!currentGalleryProduct || !currentGalleryProduct.video) return;
+  
+  // Switch to video display
+  currentGalleryImageIndex = 0;
+  updateGalleryMainImage();
+  
+  // Auto-play the video
+  const video = document.querySelector('.gallery-main-image video');
+  if (video) {
+    video.play();
+  }
 }
 
 function switchGalleryImage(idx) {
@@ -7652,11 +7767,15 @@ const slides = document.querySelectorAll(".carousel-slide");
 const dotsContainer = document.getElementById("dots");
 
 function showSlide(index) {
-  slides.forEach((slide, i) => {
+  slides.forEach((slide) => {
     slide.classList.remove("active");
+    const v = slide.querySelector('.slide-video');
+    if (v) { v.pause(); v.currentTime = 0; }
   });
 
   slides[index].classList.add("active");
+  const activeVideo = slides[index].querySelector('.slide-video');
+  if (activeVideo) activeVideo.play().catch(() => {});
 
   updateDots(index);
 }
