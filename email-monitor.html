@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Service Monitor - UA Electronics</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #06b6d4 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #080808, #2c3e50);
+            color: #fbbf24;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            color: #b0b0b0;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+        
+        .section h2 {
+            color: #1e3a8a;
+            margin-bottom: 15px;
+            font-size: 20px;
+            border-bottom: 2px solid #fbbf24;
+            padding-bottom: 10px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e3a8a;
+        }
+        
+        .stat-value.success {
+            color: #22c55e;
+        }
+        
+        .stat-value.pending {
+            color: #f59e0b;
+        }
+        
+        .stat-value.failed {
+            color: #ef4444;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #080808;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(251,191,36,0.3);
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+        
+        .btn-refresh {
+            background: #06b6d4;
+            color: white;
+        }
+        
+        .btn-refresh:hover {
+            background: #0891b2;
+        }
+        
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        .logs-table th {
+            background: #1e3a8a;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        
+        .logs-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+        
+        .logs-table tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #fbbf24;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #22c55e;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-style: italic;
+        }
+        
+        .timestamp {
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 Email Service Monitor</h1>
+            <p>UA Electronics - Real-time Email Delivery & Queue Management</p>
+        </div>
+        
+        <div class="content">
+            <div id="alert-container"></div>
+            
+            <!-- Statistics Section -->
+            <div class="section">
+                <h2>📊 Queue Statistics</h2>
+                <div id="stats-loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading email queue status...</p>
+                </div>
+                <div id="stats-container" style="display: none;">
+                    <div class="stats" id="stats-grid"></div>
+                </div>
+            </div>
+            
+            <!-- Actions Section -->
+            <div class="section">
+                <h2>⚙️ Actions</h2>
+                <div class="buttons">
+                    <button class="btn-refresh" onclick="refreshStatus()">🔄 Refresh Status</button>
+                    <button class="btn-primary" onclick="retryAllEmails()">📤 Retry All Failed Emails</button>
+                    <button class="btn-danger" onclick="clearQueue()">🗑️ Clear Queue</button>
+                </div>
+            </div>
+            
+            <!-- Email Logs Section -->
+            <div class="section">
+                <h2>📝 Recent Email Logs (Last 10)</h2>
+                <div id="logs-loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading email logs...</p>
+                </div>
+                <div id="logs-container" style="display: none;">
+                    <table class="logs-table" id="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Status</th>
+                                <th>To Email</th>
+                                <th>Order ID</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Information Section -->
+            <div class="section">
+                <h2>ℹ️ Information</h2>
+                <div class="alert alert-info">
+                    <strong>📌 Queue System:</strong> Failed emails are automatically queued and retried every 5 minutes. This ensures no customer emails are lost due to temporary network issues.
+                </div>
+                <div class="alert alert-info">
+                    <strong>🔄 Retry Logic:</strong> Emails retry up to 10 times with exponential backoff (2s → 4s → 8s → ... → 300s max between retries).
+                </div>
+                <div class="alert alert-info">
+                    <strong>📊 Monitoring:</strong> All email activity is logged. Use "Recent Email Logs" section to track delivery status.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_URL = '/api/email-queue';
+        
+        async function loadStatus() {
+            try {
+                const response = await fetch(`${API_URL}/status`);
+                const data = await response.json();
+                
+                document.getElementById('stats-loading').style.display = 'none';
+                document.getElementById('stats-container').style.display = 'block';
+                
+                const statsHtml = `
+                    <div class="stat-card">
+                        <div class="stat-label">Total Queued</div>
+                        <div class="stat-value">${data.queueStats.total}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Pending</div>
+                        <div class="stat-value pending">${data.queueStats.pending}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Failed</div>
+                        <div class="stat-value failed">${data.queueStats.failed}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Last Updated</div>
+                        <div class="stat-label" style="font-size: 12px; color: #999;">
+                            ${new Date(data.timestamp).toLocaleTimeString()}
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('stats-grid').innerHTML = statsHtml;
+                
+                // Load logs
+                loadLogs(data.recentLogs);
+            } catch (error) {
+                showAlert('Failed to load queue status: ' + error.message, 'error');
+                document.getElementById('stats-loading').innerHTML = 
+                    '<p style="color: #ef4444;">Error loading queue status. Check console for details.</p>';
+            }
+        }
+        
+        function loadLogs(logs) {
+            document.getElementById('logs-loading').style.display = 'none';
+            document.getElementById('logs-container').style.display = 'block';
+            
+            const logsBody = document.getElementById('logs-body');
+            
+            if (!logs || logs.length === 0) {
+                logsBody.innerHTML = '<tr><td colspan="5" class="no-data">No email logs yet</td></tr>';
+                return;
+            }
+            
+            logsBody.innerHTML = logs.map(log => `
+                <tr>
+                    <td>
+                        <span class="timestamp">
+                            ${new Date(log.timestamp).toLocaleString()}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge ${log.success ? 'status-success' : 'status-failed'}">
+                            ${log.success ? '✅ Success' : '❌ Failed'}
+                        </span>
+                    </td>
+                    <td>${log.to}</td>
+                    <td><strong>${log.orderId}</strong></td>
+                    <td>${log.error ? '<code style="font-size: 11px;">' + log.error + '</code>' : '—'}</td>
+                </tr>
+            `).join('');
+        }
+        
+        async function retryAllEmails() {
+            if (!confirm('Retry all failed emails? This will mark them for immediate retry.')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/retry-all`, { method: 'POST' });
+                const data = await response.json();
+                showAlert(data.message, 'success');
+                setTimeout(loadStatus, 1000);
+            } catch (error) {
+                showAlert('Failed to retry emails: ' + error.message, 'error');
+            }
+        }
+        
+        async function clearQueue() {
+            if (!confirm('Are you sure? This will clear ALL queued emails (failed and pending).')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/clear`, { method: 'DELETE' });
+                const data = await response.json();
+                showAlert(data.message, 'success');
+                setTimeout(loadStatus, 1000);
+            } catch (error) {
+                showAlert('Failed to clear queue: ' + error.message, 'error');
+            }
+        }
+        
+        function refreshStatus() {
+            loadStatus();
+            showAlert('Queue status refreshed', 'success');
+        }
+        
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            const alertClass = type === 'error' ? 'alert-error' : type === 'success' ? 'alert-success' : 'alert-info';
+            
+            const alert = document.createElement('div');
+            alert.className = `alert ${alertClass}`;
+            alert.textContent = message;
+            
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+        
+        // Initial load
+        loadStatus();
+        
+        // Refresh every 30 seconds
+        setInterval(loadStatus, 30000);
+    </script>
+</body>
+</html>

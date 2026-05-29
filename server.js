@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 const sendEmail = require("./email");
+const emailQueue = require("./email-queue");
 const PDFDocument = require("pdfkit");
 
 // Load environment variables
@@ -697,6 +698,66 @@ app.post("/test-email", async (req, res) => {
    =============================== */
 // 🚀 START SERVER
 const PORT = process.env.PORT || 3000;
+
+/* ===============================
+   📧 EMAIL QUEUE MANAGEMENT
+   =============================== */
+app.get("/email-monitor", (req, res) => {
+  res.sendFile(path.join(__dirname, "email-monitor.html"));
+});
+
+app.get("/api/email-queue/status", (req, res) => {
+  try {
+    const stats = emailQueue.getQueueStats();
+    const logs = emailQueue.getEmailLogs(10);
+    res.json({ 
+      queueStats: stats,
+      recentLogs: logs,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/email-queue/logs", (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const logs = emailQueue.getEmailLogs(limit);
+    res.json({ logs, count: logs.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/email-queue/retry-all", (req, res) => {
+  try {
+    const queue = emailQueue.loadQueue();
+    const processedCount = queue.length;
+    
+    queue.forEach(item => {
+      item.nextRetry = new Date().toISOString();
+      item.status = 'pending';
+    });
+    
+    emailQueue.saveQueue(queue);
+    res.json({ 
+      message: `${processedCount} emails marked for immediate retry`,
+      queued: processedCount
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete("/api/email-queue/clear", (req, res) => {
+  try {
+    emailQueue.saveQueue([]);
+    res.json({ message: "Email queue cleared successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log("\n" + "=".repeat(50));

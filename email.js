@@ -1,6 +1,8 @@
 const nodemailer = require("nodemailer");
 require('dotenv').config();
 
+const emailQueue = require("./email-queue");
+
 const GMAIL_USER = process.env.EMAIL_USER;
 const GMAIL_PASS = process.env.EMAIL_PASS;
 
@@ -94,6 +96,7 @@ if (transporter) {
       console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       console.error("Error:", error.message);
       console.error("Code:", error.code);
+      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
       if (error.code === 'EAUTH') {
         console.error("\n🔧 AUTHENTICATION FAILED — Most common causes:");
@@ -106,10 +109,16 @@ if (transporter) {
         console.error("   4. Google Workspace admin has blocked App Passwords");
         console.error("      → Admin must enable: Admin Console → Security → Less secure apps");
         console.error("\n   Fix: https://myaccount.google.com/apppasswords");
-      } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-        console.error("\n🔧 NETWORK ERROR — Cannot reach smtp.gmail.com");
-        console.error("   Check internet connection / firewall rules");
-        console.error("   Port 587 must be open outbound");
+      } else if (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN') {
+        console.error("\n🔧 DNS/NETWORK ERROR — Cannot resolve smtp.gmail.com");
+        console.error("   📌 On Render/Railway: This is NORMAL at startup!");
+        console.error("   📌 Google DNS may take 5-30 seconds to resolve");
+        console.error("   📌 Emails WILL work even if verification fails");
+        console.error("   📌 The server retries automatically on email send");
+        console.error("   ℹ️  No action needed — just wait 30 seconds and test");
+      } else if (error.code === 'ECONNREFUSED') {
+        console.error("\n🔧 CONNECTION REFUSED — Port 587 might be blocked");
+        console.error("   Check firewall/network rules (outbound port 587)");
       } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
         console.error("\n🔧 CONNECTION TIMEOUT — smtp.gmail.com not responding");
         console.error("   Try restarting the server. Usually resolves on retry.");
@@ -367,6 +376,10 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
     }
 
     const result = await sendEmailWithRetry(mailOptions);
+    
+    // Log successful email
+    emailQueue.logEmail(to, orderData, true);
+    
     console.log(`\n✅ ORDER EMAIL SENT\n   Order: ${orderData.orderId}\n   To: ${to}\n`);
     return result.success;
 
@@ -374,8 +387,58 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
     console.error(`\n❌ EMAIL FAILED for order: ${orderData.orderId}`);
     console.error(`   To: ${to}`);
     console.error(`   Error: ${error.message}\n`);
+    
+    // Log failed email
+    emailQueue.logEmail(to, orderData, false, error);
+    
+    // Add to queue for retry
+    emailQueue.addToQueue(to, orderData, pdfFilePath);
+    
     return false;
   }
 }
+
+// ============================================
+// QUEUE PROCESSING - Retry failed emails periodically
+// ============================================
+async function processEmailQueue() {
+  const queue = emailQueue.loadQueue();
+  
+  if (queue.length === 0) return;
+  
+  console.log(`\n📧 Processing email queue (${queue.length} pending emails)...`);
+  
+  for (const item of queue) {
+    if (item.status !== 'pending') continue;
+    if (new Date(item.nextRetry) > new Date()) continue; // Not ready to retry yet
+    
+    try {
+      console.log(`\n📧 Retrying email for order: ${item.orderData.orderId}`);
+      const success = await sendEmail(item.to, item.orderData, item.pdfFilePath);
+      
+      if (success) {
+        emailQueue.removeFromQueue(item.id);
+        console.log(`✅ Email successfully sent (from queue)`);
+      } else {
+        // Increment retry count and set next retry time
+        item.attempts = (item.attempts || 0) + 1;
+        const delayMinutes = Math.min(300, Math.pow(2, item.attempts)); // Max 5 hours
+        item.nextRetry = new Date(Date.now() + delayMinutes * 60000).toISOString();
+        
+        if (item.attempts >= 10) {
+          item.status = 'failed';
+          console.error(`❌ Email failed after 10 attempts: ${item.to}`);
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Queue processing error: ${error.message}`);
+    }
+  }
+  
+  emailQueue.saveQueue(queue);
+}
+
+// Process queue every 5 minutes
+setInterval(processEmailQueue, 5 * 60 * 1000);
 
 module.exports = sendEmail;
