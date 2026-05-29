@@ -681,70 +681,6 @@ input,select,textarea{font-family:inherit}
 }
 
 /* ════════════════════════════════════════════════════════════
-   ✨ NEW MODERN PREMIUM COLOR COMBO THEMES
-   ════════════════════════════════════════════════════════════ */
-
-/* Neon Volt - Cyberpunk Electric */
-:root[data-theme="neon-volt"] {
-  --gold: #00FF41;
-  --gold2: #39FF14;
-  --gold3: #7FFF00;
-  --accent: #FF006E;
-  --accent-light: #FF1493;
-  --primary: #0A0E27;
-}
-
-/* Sunset Blaze - Orange to Purple Gradient */
-:root[data-theme="sunset-blaze"] {
-  --gold: #FF5722;
-  --gold2: #FF7043;
-  --gold3: #FF8A65;
-  --accent: #9C27B0;
-  --accent-light: #BA68C8;
-  --primary: #BF360C;
-}
-
-/* Ocean Depths - Deep Blue to Teal */
-:root[data-theme="ocean-depths"] {
-  --gold: #0097A7;
-  --gold2: #00ACC1;
-  --gold3: #26C6DA;
-  --accent: #00BCD4;
-  --accent-light: #4DD0E1;
-  --primary: #006064;
-}
-
-/* Forest Mystic - Dark Green to Gold */
-:root[data-theme="forest-mystic"] {
-  --gold: #2E7D32;
-  --gold2: #43A047;
-  --gold3: #66BB6A;
-  --accent: #FFD700;
-  --accent-light: #FFC107;
-  --primary: #1B5E20;
-}
-
-/* Midnight Luxe - Deep Black with Silver & Gold */
-:root[data-theme="midnight-luxe"] {
-  --gold: #E8E8E8;
-  --gold2: #F5F5F5;
-  --gold3: #FFFFFF;
-  --accent: #FFD700;
-  --accent-light: #FFC700;
-  --primary: #0D0D0D;
-}
-
-/* Sunset Paradise - Pink to Coral to Gold */
-:root[data-theme="sunset-paradise"] {
-  --gold: #FF69B4;
-  --gold2: #FF1493;
-  --gold3: #FF7F50;
-  --accent: #FFD700;
-  --accent-light: #FFA500;
-  --primary: #C71585;
-}
-
-/* ════════════════════════════════════════════════════════════
    🎯 THEME SELECTOR UI
    ════════════════════════════════════════════════════════════ */
 
@@ -758,11 +694,6 @@ input,select,textarea{font-family:inherit}
   border-radius: 8px;
   position: relative;
   z-index: 100;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: var(--gold) var(--black2);
-  max-width: 100%;
 }
 
 .theme-selector-label {
@@ -839,44 +770,6 @@ input,select,textarea{font-family:inherit}
   color: #fff;
 }
 
-/* NEW: Neon Volt Theme Selector */
-.theme-btn-volt {
-  background: linear-gradient(135deg, #00FF41, #FF006E);
-  color: #fff;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
-}
-
-/* NEW: Sunset Blaze Theme Selector */
-.theme-btn-blaze {
-  background: linear-gradient(135deg, #FF5722, #9C27B0);
-  color: #fff;
-}
-
-/* NEW: Ocean Depths Theme Selector */
-.theme-btn-ocean {
-  background: linear-gradient(135deg, #0097A7, #26C6DA);
-  color: #fff;
-}
-
-/* NEW: Forest Mystic Theme Selector */
-.theme-btn-forest {
-  background: linear-gradient(135deg, #2E7D32, #FFD700);
-  color: #fff;
-}
-
-/* NEW: Midnight Luxe Theme Selector */
-.theme-btn-luxe {
-  background: linear-gradient(135deg, #1a1a1a, #FFD700);
-  color: #fff;
-  border: 1px solid #FFD700;
-}
-
-/* NEW: Sunset Paradise Theme Selector */
-.theme-btn-paradise {
-  background: linear-gradient(135deg, #FF69B4, #FFD700);
-  color: #fff;
-}
-
 /* ════════════════════════════════════════════════════════════
    🎯 ELEMENT-SPECIFIC ANIMATION APPLICATIONS
    ════════════════════════════════════════════════════════════ */
@@ -933,140 +826,9 @@ input,select,textarea{font-family:inherit}
    ════════════════════════════════════════════════════════════ */
 html { scroll-behavior: smooth; font-size: 16px; }
 
-/* ════════════════════════════════════════════════════════════
-   📱 MOBILE-OPTIMIZED 3D ANIMATIONS
-   ════════════════════════════════════════════════════════════ */
-
-/* Mobile version of animations - Reduced complexity for performance */
-@media (max-width: 768px) {
-  
-  /* Mobile Morphing - Simpler border-radius animation */
-  @keyframes morphing3D-mobile {
-    0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: rotateY(0deg); }
-    50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; transform: rotateY(180deg); }
-    100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: rotateY(360deg); }
-  }
-
-  /* Mobile Cube Spin - Simplified version */
-  @keyframes cubeSpin3D-mobile {
-    0% { transform: rotateX(0deg) rotateY(0deg); }
-    50% { transform: rotateX(45deg) rotateY(45deg); }
-    100% { transform: rotateX(360deg) rotateY(360deg); }
-  }
-
-  /* Mobile Spiral - Gentle spiral for mobile */
-  @keyframes spiral3D-mobile {
-    0% { transform: rotateZ(0deg) translateX(0); }
-    50% { transform: rotateZ(180deg) translateX(20px); }
-    100% { transform: rotateZ(360deg) translateX(0); }
-  }
-
-  /* Mobile Floating - Subtle floating motion */
-  @keyframes floatingRotation-mobile {
-    0% { transform: translateY(0px) rotateY(0deg); }
-    50% { transform: translateY(-10px) rotateY(180deg); }
-    100% { transform: translateY(0px) rotateY(360deg); }
-  }
-
-  /* Mobile Pulse Glow - Lighter glow for mobile */
-  @keyframes pulseGlow-mobile {
-    0%, 100% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.2); }
-    50% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.5); }
-  }
-
-  /* Mobile Shimmer - Quick shimmer effect */
-  @keyframes shimmer-mobile {
-    0% { background-position: -100% 0; }
-    100% { background-position: 100% 0; }
-  }
-
-  /* Mobile utility classes with reduced performance cost */
-  .animate-morphing { animation: morphing3D-mobile 4s ease-in-out infinite; }
-  .animate-cubeSpin { animation: cubeSpin3D-mobile 3s ease-in-out infinite; }
-  .animate-spiral { animation: spiral3D-mobile 3.5s ease-in-out infinite; }
-  .animate-floatingRotation { animation: floatingRotation-mobile 3.5s ease-in-out infinite; }
-  .animate-pulseGlow { animation: pulseGlow-mobile 1.5s ease-in-out infinite; }
-
-  /* Tablet theme selector optimization */
-  .theme-selector {
-    gap: 0.4rem;
-    padding: 0.5rem 0.6rem;
-  }
-
-  .theme-selector-btn {
-    width: 26px;
-    height: 26px;
-    font-size: 0.62rem;
-  }
-
-}
-
-/* Ultra-mobile optimization for small screens */
-@media (max-width: 480px) {
-
-  /* Even simpler animations for very small devices */
-  @keyframes morphing3D-mobile {
-    0% { border-radius: 60% 40% 30% 70%; transform: scale(1); }
-    50% { border-radius: 30% 60% 70% 40%; transform: scale(1.02); }
-    100% { border-radius: 60% 40% 30% 70%; transform: scale(1); }
-  }
-
-  @keyframes cubeSpin3D-mobile {
-    0% { transform: rotateY(0deg); }
-    50% { transform: rotateY(90deg); }
-    100% { transform: rotateY(360deg); }
-  }
-
-  @keyframes floatingRotation-mobile {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-8px); }
-    100% { transform: translateY(0px); }
-  }
-
-  /* Disable some heavy animations on very small screens */
-  .animate-morphing { animation: morphing3D-mobile 3s ease-in-out infinite; }
-  .animate-cubeSpin { animation: cubeSpin3D-mobile 2.5s ease-in-out infinite; }
-  .animate-floatingRotation { animation: floatingRotation-mobile 2.5s ease-in-out infinite; }
-
-  /* Mobile theme selector optimization */
-  .theme-selector {
-    max-width: 100%;
-    overflow-x: auto;
-    gap: 0.3rem;
-    padding: 0.4rem 0.5rem;
-  }
-
-  .theme-selector-label {
-    font-size: 0.65rem;
-    min-width: 16px;
-  }
-
-  .theme-selector-btn {
-    width: 24px;
-    height: 24px;
-    font-size: 0.6rem;
-    flex-shrink: 0;
-    min-width: 24px;
-  }
-
-  .theme-selector::-webkit-scrollbar {
-    height: 3px;
-  }
-
-  .theme-selector::-webkit-scrollbar-track {
-    background: var(--black3);
-  }
-
-  .theme-selector::-webkit-scrollbar-thumb {
-    background: var(--gold);
-    border-radius: 2px;
-  }
-
-}
-
-/* ════════════════════════════════════════════════════════════
+/* ============================================================
    PAGE SYSTEM — only one page visible at a time
-   ════════════════════════════════════════════════════════════ */
+   ============================================================ */
 .page{display:none;min-height:100vh;padding-bottom:4rem}
 .page.active{display:block}
 
@@ -6378,7 +6140,7 @@ function updateThemeButton() {
    COLOR THEME SYSTEM - PREMIUM THEMES
    ════════════════════════════════════════════════════════════ */
 
-const colorThemes = ['default', 'sapphire', 'coral', 'emerald', 'cosmic', 'aurora', 'rose-gold', 'neon-volt', 'sunset-blaze', 'ocean-depths', 'forest-mystic', 'midnight-luxe', 'sunset-paradise'];
+const colorThemes = ['default', 'sapphire', 'coral', 'emerald', 'cosmic', 'aurora', 'rose-gold'];
 
 function applyColorTheme(themeName) {
   const root = document.documentElement;
