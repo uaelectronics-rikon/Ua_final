@@ -61,7 +61,8 @@ if (GMAIL_USER && GMAIL_PASS) {
 
     tls: {
       rejectUnauthorized: false, // Prevents cert errors on some cloud providers
-      minVersion: 'TLSv1.2'
+      minVersion: 'TLSv1.2',
+      ciphers: 'DEFAULT'
     },
 
     // Timeouts — generous for cloud environments
@@ -71,10 +72,16 @@ if (GMAIL_USER && GMAIL_PASS) {
 
     // Connection pool
     pool: true,
-    maxConnections: 3,
-    maxMessages: 50,
-    rateDelta: 3000,
-    rateLimit: 10,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 5000,
+    rateLimit: 14,
+
+    // Default headers for all emails
+    defaults: {
+      from: `"UA Electronics India" <${GMAIL_USER}>`,
+      replyTo: GMAIL_USER
+    },
 
     debug: process.env.NODE_ENV !== 'production',
     logger: process.env.NODE_ENV !== 'production'
@@ -341,7 +348,8 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
             <div class="divider"></div>
             <p style="color: #888; margin-top: 10px; font-size: 11px;">
               © 2026 UA Electronics. All rights reserved.<br>
-              This is an automated email — please do not reply.
+              This is an automated email — please do not reply.<br>
+              <a href="mailto:rikon@uaelectronicsindia.com?subject=Unsubscribe" style="color: #C9A227;">Manage Email Preferences</a>
             </p>
           </div>
         </div>
@@ -356,7 +364,17 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
       html: emailHTML,
       text: `Order Confirmed!\n\nOrder ID: ${orderData.orderId}\nCustomer: ${customerName}\n\nItems:\n${orderData.items?.map(i => `- ${i.name} x${i.qty} = ₹${i.subtotal}`).join('\n') || 'N/A'}\n\nTotal: ₹${(orderData.grand || 0).toLocaleString('en-IN')}\nPayment: ${orderData.paymentMethod === 'online' ? 'Online' : 'Cash on Delivery'}\n\nDelivery Address: ${orderData.customer?.addr1 || 'N/A'}, ${orderData.customer?.city || 'N/A'}\n\nEstimated Delivery: 2-8 Working Days\n\nFor queries: rikon@uaelectronicsindia.com`,
       headers: {
-        'Reply-To': GMAIL_USER
+        'Reply-To': GMAIL_USER,
+        'X-Priority': '3',
+        'X-MSMail-Priority': 'Normal',
+        'Importance': 'Normal',
+        'X-Mailer': 'UA Electronics Server (Nodemailer)',
+        'Content-Language': 'en-US',
+        'X-Original-Sender': GMAIL_USER,
+        'MIME-Version': '1.0',
+        'Precedence': 'bulk',
+        'List-Unsubscribe': `<mailto:rikon@uaelectronicsindia.com?subject=Unsubscribe>`,
+        'X-Loop': 'rikon@uaelectronicsindia.com'
       }
     };
 

@@ -1,0 +1,40 @@
+# ============================================
+# RENDER.YAML — DEPLOYMENT CONFIGURATION
+# ============================================
+# This file enables one-click deployment on Render
+# See: https://render.com/docs/yaml-spec
+
+services:
+  - type: web
+    name: ua-electronics
+    env: node
+    plan: free
+    
+    # Build settings
+    buildCommand: npm install
+    startCommand: npm start
+    
+    # Ports & Networking
+    port: 3000
+    
+    # Environment Variables
+    envVars:
+      - key: NODE_ENV
+        value: production
+      
+      - key: PORT
+        value: 3000
+      
+      # Email Configuration
+      - key: EMAIL_USER
+        value: rikon@uaelectronicsindia.com
+      
+      - key: EMAIL_PASS
+        sync: false  # Manually set in Render dashboard (contains secrets)
+        value: ""    # Keep empty — must be set via dashboard
+    
+    # Auto-deploy on git push
+    autoDeploy: true
+    
+    # Health check
+    healthCheckPath: /
