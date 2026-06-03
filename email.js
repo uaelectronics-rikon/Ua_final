@@ -98,8 +98,7 @@ async function sendEmailWithGmailAPI(mailOptions, retries = 5, delay = 3000) {
       // Build MIME message
       let mimeMessage = `From: ${mailOptions.from}\r\n`;
       mimeMessage += `To: ${mailOptions.to}\r\n`;
-      mimeMessage += `Subject: ${mailOptions.subject}\r\n`;
-      mimeMessage += `Content-Type: text/html; charset="UTF-8"\r\n`;
+mimeMessage += `Subject: =?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=\r\n`;      mimeMessage += `Content-Type: text/html; charset="UTF-8"\r\n`;
       mimeMessage += `MIME-Version: 1.0\r\n`;
       mimeMessage += `Reply-To: ${GMAIL_USER}\r\n`;
       mimeMessage += `X-Priority: 3\r\n`;
@@ -110,8 +109,8 @@ async function sendEmailWithGmailAPI(mailOptions, retries = 5, delay = 3000) {
       // Add attachments if present
       if (mailOptions.attachments && mailOptions.attachments.length > 0) {
         const boundary = '===============boundary==';
-        mimeMessage = `From: ${mailOptions.from}\r\nTo: ${mailOptions.to}\r\nSubject: ${mailOptions.subject}\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n--${boundary}\r\nContent-Type: text/html; charset="UTF-8"\r\n\r\n${mailOptions.html}\r\n`;
-
+const encodedSubject = `=?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=`;
+mimeMessage = `From: ${mailOptions.from}\r\nTo: ${mailOptions.to}\r\nSubject: ${encodedSubject}\r\n...`
         for (const attachment of mailOptions.attachments) {
           const fileContent = fs.readFileSync(attachment.path);
           const base64Content = fileContent.toString('base64');
