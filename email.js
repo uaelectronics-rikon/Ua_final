@@ -48,7 +48,9 @@ let transporter = null;
 
 if (GMAIL_USER && GMAIL_PASS) {
   console.log("✅ Initializing Google Workspace SMTP...");
-  transporter = nodemailer.createTransport({
+  
+  // Render-optimized configuration
+  const transportConfig = {
     host: "smtp.gmail.com",      // ✅ Standard Google SMTP — works on Render & localhost
     port: 587,                   // STARTTLS port
     secure: false,               // false = STARTTLS (upgraded after connect)
@@ -62,20 +64,20 @@ if (GMAIL_USER && GMAIL_PASS) {
     tls: {
       rejectUnauthorized: false, // Prevents cert errors on some cloud providers
       minVersion: 'TLSv1.2',
-      ciphers: 'DEFAULT'
+      ciphers: 'DEFAULT:!DES'
     },
 
-    // Timeouts — generous for cloud environments
-    connectionTimeout: 20000,
-    greetingTimeout: 20000,
-    socketTimeout: 30000,
+    // Render-specific timeouts — very generous for cloud environments
+    connectionTimeout: 30000,    // 30 seconds (was 20)
+    greetingTimeout: 30000,      // 30 seconds (was 20)
+    socketTimeout: 45000,        // 45 seconds (was 30)
 
-    // Connection pool
+    // Connection pool — tuned for Render
     pool: true,
-    maxConnections: 5,
-    maxMessages: 100,
-    rateDelta: 5000,
-    rateLimit: 14,
+    maxConnections: 3,           // Reduced for stability
+    maxMessages: 30,             // More conservative
+    rateDelta: 10000,            // 10 seconds between batches
+    rateLimit: 5,                // 5 messages per 10 seconds
 
     // Default headers for all emails
     defaults: {
@@ -83,62 +85,83 @@ if (GMAIL_USER && GMAIL_PASS) {
       replyTo: GMAIL_USER
     },
 
-    debug: process.env.NODE_ENV !== 'production',
-    logger: process.env.NODE_ENV !== 'production'
-  });
+    // Enhanced logging for debugging Render issues
+    debug: true,  // Always log on Render
+    logger: true  // Enhanced logging
+  };
+  
+  transporter = nodemailer.createTransport(transportConfig);
 
   console.log("📧 Email service: smtp.gmail.com (Port 587 STARTTLS · IPv4)");
   console.log("📧 Account: " + GMAIL_USER);
+  console.log("📧 Environment: " + (process.env.NODE_ENV || 'development'));
+  console.log("📧 Render-optimized settings enabled");
 } else {
   console.error("❌ FATAL: Email transporter could not be initialized — EMAIL_USER or EMAIL_PASS missing.\n");
+  console.error("🔍 DIAGNOSTIC INFO:");
+  console.error("   EMAIL_USER set:", !!process.env.EMAIL_USER);
+  console.error("   EMAIL_PASS set:", !!process.env.EMAIL_PASS);
+  console.error("   EMAIL_PASS length:", process.env.EMAIL_PASS?.length || 0);
 }
 
 // ============================================
 // CONNECTION VERIFICATION (runs on server start)
 // ============================================
-if (transporter) {
-  transporter.verify((error, success) => {
-    if (error) {
-      console.error("\n❌ EMAIL SERVICE VERIFICATION FAILED");
-      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-      console.error("Error:", error.message);
-      console.error("Code:", error.code);
-      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+let verificationAttempted = false;
+let verificationPassed = false;
 
-      if (error.code === 'EAUTH') {
-        console.error("\n🔧 AUTHENTICATION FAILED — Most common causes:");
-        console.error("   1. EMAIL_PASS is your account password, NOT an App Password");
-        console.error("      → Must be 16 characters, no spaces (e.g. yhwmxhnmihztnlty)");
-        console.error("   2. 2-Step Verification is NOT enabled on the Google account");
-        console.error("      → Enable it first: https://myaccount.google.com/security");
-        console.error("   3. App Password was created for wrong account");
-        console.error("      → Create it while signed in as rikon@uaelectronicsindia.com");
-        console.error("   4. Google Workspace admin has blocked App Passwords");
-        console.error("      → Admin must enable: Admin Console → Security → Less secure apps");
-        console.error("\n   Fix: https://myaccount.google.com/apppasswords");
-      } else if (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN') {
-        console.error("\n🔧 DNS/NETWORK ERROR — Cannot resolve smtp.gmail.com");
-        console.error("   📌 On Render/Railway: This is NORMAL at startup!");
-        console.error("   📌 Google DNS may take 5-30 seconds to resolve");
-        console.error("   📌 Emails WILL work even if verification fails");
-        console.error("   📌 The server retries automatically on email send");
-        console.error("   ℹ️  No action needed — just wait 30 seconds and test");
-      } else if (error.code === 'ECONNREFUSED') {
-        console.error("\n🔧 CONNECTION REFUSED — Port 587 might be blocked");
-        console.error("   Check firewall/network rules (outbound port 587)");
-      } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
-        console.error("\n🔧 CONNECTION TIMEOUT — smtp.gmail.com not responding");
-        console.error("   Try restarting the server. Usually resolves on retry.");
+if (transporter) {
+  // Schedule verification with delay to allow Render DNS to stabilize
+  setTimeout(() => {
+    transporter.verify((error, success) => {
+      verificationAttempted = true;
+      
+      if (error) {
+        console.error("\n❌ EMAIL SERVICE VERIFICATION FAILED (at startup)");
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.error("Error:", error.message);
+        console.error("Code:", error.code);
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.error("⚠️  This may be normal on Render startup (DNS delay)");
+        console.error("📌 Emails will still be attempted when orders are placed");
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+        if (error.code === 'EAUTH') {
+          console.error("\n🔧 AUTHENTICATION FAILED — Most common causes:");
+          console.error("   1. EMAIL_PASS is your account password, NOT an App Password");
+          console.error("      → Must be 16 characters, no spaces (e.g. yhwmxhnmihztnlty)");
+          console.error("   2. 2-Step Verification is NOT enabled on the Google account");
+          console.error("      → Enable it first: https://myaccount.google.com/security");
+          console.error("   3. App Password was created for wrong account");
+          console.error("      → Create it while signed in as rikon@uaelectronicsindia.com");
+          console.error("   4. Google Workspace admin has blocked App Passwords");
+          console.error("      → Admin must enable: Admin Console → Security → Less secure apps");
+          console.error("\n   Fix: https://myaccount.google.com/apppasswords");
+        } else if (error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN') {
+          console.error("\n🔧 DNS/NETWORK ERROR — Cannot resolve smtp.gmail.com");
+          console.error("   📌 On Render/Railway: This is NORMAL at startup!");
+          console.error("   📌 Google DNS may take 5-30 seconds to resolve");
+          console.error("   📌 Emails WILL work even if verification fails");
+          console.error("   📌 The server retries automatically on email send");
+          console.error("   ℹ️  No action needed — just wait 30 seconds and test");
+        } else if (error.code === 'ECONNREFUSED') {
+          console.error("\n🔧 CONNECTION REFUSED — Port 587 might be blocked");
+          console.error("   Check firewall/network rules (outbound port 587)");
+        } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
+          console.error("\n🔧 CONNECTION TIMEOUT — smtp.gmail.com not responding");
+          console.error("   Try restarting the server. Usually resolves on retry.");
+        }
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+      } else {
+        verificationPassed = true;
+        console.log("\n✅ EMAIL SERVICE VERIFIED SUCCESSFULLY!");
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.log("✅ Account: " + GMAIL_USER);
+        console.log("✅ Ready to send order confirmation emails");
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
       }
-      console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-    } else {
-      console.log("\n✅ EMAIL SERVICE VERIFIED SUCCESSFULLY!");
-      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-      console.log("✅ Account: " + GMAIL_USER);
-      console.log("✅ Ready to send order confirmation emails");
-      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-    }
-  });
+    });
+  }, 2000); // 2 second delay to allow Render DNS to stabilize
 }
 
 // ============================================
@@ -149,12 +172,70 @@ function validateEmail(email) {
   return emailRegex.test(email);
 }
 
-async function sendEmailWithRetry(mailOptions, retries = 3, delay = 2000) {
+// Reinitialize transporter if needed (for Render recovery)
+function ensureTransporter() {
+  if (!transporter && GMAIL_USER && GMAIL_PASS) {
+    console.log("🔄 Reinitializing transporter...");
+    
+    transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      family: 4,
+      auth: {
+        user: GMAIL_USER,
+        pass: GMAIL_PASS
+      },
+      tls: {
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2',
+        ciphers: 'DEFAULT:!DES'
+      },
+      connectionTimeout: 30000,
+      greetingTimeout: 30000,
+      socketTimeout: 45000,
+      pool: true,
+      maxConnections: 3,
+      maxMessages: 30,
+      rateDelta: 10000,
+      rateLimit: 5,
+      defaults: {
+        from: `"UA Electronics India" <${GMAIL_USER}>`,
+        replyTo: GMAIL_USER
+      },
+      debug: true,
+      logger: true
+    });
+    
+    console.log("✅ Transporter reinitialized");
+    return true;
+  }
+  return !!transporter;
+}
+
+async function sendEmailWithRetry(mailOptions, retries = 5, delay = 3000) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       console.log(`📤 Sending email (Attempt ${attempt}/${retries})...`);
       console.log(`   To: ${mailOptions.to}`);
       console.log(`   Subject: ${mailOptions.subject}`);
+      
+      // Ensure transporter exists before sending
+      if (!ensureTransporter()) {
+        throw new Error("Transporter initialization failed — EMAIL_USER or EMAIL_PASS missing");
+      }
+      
+      // Verify connection before sending (especially for Render)
+      if (attempt === 1) {
+        console.log("🔍 Verifying connection...");
+        await new Promise((resolve, reject) => {
+          transporter.verify((err, success) => {
+            if (err) reject(err);
+            else resolve(success);
+          });
+        });
+        console.log("✅ Connection verified");
+      }
 
       const info = await transporter.sendMail(mailOptions);
 
@@ -166,22 +247,49 @@ async function sendEmailWithRetry(mailOptions, retries = 3, delay = 2000) {
       console.error(`\n❌ Email attempt ${attempt} FAILED`);
       console.error(`   Error: ${error.message}`);
       console.error(`   Code: ${error.code || 'N/A'}`);
+      
+      // Log full error for Render debugging
+      if (process.env.NODE_ENV === 'production') {
+        console.error(`   Full error: ${JSON.stringify(error)}`);
+      }
 
       if (attempt < retries) {
-        const waitTime = delay * Math.pow(2, attempt - 1); // exponential backoff
-        console.log(`⏳ Retrying in ${waitTime}ms...`);
+        // Exponential backoff: 3s, 6s, 12s, 24s, 48s
+        const waitTime = delay * Math.pow(2, attempt - 1);
+        console.log(`⏳ Retrying in ${waitTime}ms... (Attempt ${attempt + 1}/${retries})`);
+        
+        // Reinitialize transporter before retry (in case connection is stale)
+        transporter = null;
+        
         await new Promise(resolve => setTimeout(resolve, waitTime));
       } else {
         console.error("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        console.error("❌ All email attempts failed");
+        console.error("❌ All email attempts FAILED (Render Troubleshooting)");
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
         if (error.code === 'EAUTH') {
-          console.error("🔧 EAUTH: App Password invalid or 2FA not enabled");
-          console.error("   → https://myaccount.google.com/apppasswords");
+          console.error("🔧 EAUTH: Authentication failed");
+          console.error("   1. Check EMAIL_PASS is correct (16 chars, no spaces)");
+          console.error("   2. Verify Google 2FA is enabled");
+          console.error("   3. Verify App Password was created");
+          console.error("   4. Regenerate at: https://myaccount.google.com/apppasswords");
+          console.error("   5. Update EMAIL_PASS in Render Environment Variables");
+          console.error("   6. Redeploy the service");
         } else if (error.code === 'ENOTFOUND') {
-          console.error("🔧 ENOTFOUND: Cannot reach smtp.gmail.com");
+          console.error("🔧 ENOTFOUND: Cannot resolve smtp.gmail.com");
+          console.error("   1. Check Render network connectivity");
+          console.error("   2. Verify Render is not on restricted network");
+          console.error("   3. If on free plan, upgrade to Pro for full outbound access");
+          console.error("   4. Contact Render support");
         } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
           console.error(`🔧 TIMEOUT (${error.code}): Gmail server not responding`);
+          console.error("   1. This is usually temporary — server will retry on next order");
+          console.error("   2. Check https://www.google.com/appsstatus for Gmail status");
+          console.error("   3. Check https://status.render.com for Render status");
+          console.error("   4. Try again in 5 minutes");
+        } else if (error.code === 'ECONNREFUSED') {
+          console.error("🔧 ECONNREFUSED: Cannot connect to SMTP server");
+          console.error("   This may indicate network restrictions on Render");
         }
         console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
         throw error;
@@ -195,8 +303,9 @@ async function sendEmailWithRetry(mailOptions, retries = 3, delay = 2000) {
 // ============================================
 async function sendEmail(to, orderData, pdfFilePath = null) {
   try {
-    if (!transporter) {
-      console.error("❌ Email transporter not initialized — check EMAIL_USER and EMAIL_PASS");
+    // Ensure transporter is initialized
+    if (!ensureTransporter()) {
+      console.error("❌ Email transporter cannot be initialized — check EMAIL_USER and EMAIL_PASS");
       return false;
     }
 
