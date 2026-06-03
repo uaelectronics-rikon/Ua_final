@@ -7258,7 +7258,13 @@ function saveOrder(order) {
     if (data.success) {
       console.log("✅ Order saved successfully:", order.orderId);
       toast("✅ Order saved! Generating receipt...", "green");
-      
+      // Save to user's local order history
+      if (currentUser) {
+        const uk = 'ua_orders_' + currentUser.email.replace(/[^a-z0-9]/gi,'_');
+        const existing = JSON.parse(ls(uk) || '[]');
+        existing.unshift(order); // newest first
+        ls(uk, JSON.stringify(existing));
+      }
       // Generate PDF after order is saved
       setTimeout(() => {
         generateOrderPDF(order);
@@ -7349,10 +7355,14 @@ function renderOrders() {
     return `<div class="order-card">
       <div class="oc-head">
         <div>
-          <div class="oc-id">ORDER #${o.orderId}</div>
-          <div class="oc-date">${dt}</div>
+         <div class="oc-id">ORDER #${o.orderId}</div>
+<div class="oc-date">${dt}</div>
+<div style="font-size:0.62rem;color:#10b981;font-weight:600;margin-top:2px;">✅ Placed Successfully</div>
         </div>
-        <span class="oc-status ${statusClass}">${o.paid?'✅ PAID':'💵 '+o.paymentMethod}</span>
+<div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.3rem">
+  <span class="oc-status ${statusClass}">${o.paid?'✅ PAID':'💵 '+o.paymentMethod}</span>
+  <span style="font-size:0.65rem;background:#10b981;color:#fff;padding:2px 8px;border-radius:20px;font-weight:700;letter-spacing:0.5px;">✅ ORDER PLACED SUCCESSFULLY</span>
+</div>
       </div>
       <div class="oc-items">${items}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
