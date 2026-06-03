@@ -23,7 +23,7 @@ if (!GMAIL_USER || !GMAIL_PASS) {
   console.error("5. Copy the 16-character password (no spaces)");
   console.error("6. Add to your .env file:");
   console.error("   EMAIL_USER=rikon@uaelectronicsindia.com");
-  console.error("   EMAIL_PASS=yhwmxhnmihztnlty   ← your 16-char app password");
+  console.error("   EMAIL_PASS=kvheksitqrzjgxtd   ← your 16-char app password");
   console.error("7. On Render: Add both as Environment Variables in the dashboard");
   console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 }
@@ -126,7 +126,7 @@ if (transporter) {
         if (error.code === 'EAUTH') {
           console.error("\n🔧 AUTHENTICATION FAILED — Most common causes:");
           console.error("   1. EMAIL_PASS is your account password, NOT an App Password");
-          console.error("      → Must be 16 characters, no spaces (e.g. yhwmxhnmihztnlty)");
+          console.error("      → Must be 16 characters, no spaces (e.g. kvheksitqrzjgxtd)");
           console.error("   2. 2-Step Verification is NOT enabled on the Google account");
           console.error("      → Enable it first: https://myaccount.google.com/security");
           console.error("   3. App Password was created for wrong account");
