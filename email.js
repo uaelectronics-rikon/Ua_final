@@ -51,25 +51,19 @@ let transporter = null;
 if (GMAIL_USER && GMAIL_PASS) {
   console.log("✅ Initializing Google Workspace SMTP...");
   
-  // Custom DNS lookup function that ONLY returns IPv4 addresses
-  const { lookup } = require("dns").promises;
-  const customLookup = async (hostname, options, callback) => {
-    if (callback) {
-      // Callback-based (for backward compatibility)
-      try {
-        const addresses = await lookup(hostname, { family: 4, all: true });
-        if (addresses.length > 0) {
-          callback(null, addresses[0].address, 4);
-        } else {
-          callback(new Error(`No IPv4 address found for ${hostname}`));
-        }
-      } catch (err) {
-        callback(err);
+  // ✅ CRITICAL FIX: Custom lookup that ONLY uses IPv4 (dns.resolve4)
+  // This prevents nodemailer from attempting IPv6 which fails on Render
+  const customLookup = (hostname, options, callback) => {
+    dns.resolve4(hostname, (err, addresses) => {
+      if (err) {
+        return callback(err);
       }
-    } else {
-      // Promise-based
-      return lookup(hostname, { family: 4 });
-    }
+      if (!addresses || addresses.length === 0) {
+        return callback(new Error(`No IPv4 address found for ${hostname}`));
+      }
+      // Return first IPv4 address and family code 4
+      callback(null, addresses[0], 4);
+    });
   };
   
   // Render-optimized configuration
@@ -78,7 +72,7 @@ if (GMAIL_USER && GMAIL_PASS) {
     port: 465,                   // ✅ FIX: Port 465 (SSL) — port 587 blocked on Render
     secure: true,                // ✅ FIX: true required for port 465
     family: 4,                   // Force IPv4
-    lookup: customLookup,        // ✅ NEW: Custom lookup function - ONLY IPv4
+    lookup: customLookup,        // ✅ CRITICAL: Custom lookup using dns.resolve4 ONLY
 
     auth: {
       user: GMAIL_USER,
@@ -106,7 +100,7 @@ if (GMAIL_USER && GMAIL_PASS) {
   
   transporter = nodemailer.createTransport(transportConfig);
 
-  console.log("📧 Email service: smtp.gmail.com (Port 465 SSL · IPv4)");
+  console.log("📧 Email service: smtp.gmail.com (Port 465 SSL · IPv4 ONLY)");
   console.log("📧 Account: " + GMAIL_USER);
   console.log("📧 Environment: " + (process.env.NODE_ENV || 'development'));
   console.log("📧 Render-optimized settings enabled");
@@ -191,24 +185,17 @@ function ensureTransporter() {
   if (!transporter && GMAIL_USER && GMAIL_PASS) {
     console.log("🔄 Reinitializing transporter...");
     
-    // Custom DNS lookup function that ONLY returns IPv4 addresses
-    const customLookup = async (hostname, options, callback) => {
-      if (callback) {
-        try {
-          const addresses = require("dns").promises.lookup(hostname, { family: 4, all: true });
-          Promise.resolve(addresses).then(addrs => {
-            if (addrs.length > 0) {
-              callback(null, addrs[0].address, 4);
-            } else {
-              callback(new Error(`No IPv4 address found for ${hostname}`));
-            }
-          }).catch(callback);
-        } catch (err) {
-          callback(err);
+    // ✅ CRITICAL: Same IPv4-only custom lookup using dns.resolve4
+    const customLookup = (hostname, options, callback) => {
+      dns.resolve4(hostname, (err, addresses) => {
+        if (err) {
+          return callback(err);
         }
-      } else {
-        return require("dns").promises.lookup(hostname, { family: 4 });
-      }
+        if (!addresses || addresses.length === 0) {
+          return callback(new Error(`No IPv4 address found for ${hostname}`));
+        }
+        callback(null, addresses[0], 4);
+      });
     };
     
     transporter = nodemailer.createTransport({
@@ -216,7 +203,7 @@ function ensureTransporter() {
       port: 465,                 // ✅ FIX: port 465 SSL
       secure: true,              // ✅ FIX: true for port 465
       family: 4,
-      lookup: customLookup,      // ✅ NEW: Custom lookup function - ONLY IPv4
+      lookup: customLookup,      // ✅ CRITICAL: Custom IPv4-only lookup
       auth: {
         user: GMAIL_USER,
         pass: GMAIL_PASS
