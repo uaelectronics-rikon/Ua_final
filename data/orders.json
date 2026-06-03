@@ -1017,5 +1017,73 @@
     "paymentId": null,
     "paid": false,
     "status": "Confirmed"
+  },
+  {
+    "orderId": "UAE1780507296726",
+    "date": "2026-06-03T17:21:36.726Z",
+    "customer": {
+      "name": "Guest User",
+      "mobile": "+91 87656 76546",
+      "email": "jarviskuamr4@gmail.com",
+      "pin": "302020",
+      "addr1": "dxvfdvfsvdsf",
+      "addr2": "dsvdsf",
+      "city": "dsfvsdfv",
+      "state": "Rajasthan",
+      "notes": ""
+    },
+    "items": [
+      {
+        "id": 1,
+        "name": "INFRARED Induction Cooktop Prestige Gold Series G-22X",
+        "brand": "UA RIKON",
+        "icon": "🍳",
+        "price": 2499,
+        "qty": 1,
+        "subtotal": 2499
+      }
+    ],
+    "subtotal": 2499,
+    "shipping": 0,
+    "grand": 2499,
+    "paymentMethod": "Cash on Delivery",
+    "paymentStatus": "Pending",
+    "paymentId": null,
+    "paid": false,
+    "status": "Confirmed"
+  },
+  {
+    "orderId": "UAE1780507558556",
+    "date": "2026-06-03T17:25:58.556Z",
+    "customer": {
+      "name": "Guest User",
+      "mobile": "+91 34554 45454",
+      "email": "jarviskuamr4@gmail.com",
+      "pin": "303030",
+      "addr1": "cdfvdfvdf",
+      "addr2": "vfdvdfv",
+      "city": "fdvdfv",
+      "state": "Meghalaya",
+      "notes": ""
+    },
+    "items": [
+      {
+        "id": 1,
+        "name": "INFRARED Induction Cooktop Prestige Gold Series G-22X",
+        "brand": "UA RIKON",
+        "icon": "🍳",
+        "price": 2499,
+        "qty": 1,
+        "subtotal": 2499
+      }
+    ],
+    "subtotal": 2499,
+    "shipping": 0,
+    "grand": 2499,
+    "paymentMethod": "Cash on Delivery",
+    "paymentStatus": "Pending",
+    "paymentId": null,
+    "paid": false,
+    "status": "Confirmed"
   }
 ]
