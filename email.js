@@ -72,12 +72,9 @@ if (GMAIL_USER && GMAIL_PASS) {
     greetingTimeout: 30000,      // 30 seconds (was 20)
     socketTimeout: 45000,        // 45 seconds (was 30)
 
-    // Connection pool — tuned for Render
-    pool: true,
-    maxConnections: 3,           // Reduced for stability
-    maxMessages: 30,             // More conservative
-    rateDelta: 10000,            // 10 seconds between batches
-    rateLimit: 5,                // 5 messages per 10 seconds
+    // ✅ FIX: pool:true causes stale connections on Render (ephemeral containers)
+    // Each sendMail() now opens a fresh connection — reliable on Render
+    pool: false,
 
     // Default headers for all emails
     defaults: {
@@ -194,11 +191,7 @@ function ensureTransporter() {
       connectionTimeout: 30000,
       greetingTimeout: 30000,
       socketTimeout: 45000,
-      pool: true,
-      maxConnections: 3,
-      maxMessages: 30,
-      rateDelta: 10000,
-      rateLimit: 5,
+      pool: false,   // ✅ FIX: no pooling on Render
       defaults: {
         from: `"UA Electronics India" <${GMAIL_USER}>`,
         replyTo: GMAIL_USER
@@ -224,18 +217,6 @@ async function sendEmailWithRetry(mailOptions, retries = 5, delay = 3000) {
       if (!ensureTransporter()) {
         throw new Error("Transporter initialization failed — EMAIL_USER or EMAIL_PASS missing");
       }
-      
-      // Verify connection before sending (especially for Render)
-      if (attempt === 1) {
-        console.log("🔍 Verifying connection...");
-        await new Promise((resolve, reject) => {
-          transporter.verify((err, success) => {
-            if (err) reject(err);
-            else resolve(success);
-          });
-        });
-        console.log("✅ Connection verified");
-      }
 
       const info = await transporter.sendMail(mailOptions);
 
@@ -251,6 +232,13 @@ async function sendEmailWithRetry(mailOptions, retries = 5, delay = 3000) {
       // Log full error for Render debugging
       if (process.env.NODE_ENV === 'production') {
         console.error(`   Full error: ${JSON.stringify(error)}`);
+      }
+
+      // EAUTH = wrong credentials — retrying will never help, fail fast
+      if (error.code === 'EAUTH') {
+        console.error("🔧 EAUTH: Authentication failed — check EMAIL_PASS in Render env vars");
+        console.error("   Regenerate App Password at: https://myaccount.google.com/apppasswords");
+        throw error;
       }
 
       if (attempt < retries) {
