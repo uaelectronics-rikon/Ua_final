@@ -98,7 +98,8 @@ async function sendEmailWithGmailAPI(mailOptions, retries = 5, delay = 3000) {
       // Build MIME message
       let mimeMessage = `From: ${mailOptions.from}\r\n`;
       mimeMessage += `To: ${mailOptions.to}\r\n`;
-mimeMessage += `Subject: =?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=\r\n`;      mimeMessage += `Content-Type: text/html; charset="UTF-8"\r\n`;
+mimeMessage += `Subject: =?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=\r\n`;
+      mimeMessage += `Content-Type: text/html; charset="UTF-8"\r\n`;
       mimeMessage += `MIME-Version: 1.0\r\n`;
       mimeMessage += `Reply-To: ${GMAIL_USER}\r\n`;
       mimeMessage += `X-Priority: 3\r\n`;
@@ -107,17 +108,41 @@ mimeMessage += `Subject: =?UTF-8?B?${Buffer.from(mailOptions.subject).toString('
       mimeMessage += mailOptions.html;
 
       // Add attachments if present
-      if (mailOptions.attachments && mailOptions.attachments.length > 0) {
-        const boundary = '===============boundary==';
-const encodedSubject = `=?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=`;
-mimeMessage = `From: ${mailOptions.from}\r\nTo: ${mailOptions.to}\r\nSubject: ${encodedSubject}\r\n...`
-        for (const attachment of mailOptions.attachments) {
-          const fileContent = fs.readFileSync(attachment.path);
-          const base64Content = fileContent.toString('base64');
-          mimeMessage += `\r\n--${boundary}\r\nContent-Type: ${attachment.contentType}\r\nContent-Disposition: attachment; filename="${attachment.filename}"\r\nContent-Transfer-Encoding: base64\r\n\r\n${base64Content}\r\n`;
-        }
-        mimeMessage += `--${boundary}--`;
-      }
+     if (mailOptions.attachments && mailOptions.attachments.length > 0) {
+  const boundary = '===============boundary' + Date.now() + '==';
+  const encodedSubject = `=?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=`;
+
+  mimeMessage = [
+    `From: ${mailOptions.from}`,
+    `To: ${mailOptions.to}`,
+    `Subject: ${encodedSubject}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    ``,
+    `--${boundary}`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    `Content-Transfer-Encoding: base64`,
+    ``,
+    Buffer.from(mailOptions.html).toString('base64'),
+    ``
+  ].join('\r\n');
+
+  for (const attachment of mailOptions.attachments) {
+    const fileContent = fs.readFileSync(attachment.path);
+    const base64Content = fileContent.toString('base64');
+    mimeMessage += [
+      `--${boundary}`,
+      `Content-Type: ${attachment.contentType}`,
+      `Content-Disposition: attachment; filename="${attachment.filename}"`,
+      `Content-Transfer-Encoding: base64`,
+      ``,
+      base64Content,
+      ``
+    ].join('\r\n');
+  }
+
+  mimeMessage += `--${boundary}--`;
+}
 
       // Encode message
       const encodedMessage = encodeBase64(mimeMessage);
