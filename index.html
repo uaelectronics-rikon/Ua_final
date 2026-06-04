@@ -5116,6 +5116,20 @@ nav, .cart-drawer, .modal-overlay {
     color:var(--accent);
     font-weight:700;
 }
+.google-btn{
+  width:100%;
+  padding:12px;
+  border:1px solid #ddd;
+  background:#fff;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-top:10px;
+}
 </style>
 </head>
 <body>
@@ -5148,8 +5162,9 @@ nav, .cart-drawer, .modal-overlay {
             <div class="u-drop-item" onclick="showPage('orders')">📦 My Orders</div>
             <div class="u-drop-item" id="adminLink" style="display:none" onclick="showPage('admin')">⚙️ Seller Dashboard</div>
             <div class="u-drop-sep"></div>
-            <div class="u-drop-item red" onclick="checkout.logoutUser(); location.reload();">🚪 Sign Out</div>
-          </div>
+<div class="u-drop-item red" onclick="logoutGoogle()">
+  🚪 Sign Out
+</div>          </div>
         </div>
       </div>
       <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode" title="Toggle Dark/Light Mode">🌙</button>
@@ -6069,7 +6084,7 @@ nav, .cart-drawer, .modal-overlay {
       <div class="mfg"><label>LAST NAME</label><input type="text" id="sL" placeholder="Sharma" autocomplete="family-name"/></div>
     </div>
     <div class="mfg"><label>EMAIL ADDRESS *</label><input type="email" id="sE" placeholder="rahul@email.com" autocomplete="email"/></div>
-    <div class="mfg"><label>MOBILE NUMBER</label><input type="tel" id="sP" placeholder="+91 98765 43210" autocomplete="tel"/></div>
+    <div class="mfg"><label>MOBILE NUMBER</label><input type="tel" id="sP" placeholder="+919876543210" autocomplete="tel"/></div>
     <div class="mfg"><label>PASSWORD *</label><input type="password" id="sPw" placeholder="Min 6 characters" autocomplete="new-password"/></div>
     <div id="sErr" class="m-err"></div>
     <div id="sSuc" class="m-suc"></div>
@@ -9067,7 +9082,12 @@ setTimeout(function() {
         <label>Password</label>
         <input type="password" name="password" placeholder="Enter password" required>
       </div>
-      <button type="submit" class="m-submit">LOGIN</button>
+<button class="google-btn" type="button" onclick="googleLogin()">
+  <img src="https://developers.google.com/identity/images/g-logo.png" width="18">
+  Continue with Google
+</button>
+
+<button type="submit" class="m-submit">LOGIN</button>
     </form>
 
     <!-- Register Form -->
@@ -9084,8 +9104,12 @@ setTimeout(function() {
         <label>Password</label>
         <input type="password" name="password" placeholder="Min 6 characters" required>
       </div>
-      <button type="submit" class="m-submit">CREATE ACCOUNT</button>
-    </form>
+<button class="google-btn" type="button" onclick="googleLogin()">
+  <img src="https://developers.google.com/identity/images/g-logo.png" width="18">
+  Sign Up with Google
+</button>
+
+<button type="submit" class="m-submit">CREATE ACCOUNT</button>    </form>
   </div>
 </div>
 
@@ -9229,6 +9253,102 @@ setInterval(() => {
 
 /* Init */
 showSlide(currentSlide);
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCJxmBAkBfbRDgNPCeebz2-nv-L4xU7cXQ",
+  authDomain: "ua-electronics-115a0.firebaseapp.com",
+  projectId: "ua-electronics-115a0",
+  storageBucket: "ua-electronics-115a0.firebasestorage.app",
+  messagingSenderId: "16926569342",
+  appId: "1:16926569342:web:cbda70ddc92d615a9e392f",
+  measurementId: "G-NTS0YJL3D8"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+window.googleLogin = async function() {
+  try {
+
+    const provider = new GoogleAuthProvider();
+
+    const result = await signInWithPopup(auth, provider);
+
+    const user = result.user;
+
+    const userData = {
+      uid: user.uid,
+      name: user.displayName,
+      email: user.email,
+      photo: user.photoURL,
+      provider: "google",
+      loginTime: Date.now()
+    };
+
+    localStorage.setItem("uaUser", JSON.stringify(userData));
+
+    alert("Welcome " + user.displayName);
+
+    closeOverlay('loginOv');
+    closeOverlay('signupOv');
+
+    location.reload();
+
+  } catch(error) {
+    console.error(error);
+    alert(error.message);
+  }
+};
+
+window.logoutGoogle = async function() {
+  try {
+    await signOut(auth);
+  } catch(e) {
+    console.log(e);
+  }
+
+  // Google login data
+  localStorage.removeItem("uaUser");
+
+  // Existing website login data
+  localStorage.removeItem("ua_user");
+
+  if (typeof currentUser !== "undefined") {
+    currentUser = null;
+  }
+
+  if (typeof udOpen !== "undefined") {
+    udOpen = false;
+  }
+
+  const dropdown = document.getElementById('uDropdown');
+  if (dropdown) {
+    dropdown.classList.remove('open');
+  }
+
+  if (typeof updateAuthUI === 'function') {
+    updateAuthUI();
+  }
+
+  if (typeof showPage === 'function') {
+    showPage('home');
+  }
+
+  if (typeof toast === 'function') {
+    toast('Signed out successfully', 'gold');
+  }
+
+  location.reload();
+};
 </script>
 </body>
 </html>
