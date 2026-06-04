@@ -492,7 +492,7 @@ app.post("/generate-pdf", (req, res) => {
     
     console.log("📝 Generating PDF:", filePath);
 
-    // Create PDF
+    // Create PDF with A4 dimensions
     const doc = new PDFDocument({ size: "A4", margin: 50 });
     const stream = fs.createWriteStream(filePath);
     
@@ -527,96 +527,305 @@ app.post("/generate-pdf", (req, res) => {
     // Pipe document to stream
     doc.pipe(stream);
 
-    // Header
-    doc.fontSize(24).font("Helvetica-Bold").text("UA ELECTRONICS", { align: "center" });
-    doc.fontSize(10).font("Helvetica").fillColor("#999").text("Official UA RIKON Dealer", { align: "center" });
+    // Color constants - Samsung Premium Blue Theme
+    const PRIMARY_BLUE = "#1428A0";
+    const ACCENT_BLUE = "#2189FF";
+    const DARK_NAVY = "#0F172A";
+    const LIGHT_BG = "#F5F7FA";
+    const BORDER_COLOR = "#E5E7EB";
+    const TEXT_DARK = "#111111";
+    const TEXT_SECONDARY = "#333333";
+
+    // ═══════════════════════════════════════════════════════
+    // HEADER WITH PREMIUM GRADIENT EFFECT
+    // ═══════════════════════════════════════════════════════
+    
+    // Header background rectangle (simulating gradient)
+    doc.rect(0, 0, doc.page.width, 120)
+      .fillAndStroke(PRIMARY_BLUE, PRIMARY_BLUE);
+
+    // Header content
+    doc.fontSize(28)
+      .font("Helvetica-Bold")
+      .fillColor("#FFFFFF")
+      .text("UA ELECTRONICS", { align: "center", width: doc.page.width - 100 });
+    
+    doc.fontSize(10)
+      .font("Helvetica")
+      .fillColor("rgba(255,255,255,0.85)")
+      .text("Official UA RIKON Premium Electronics Retailer", { align: "center", width: doc.page.width - 100 });
+    
     doc.moveDown(0.5);
-    doc.lineTo(doc.page.margins.left, doc.y, doc.page.width - doc.page.margins.right, doc.y).stroke();
+    
+    doc.fontSize(11)
+      .font("Helvetica-Bold")
+      .fillColor("#FFFFFF")
+      .text("ORDER RECEIPT", { align: "center", width: doc.page.width - 100 });
+
+    // ═══════════════════════════════════════════════════════
+    // ORDER METADATA
+    // ═══════════════════════════════════════════════════════
+    doc.moveDown(1.5);
+    
+    doc.fontSize(10)
+      .font("Helvetica-Bold")
+      .fillColor(TEXT_DARK)
+      .text(`Order ID: ${orderData.orderId}`, 50);
+    
+    const orderDateFormatted = new Date(orderData.date).toLocaleDateString("en-IN", { 
+      day: "2-digit", 
+      month: "short", 
+      year: "numeric" 
+    });
+    
+    doc.fontSize(9)
+      .font("Helvetica")
+      .fillColor(TEXT_SECONDARY)
+      .text(`Placed on: ${orderDateFormatted}`)
+      .text(`Status: ${orderData.status || 'Confirmed'}`, { color: ACCENT_BLUE });
+    
     doc.moveDown(1);
 
-    // Order Title and ID
-    doc.fontSize(14).font("Helvetica-Bold").fillColor("#000").text("ORDER RECEIPT", { align: "left" });
-    doc.fontSize(12).text(`Order ID: ${orderData.orderId}`, { align: "left" });
-    doc.fontSize(10).fillColor("#555").text(`Date: ${new Date(orderData.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`);
-    doc.moveDown(1);
-
-    // Customer Details
-    doc.fontSize(11).font("Helvetica-Bold").fillColor("#000").text("DELIVERY INFORMATION");
-    doc.fontSize(10).font("Helvetica").fillColor("#333");
+    // ═══════════════════════════════════════════════════════
+    // SECTION: DELIVERY INFORMATION
+    // ═══════════════════════════════════════════════════════
+    doc.fontSize(11)
+      .font("Helvetica-Bold")
+      .fillColor(PRIMARY_BLUE)
+      .text("📍 DELIVERY INFORMATION", 50);
+    
+    doc.fontSize(9)
+      .font("Helvetica")
+      .fillColor(TEXT_SECONDARY);
+    
     const customer = orderData.customer || {};
-    doc.text(`Name: ${customer.name || "N/A"}`);
-    doc.text(`Mobile: ${customer.mobile || "N/A"}`);
-    doc.text(`Email: ${customer.email || "N/A"}`);
-    doc.text(`Address: ${customer.addr1 || ""}, ${customer.addr2 || ""}, ${customer.city || ""} - ${customer.pin || ""}`);
-    doc.text(`State: ${customer.state || "N/A"}`);
-    if (customer.notes) doc.text(`Notes: ${customer.notes}`);
-    doc.moveDown(1);
+    const deliveryInfo = [
+      [`Name:`, customer.name || 'N/A'],
+      [`Mobile:`, customer.mobile || 'N/A'],
+      [`Email:`, customer.email || 'N/A'],
+      [`Address:`, `${customer.addr1 || ''}${customer.addr2 ? ', ' + customer.addr2 : ''}`],
+      [`City:`, `${customer.city || 'N/A'} - ${customer.pin || 'N/A'}`],
+      [`State:`, customer.state || 'N/A']
+    ];
 
-    // Payment Details
-    doc.fontSize(11).font("Helvetica-Bold").fillColor("#000").text("PAYMENT INFORMATION");
-    doc.fontSize(10).font("Helvetica").fillColor("#333");
-    doc.text(`Payment Method: ${orderData.paymentMethod || "N/A"}`);
-    doc.text(`Payment Status: ${orderData.paymentStatus || "N/A"}`);
-    doc.moveDown(1);
-
-    // Delivery Time Info (NEW)
-    doc.fontSize(11).font("Helvetica-Bold").fillColor("#C9A227").text("ESTIMATED DELIVERY TIME");
-    doc.fontSize(10).font("Helvetica").fillColor("#333").text("2-8 Working Days");
-    doc.moveDown(1);
-
-    // Items Table
-    doc.fontSize(11).font("Helvetica-Bold").fillColor("#000").text("ORDER ITEMS");
-    doc.fontSize(9).font("Helvetica").fillColor("#333");
-    
-    const items = orderData.items || [];
-    const tableTop = doc.y + 10;
-    const itemColX = 50;
-    const qtyColX = 320;
-    const priceColX = 380;
-    const subtotalColX = 460;
-
-    // Table header
-    doc.font("Helvetica-Bold").fillColor("#000");
-    doc.text("Item", itemColX, tableTop);
-    doc.text("Qty", qtyColX, tableTop);
-    doc.text("Price", priceColX, tableTop);
-    doc.text("Subtotal", subtotalColX, tableTop);
-    
-    // Separator line
-    doc.moveTo(itemColX, tableTop + 15).lineTo(550, tableTop + 15).stroke();
-    doc.moveDown(1.2);
-
-    // Items rows
-    doc.font("Helvetica").fillColor("#333").fontSize(9);
-    items.forEach((item) => {
-      const itemText = `${item.name}`;
-      doc.text(itemText.substring(0, 30), itemColX, doc.y);
-      doc.text(item.qty.toString(), qtyColX, doc.y - doc.currentLineHeight());
-      doc.text(`₹${item.price.toLocaleString("en-IN")}`, priceColX, doc.y - doc.currentLineHeight());
-      doc.text(`₹${item.subtotal.toLocaleString("en-IN")}`, subtotalColX, doc.y - doc.currentLineHeight());
-      doc.moveDown(0.8);
+    deliveryInfo.forEach(([label, value]) => {
+      doc.font("Helvetica-Bold").fillColor(TEXT_DARK).text(label, 50, doc.y, { width: 80, continued: true });
+      doc.font("Helvetica").fillColor(TEXT_SECONDARY).text(` ${value}`);
     });
 
-    doc.moveTo(itemColX, doc.y).lineTo(550, doc.y).stroke();
-    doc.moveDown(0.8);
+    if (customer.notes) {
+      doc.font("Helvetica-Bold").fillColor(TEXT_DARK).text("Notes:", 50, doc.y, { width: 80, continued: true });
+      doc.font("Helvetica").fillColor(TEXT_SECONDARY).text(` ${customer.notes}`);
+    }
 
-    // Totals
-    doc.font("Helvetica").fontSize(10).fillColor("#333");
-    doc.text(`Subtotal: ₹${(orderData.subtotal || 0).toLocaleString("en-IN")}`, { align: "right" });
-    doc.text(`Delivery Charge: ₹${(orderData.shipping || 0).toLocaleString("en-IN")}`, { align: "right" });
-    
-    doc.font("Helvetica-Bold").fontSize(12).fillColor("#C9A227");
-    doc.text(`TOTAL: ₹${(orderData.grand || 0).toLocaleString("en-IN")}`, { align: "right" });
-    
-    doc.moveDown(2);
+    doc.moveDown(1);
 
-    // Footer
-    doc.fontSize(9).font("Helvetica").fillColor("#999");
-    doc.lineTo(doc.page.margins.left, doc.y, doc.page.width - doc.page.margins.right, doc.y).stroke();
+    // ═══════════════════════════════════════════════════════
+    // SECTION: PAYMENT INFORMATION
+    // ═══════════════════════════════════════════════════════
+    doc.fontSize(11)
+      .font("Helvetica-Bold")
+      .fillColor(PRIMARY_BLUE)
+      .text("💳 PAYMENT INFORMATION", 50);
+    
+    doc.fontSize(9)
+      .font("Helvetica")
+      .fillColor(TEXT_SECONDARY);
+    
+    const paymentMethod = orderData.paymentMethod === 'online' ? 'Online (Razorpay)' : 'Cash on Delivery (COD)';
+    doc.font("Helvetica-Bold").fillColor(TEXT_DARK).text("Method:", 50, doc.y, { width: 80, continued: true });
+    doc.font("Helvetica").fillColor(TEXT_SECONDARY).text(` ${paymentMethod}`);
+    
+    doc.font("Helvetica-Bold").fillColor(TEXT_DARK).text("Status:", 50, doc.y, { width: 80, continued: true });
+    doc.font("Helvetica").fillColor(ACCENT_BLUE).text(` ${orderData.paymentStatus || 'Pending'}`);
+
+    doc.moveDown(1.2);
+
+    // ═══════════════════════════════════════════════════════
+    // SECTION: ORDER ITEMS TABLE
+    // ═══════════════════════════════════════════════════════
+    doc.fontSize(11)
+      .font("Helvetica-Bold")
+      .fillColor(PRIMARY_BLUE)
+      .text("📦 ORDER ITEMS", 50);
+    
     doc.moveDown(0.5);
-    doc.text("Thank you for shopping with UA Electronics!", { align: "center" });
-    doc.text("For queries, contact: support@uaelectronicsindia.com | Phone: 1800-UA-RIKON", { align: "center" });
-    doc.text("Pan India Delivery • 1 Year Warranty • 10-Day Easy Returns", { align: "center" });
+
+    const tableTop = doc.y + 12;
+    const col1 = 50;
+    const col2 = 300;
+    const col3 = 380;
+    const col4 = 480;
+    const tableHeight = 18;
+    const lineY = tableTop - 5;
+
+    // TABLE HEADER
+    doc.rect(col1 - 10, lineY - 2, 510, tableHeight)
+      .fillAndStroke(PRIMARY_BLUE, PRIMARY_BLUE);
+
+    doc.fontSize(9)
+      .font("Helvetica-Bold")
+      .fillColor("#FFFFFF")
+      .text("Item", col1, lineY + 4)
+      .text("Qty", col2, lineY + 4, { width: 60, align: "center" })
+      .text("Price", col3, lineY + 4, { width: 70, align: "right" })
+      .text("Subtotal", col4, lineY + 4, { width: 60, align: "right" });
+
+    let currentY = tableTop + tableHeight + 5;
+    let rowCount = 0;
+
+    // TABLE ROWS
+    const items = orderData.items || [];
+    items.forEach((item) => {
+      const rowBg = rowCount % 2 === 0 ? "#F8FAFC" : "#FFFFFF";
+      
+      // Row background
+      doc.rect(col1 - 10, currentY - 4, 510, 16)
+        .fillAndStroke(rowBg, BORDER_COLOR);
+
+      doc.fontSize(8)
+        .font("Helvetica")
+        .fillColor(TEXT_SECONDARY);
+
+      const itemName = item.name.substring(0, 45);
+      doc.text(itemName, col1, currentY, { width: 240 });
+      doc.text(item.qty.toString(), col2, currentY - doc.currentLineHeight(), { width: 60, align: "center" });
+      doc.text(`₹${item.price.toLocaleString("en-IN")}`, col3, currentY - doc.currentLineHeight(), { width: 70, align: "right" });
+      doc.text(`₹${item.subtotal.toLocaleString("en-IN")}`, col4, currentY - doc.currentLineHeight(), { width: 60, align: "right" });
+
+      currentY += 16;
+      rowCount++;
+    });
+
+    doc.moveDown(0.5);
+
+    // ═══════════════════════════════════════════════════════
+    // SECTION: PRICING SUMMARY
+    // ═══════════════════════════════════════════════════════
+    doc.moveDown(1);
+    
+    const summaryY = doc.y;
+    const summaryX = 350;
+    const labelWidth = 140;
+    const valueWidth = 100;
+
+    // Subtotal
+    doc.fontSize(9)
+      .font("Helvetica")
+      .fillColor(TEXT_SECONDARY)
+      .text("Subtotal:", summaryX, summaryY);
+    
+    doc.fontSize(9)
+      .font("Helvetica-Bold")
+      .fillColor(TEXT_DARK)
+      .text(`₹${(orderData.subtotal || 0).toLocaleString('en-IN')}`, summaryX + labelWidth, summaryY, { align: "right", width: valueWidth });
+
+    // Delivery Charge
+    doc.fontSize(9)
+      .font("Helvetica")
+      .fillColor(TEXT_SECONDARY)
+      .text("Delivery Charge:", summaryX, doc.y + 14);
+    
+    doc.fontSize(9)
+      .font("Helvetica-Bold")
+      .fillColor(TEXT_DARK)
+      .text(`₹${(orderData.shipping || 0).toLocaleString('en-IN')}`, summaryX + labelWidth, doc.y - 14, { align: "right", width: valueWidth });
+
+    doc.moveDown(1.5);
+
+    // GRAND TOTAL - PREMIUM STYLE
+    const grandTotalY = doc.y;
+    doc.rect(summaryX - 10, grandTotalY - 2, valueWidth + labelWidth + 10, 28)
+      .fillAndStroke(ACCENT_BLUE, ACCENT_BLUE);
+
+    doc.fontSize(10)
+      .font("Helvetica-Bold")
+      .fillColor("#FFFFFF")
+      .text("TOTAL AMOUNT", summaryX, grandTotalY + 2);
+    
+    doc.fontSize(16)
+      .font("Helvetica-Bold")
+      .fillColor("#FFFFFF")
+      .text(`₹${(orderData.grand || 0).toLocaleString('en-IN')}`, summaryX + labelWidth, grandTotalY + 4, { align: "right", width: valueWidth });
+
+    doc.moveDown(2.5);
+
+    // ═══════════════════════════════════════════════════════
+    // SECTION: DELIVERY TIMELINE
+    // ═══════════════════════════════════════════════════════
+    doc.fontSize(10)
+      .font("Helvetica-Bold")
+      .fillColor(PRIMARY_BLUE)
+      .text("⏱️ ESTIMATED DELIVERY TIME", 50);
+    
+    doc.fontSize(9)
+      .font("Helvetica")
+      .fillColor(TEXT_SECONDARY)
+      .text("2–8 Working Days")
+      .text("Your order will be carefully packed and shipped within 24 hours. You'll receive a tracking update via email.");
+
+    doc.moveDown(1.2);
+
+    // ═══════════════════════════════════════════════════════
+    // DIVIDER LINE
+    // ═══════════════════════════════════════════════════════
+    doc.moveTo(50, doc.y)
+      .lineTo(doc.page.width - 50, doc.y)
+      .stroke(BORDER_COLOR);
+
+    doc.moveDown(1);
+
+    // ═══════════════════════════════════════════════════════
+    // BENEFITS / WHY UA ELECTRONICS
+    // ═══════════════════════════════════════════════════════
+    doc.fontSize(10)
+      .font("Helvetica-Bold")
+      .fillColor(PRIMARY_BLUE)
+      .text("✨ WHY UA ELECTRONICS?", 50);
+    
+    doc.fontSize(8)
+      .font("Helvetica")
+      .fillColor(TEXT_SECONDARY);
+
+    const benefits = [
+      "✓ Pan India Delivery — Fast & reliable shipping",
+      "✓ 1 Year Manufacturer Warranty — Full protection",
+      "✓ 10-Day Easy Returns — Hassle-free policy",
+      "✓ 24/7 Customer Support — Always here to help"
+    ];
+
+    benefits.forEach(benefit => {
+      doc.text(benefit, 60, doc.y + 4, { width: 460 }).moveDown(0.5);
+    });
+
+    doc.moveDown(1);
+
+    // ═══════════════════════════════════════════════════════
+    // FOOTER - DARK NAVY PREMIUM STYLE
+    // ═══════════════════════════════════════════════════════
+    const footerY = doc.page.height - 80;
+    
+    doc.rect(0, footerY - 10, doc.page.width, 80)
+      .fillAndStroke(DARK_NAVY, DARK_NAVY);
+
+    doc.fontSize(10)
+      .font("Helvetica-Bold")
+      .fillColor(ACCENT_BLUE)
+      .text("🔧 UA ELECTRONICS", 50, footerY, { width: doc.page.width - 100, align: "center" });
+    
+    doc.fontSize(8)
+      .font("Helvetica")
+      .fillColor("#CBD5E1")
+      .text("Thank you for shopping with UA Electronics!", { align: "center", width: doc.page.width - 100 })
+      .text("For support, contact:", { align: "center", width: doc.page.width - 100 });
+    
+    doc.fontSize(8)
+      .fillColor(ACCENT_BLUE)
+      .text("📧 rikon@uaelectronicsindia.com  |  🌐 uaelectronicsindia.com", { align: "center", width: doc.page.width - 100 });
+    
+    doc.fontSize(7)
+      .fillColor("#94A3B8")
+      .text("© 2026 UA Electronics. Pan India Delivery • 1 Year Warranty • 10-Day Easy Returns", { align: "center", width: doc.page.width - 100 });
 
     console.log("📄 PDF document stream completed, waiting for write finish...");
     doc.end();
