@@ -95,15 +95,26 @@ async function sendEmailWithGmailAPI(mailOptions, retries = 5, delay = 3000) {
         throw new Error("Gmail API not initialized — check credentials");
       }
 
-      // Build MIME message
+      // Build MIME message with anti-spam headers
+      const messageId = `<${Date.now()}@uaelectronicsindia.com>`;
+      const timestamp = new Date().toUTCString();
+      
       let mimeMessage = `From: ${mailOptions.from}\r\n`;
       mimeMessage += `To: ${mailOptions.to}\r\n`;
-mimeMessage += `Subject: =?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=\r\n`;
+      mimeMessage += `Subject: =?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=\r\n`;
+      mimeMessage += `Date: ${timestamp}\r\n`;
+      mimeMessage += `Message-ID: ${messageId}\r\n`;
       mimeMessage += `Content-Type: text/html; charset="UTF-8"\r\n`;
       mimeMessage += `MIME-Version: 1.0\r\n`;
       mimeMessage += `Reply-To: ${GMAIL_USER}\r\n`;
+      mimeMessage += `Return-Path: ${GMAIL_USER}\r\n`;
       mimeMessage += `X-Priority: 3\r\n`;
       mimeMessage += `X-Mailer: UA Electronics Server (Gmail API)\r\n`;
+      mimeMessage += `X-Originating-IP: [127.0.0.1]\r\n`;
+      mimeMessage += `Precedence: bulk\r\n`;
+      mimeMessage += `List-Unsubscribe: <mailto:${GMAIL_USER}?subject=unsubscribe>\r\n`;
+      mimeMessage += `List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n`;
+      mimeMessage += `X-UA-Electronics: order-confirmation\r\n`;
       mimeMessage += `\r\n`;
       mimeMessage += mailOptions.html;
 
@@ -111,13 +122,26 @@ mimeMessage += `Subject: =?UTF-8?B?${Buffer.from(mailOptions.subject).toString('
      if (mailOptions.attachments && mailOptions.attachments.length > 0) {
   const boundary = '===============boundary' + Date.now() + '==';
   const encodedSubject = `=?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=`;
+  const messageId = `<${Date.now()}@uaelectronicsindia.com>`;
+  const timestamp = new Date().toUTCString();
 
   mimeMessage = [
     `From: ${mailOptions.from}`,
     `To: ${mailOptions.to}`,
     `Subject: ${encodedSubject}`,
+    `Date: ${timestamp}`,
+    `Message-ID: ${messageId}`,
     `MIME-Version: 1.0`,
     `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    `Reply-To: ${GMAIL_USER}`,
+    `Return-Path: ${GMAIL_USER}`,
+    `X-Priority: 3`,
+    `X-Mailer: UA Electronics Server (Gmail API)`,
+    `X-Originating-IP: [127.0.0.1]`,
+    `Precedence: bulk`,
+    `List-Unsubscribe: <mailto:${GMAIL_USER}?subject=unsubscribe>`,
+    `List-Unsubscribe-Post: List-Unsubscribe=One-Click`,
+    `X-UA-Electronics: order-confirmation`,
     ``,
     `--${boundary}`,
     `Content-Type: text/html; charset="UTF-8"`,
