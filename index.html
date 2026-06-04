@@ -9280,46 +9280,62 @@ window.googleLogin = async function() {
   try {
 
     const provider = new GoogleAuthProvider();
-
     const result = await signInWithPopup(auth, provider);
-
     const user = result.user;
 
-    const userData = {
+    // Firebase User
+    localStorage.setItem("uaUser", JSON.stringify({
       uid: user.uid,
       name: user.displayName,
       email: user.email,
-      photo: user.photoURL,
-      provider: "google",
-      loginTime: Date.now()
+      photo: user.photoURL
+    }));
+
+    // UA Electronics User
+    window.currentUser = {
+      fname: user.displayName?.split(' ')[0] || 'User',
+      lname: user.displayName?.split(' ').slice(1).join(' ') || '',
+      email: user.email,
+      phone: ''
     };
 
-    localStorage.setItem("uaUser", JSON.stringify(userData));
+    localStorage.setItem(
+      'ua_user',
+      JSON.stringify(window.currentUser)
+    );
+
+    if (typeof updateAuthUI === 'function') {
+      updateAuthUI();
+    }
+
+    if (typeof toast === 'function') {
+      toast(`Welcome ${window.currentUser.fname}! 🎉`, 'gold');
+    }
+
+    const modal = document.getElementById('loginModalOverlay');
+    if (modal) {
+      modal.style.display = 'none';
+    }
 
     alert("Welcome " + user.displayName);
-
-    closeOverlay('loginOv');
-    closeOverlay('signupOv');
 
     location.reload();
 
   } catch(error) {
-    console.error(error);
+    console.error("Google Login Error:", error);
     alert(error.message);
   }
 };
 
 window.logoutGoogle = async function() {
+
   try {
     await signOut(auth);
   } catch(e) {
     console.log(e);
   }
 
-  // Google login data
   localStorage.removeItem("uaUser");
-
-  // Existing website login data
   localStorage.removeItem("ua_user");
 
   if (typeof currentUser !== "undefined") {
