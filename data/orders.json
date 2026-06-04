@@ -1085,5 +1085,39 @@
     "paymentId": null,
     "paid": false,
     "status": "Confirmed"
+  },
+  {
+    "orderId": "UAE1780588621705",
+    "date": "2026-06-04T15:57:01.705Z",
+    "customer": {
+      "name": "Ayush Jha",
+      "mobile": "+91 87784 435545",
+      "email": "aj1004890@gmail.com",
+      "pin": "201007",
+      "addr1": "Ghaziabaddd",
+      "addr2": "MG Road halfway",
+      "city": "Ghaziabad",
+      "state": "Meghalaya",
+      "notes": "gdfbb"
+    },
+    "items": [
+      {
+        "id": 2,
+        "name": "INFRARED Induction Cooktop Pro Gold",
+        "brand": "UA RIKON",
+        "icon": "🍳",
+        "price": 3199,
+        "qty": 1,
+        "subtotal": 3199
+      }
+    ],
+    "subtotal": 3199,
+    "shipping": 0,
+    "grand": 3199,
+    "paymentMethod": "Cash on Delivery",
+    "paymentStatus": "Pending",
+    "paymentId": null,
+    "paid": false,
+    "status": "Confirmed"
   }
 ]
