@@ -5052,7 +5052,70 @@ nav, .cart-drawer, .modal-overlay {
     padding: 0.45rem 0.75rem;
   }
 }
+.gallery-spec-title{
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:12px;
+  color:#4da3ff;
+}
 
+.gallery-spec-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.gallery-spec-item{
+  padding:10px 12px;
+  border-radius:8px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.08);
+}
+
+.gallery-spec-value{
+  font-size:14px;
+  line-height:1.5;
+}
+.gallery-specs-container{
+    margin-top:20px;
+}
+
+.modal-specs-wrapper{
+    background:var(--black2);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px;
+}
+
+.modal-specs-wrapper h3{
+    font-family:'Oswald',sans-serif;
+    color:var(--gold2);
+    text-transform:uppercase;
+    letter-spacing:1px;
+    margin-bottom:15px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--border);
+}
+
+.modal-specs-list{
+    list-style:none;
+    padding:0;
+    margin:0;
+}
+
+.modal-specs-list li{
+    display:flex;
+    gap:10px;
+    margin-bottom:10px;
+    color:var(--text2);
+    line-height:1.5;
+}
+
+.modal-specs-list li::before{
+    content:"✓";
+    color:var(--accent);
+    font-weight:700;
+}
 </style>
 </head>
 <body>
@@ -5937,6 +6000,7 @@ nav, .cart-drawer, .modal-overlay {
         <div class="gallery-thumbnails" id="galleryThumbnails">
           <!-- Thumbnails populated by JS -->
         </div>
+        <div id="gallerySpecsContainer" class="gallery-specs-container"></div>
       </div>
       <div class="gallery-info">
         <div class="gallery-product-brand" id="galleryBrand">UA RIKON</div>
@@ -6087,30 +6151,613 @@ console.log('✓ Constants initialized');
    PRODUCTS DATA
    ============================================================ */
 const defaultProducts = [
-  {id:1,  name:'INFRARED Induction Cooktop Prestige Gold Series G-22X',  brand:'UA RIKON',category:'Induction',   icon:'🍳',image:'Image/ind1.png',images:['Image/ind11.png','Image/ind12.png','Image/ind13.png','Image/ind14.png'],video:'Image/ind1.mp4',colors:['Black','Silver','White','Stainless Steel'],price:2499, mrp:3499, rating:4.8,reviews:1842,spec:'2000W · Touch Control · 6 Cooking Modes · Auto Shut-Off',description:'High-performance induction cooktop with touch control. Heats 40% faster than traditional stoves. Perfect for Indian cooking with multi-cook modes.',badge:'bestseller'},
-  {id:2,  name:'UA RIKON Pro Induction Cooktop Gold',  brand:'UA RIKON',category:'Induction',   icon:'🍳',image:'Image/ind2.png',images:['Image/ind21.png','Image/ind22.png','Image/ind23.png','Image/ind24.png'],video:'Image/ind2.mp4',colors:['Black','Silver','White','Gold'],price:3199, mrp:4299, rating:4.7,reviews:976, spec:'2200W · Gold Edition · 8 Modes · Crystal Glass Panel',description:'Premium gold edition induction cooktop with crystal glass top. Enhanced design with 8 different cooking modes for versatile cooking.',badge:'new'},
-   {id:13, name:'UA RIKON UB-80 BOOM BOX (21 inch) 80W',       brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic1.png',images:['Image/mic11.png','Image/mic12.png','Image/mic13.png','Image/mic14.png'],video:'Image/mic1.mp4',colors:['Black'],price:7999, mrp:10999,rating:4.7,reviews:1123,spec:'80W · 5.1 Channel · Dolby · BT · FM · USB · Remote',description:'Immersive 5.1 channel home theatre with 100W output. Dolby enhanced sound with Bluetooth connectivity for wireless audio streaming.',badge:'hot'},
-  {id:14, name:'UA RIKON 2.1 Music System 60W',        brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic2.png',images:['Image/mic21.png','Image/mic22.png','Image/mic23.png','Image/mic24.png'],video:'Image/mic2.mp4',colors:['Black','Silver'],price:3999, mrp:5499, rating:4.5,reviews:876, spec:'60W · 2.1 Channel · BT 5.0 · FM · AUX · LED Display',description:'Powerful 2.1 music system perfect for music lovers. Bluetooth 5.0 with FM tuner and AUX input for versatile connectivity.',badge:''},
-  {id:15, name:'UA RIKON UB-60 BOOM BOX (22 inch) 60W',            brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic3.png',images:['Image/mic31.png','Image/mic32.png','Image/mic33.png','Image/mic34.png'],video:'Image/mic3.mp4',colors:['Black','Silver'],price:5499, mrp:7999, rating:4.6,reviews:543, spec:'80W · 2.1 Soundbar · HDMI ARC · BT · Optical · Bass Boost',description:'Premium soundbar with 80W dual channel output. HDMI ARC, Bluetooth, and optical connectivity for all your entertainment needs.',badge:'new'},
-  {id:16, name:'UA RIKON Portable BT Speaker Pro',     brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic4.png',images:['Image/mic41.png','Image/mic42.png','Image/mic43.png','Image/mic44.png'],video:'Image/mic4.mp4',colors:['Black','Silver','Blue'],price:2999, mrp:4499, rating:4.5,reviews:654, spec:'20W · Portable · 360° Sound · 12h Battery · IPX5',description:'Compact portable Bluetooth speaker with 360-degree sound coverage. 12-hour battery life and IPX5 waterproof rating perfect for outdoor use.',badge:''},
-  {id:17, name:'UA RIKON Mini Tower Speaker',         brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic5.png',images:['Image/mic51.png','Image/mic52.png','Image/mic53.png','Image/mic54.png'],video:'Image/mic5.mp4',colors:['Black','White'],price:4299, mrp:5999, rating:4.4,reviews:432, spec:'50W · 2.0 Channel · BT 5.0 · FM · USB',description:'Compact tower speaker with powerful bass and crystal clear treble. Perfect for small rooms with Bluetooth and FM connectivity.',badge:''},
-  {id:18, name:'UA RIKON Bass Booster Subwoofer',      brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic6.png',images:['Image/mic61.png','Image/mic62.png','Image/mic63.png','Image/mic64.png'],video:'Image/mic6.mp4',colors:['Black'],price:3499, mrp:4999, rating:4.6,reviews:321, spec:'40W · Deep Bass · 8" Subwoofer · RCA Connection',description:'Dedicated subwoofer delivering deep bass for enhanced audio experience. Compatible with most home theatre and sound systems.',badge:'sale'},
-{id:19,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool4.png',images:['Image/cool41.png','Image/cool42.png','Image/cool43.png','Image/cool44.png'],video:'Image/cool4.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
-  {id:3,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool5.png',images:['Image/cool51.png','Image/cool52.png','Image/cool53.png','Image/cool54.png'],video:'Image/cool5.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
-  {id:4,  name:'UA RIKON Desert Air Cooler 50L',       brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool1.png',images:['Image/cool11.png','Image/cool12.png','Image/cool13.png','Image/cool14.png'],video:'Image/cool1.mp4',colors:['White','Gray','Black'],price:7499, mrp:9999, rating:4.6,reviews:1234,spec:'50L Tank · 3 Speed · Honeycomb Pad · Remote Included',description:'Powerful desert cooler with 50L capacity. Cools large spaces efficiently with honeycomb cooling pads and remote control.',badge:'hot'},
-  {id:5,  name:'UA RIKON Tower Air Cooler 30L',        brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool2.png',images:['Image/cool21.png','Image/cool22.png','Image/cool23.png','Image/cool24.png'],video:'Image/cool2.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
-  {id:6,  name:'UA RIKON Personal Room Cooler 20L',    brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool3.png',images:['Image/cool31.png','Image/cool32.png','Image/cool33.png','Image/cool34.png'],video:'Image/cool3.mp4',colors:['White','Gray','Black'],price:3999, mrp:5499, rating:4.4,reviews:432, spec:'20L · Portable · 3 Speeds · Humidity Control',description:'Portable personal room cooler. Perfect for bedrooms with humidity control and 3 variable speed settings.',badge:'sale'},
- {id:20,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool6.png',images:['Image/cool61.png','Image/cool62.png','Image/cool63.png','Image/cool64.png'],video:'Image/cool6.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
-  {id:21,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool7.png',images:['Image/cool71.png','Image/cool72.png','Image/cool73.png','Image/cool74.png'],video:'Image/cool7.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
-  {id:22,  name:'UA RIKON Desert Air Cooler 50L',       brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool8.png',images:['Image/cool81.png','Image/cool82.png','Image/cool83.png','Image/cool84.png'],video:'Image/cool8.mp4',colors:['White','Gray','Black'],price:7499, mrp:9999, rating:4.6,reviews:1234,spec:'50L Tank · 3 Speed · Honeycomb Pad · Remote Included',description:'Powerful desert cooler with 50L capacity. Cools large spaces efficiently with honeycomb cooling pads and remote control.',badge:'hot'},
-  {id:7,  name:'UA RIKON 24" Full HD LED Smart TV',    brand:'UA RIKON',category:'LED TV',      icon:'📺',image:'Image/led1.png',images:['Image/led11.png','Image/led12.png','Image/led13.png','Image/led14.png'],video:'Image/led1.mp4',colors:['Black'],price:18999,mrp:24999,rating:4.5,reviews:2341,spec:'24" · 1920×1080 · Android 11 · WiFi + HDMI × 3',description:'Crystal clear Full HD display with Android 11. Built-in WiFi for streaming movies and shows directly from popular apps.',badge:'bestseller'},
-  {id:8,  name:'UA RIKON 32" HD LED Smart TV',         brand:'UA RIKON',category:'LED TV',      icon:'📺',image:'Image/led2.png',images:['Image/led21.png','Image/led22.png','Image/led23.png','Image/led24.png'],video:'Image/led2.mp4',colors:['Black'],price:10999,mrp:14999,rating:4.3,reviews:1567,spec:'32" · HD Ready · Built-in WiFi · 2×HDMI · USB',description:'Compact 32-inch HD Ready display perfect for any room. Fast WiFi connectivity for seamless streaming experience.',badge:''},
-  {id:9,  name:'UA RIKON 40" 4K Smart LED TV',         brand:'UA RIKON',category:'LED TV',      icon:'📺',image:'Image/led3.png',images:['Image/led31.png','Image/led32.png','Image/led33.png','Image/led34.png'],video:'Image/led2.mp4',colors:['Black'],price:32999,mrp:44999,rating:4.7,reviews:654, spec:'40" · 4K UHD · Dolby Vision · Android Smart · BT',description:'Stunning 4K UHD picture quality with Dolby Vision support. Immersive viewing experience with Android Smart TV functionality.',badge:'new'},
-   {id:23,  name:'UA RIKON 50" 4K Smart LED TV',         brand:'UA RIKON',category:'LED TV',      icon:'📺',image:'Image/led4.png',images:['Image/led41.png','Image/led42.png','Image/led43.png','Image/led44.png'],video:'Image/led3.mp4',colors:['Black'],price:32999,mrp:44999,rating:4.7,reviews:654, spec:'50" · 4K UHD · Dolby Vision · Android Smart · BT',description:'Stunning 4K UHD picture quality with Dolby Vision support. Immersive viewing experience with Android Smart TV functionality.',badge:'new'},
-    {id:24,  name:'UA RIKON 55" 4K Smart LED TV',         brand:'UA RIKON',category:'LED TV',      icon:'📺',image:'Image/led5.png',images:['Image/led51.png','Image/led52.png','Image/led53.png','Image/led54.png'],video:'Image/led3.mp4',colors:['Black'],price:32999,mrp:44999,rating:4.7,reviews:654, spec:'55" · 4K UHD · Dolby Vision · Android Smart · BT',description:'Stunning 4K UHD picture quality with Dolby Vision support. Immersive viewing experience with Android Smart TV functionality.',badge:'new'},
-  {id:10, name:'UA RIKON Premium Ceiling Fan 48"',     brand:'UA RIKON',category:'Fan',         icon:'🌀',image:'Image/fan1.png',images:['Image/fan11.png','Image/fan12.png','Image/fan13.png','Image/fan14.png'],video:'Image/fan1.mp4',colors:['Black','White','Silver','Brown'],price:2299, mrp:2999, rating:4.6,reviews:3241,spec:'48" · 380RPM · 5 Blades · High Speed · 70W',description:'Premium 48-inch ceiling fan with high speed motor. Durable construction with optimized blade design for maximum air circulation.',badge:'bestseller'},
-  {id:11, name:'UA RIKON Table Fan 400mm',             brand:'UA RIKON',category:'Fan',         icon:'🌀',image:'Image/fan2.png',images:['Image/fan21.png','Image/fan22.png','Image/fan23.png','Image/fan24.png'],video:'Image/fan2.mp4',colors:['Black','White','Silver'],price:1299, mrp:1799, rating:4.4,reviews:987, spec:'400mm · 3 Speed · Metal Body · Oscillation',description:'Compact 400mm table fan with metal construction. 3-speed settings with oscillation for better air distribution across the room.',badge:''},
-  {id:12, name:'UA RIKON Tower Fan with Remote',       brand:'UA RIKON',category:'Fan',         icon:'🌀',image:'Image/fan3.png',images:['Image/fan31.png','Image/fan32.png','Image/fan33.png','Image/fan34.png'],video:'Image/fan3.mp4',colors:['Black','White','Silver','Gray'],price:4299, mrp:5999, rating:4.5,reviews:432, spec:'45" Tower · 12 Speed · Timer · Remote · Silent',description:'Sleek tower fan with remote control. 12 speed levels and inbuilt timer for easy operation and energy efficiency.',badge:'new'},
+  {id:1,  name:'INFRARED Induction Cooktop Gold Series G-22X',  brand:'UA RIKON',category:'Induction',   icon:'🍳',image:'Image/ind1.png',images:['Image/ind11.png','Image/ind12.png','Image/ind13.png','Image/ind14.png'],video:'Image/ind1.mp4',colors:['Black','Gold'],price:2499, mrp:3499, rating:4.8,reviews:1842,spec:'2200W · Touch Control · 6 Cooking Modes · Auto Shut-Off',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'High-performance induction cooktop with touch control. Heats 40% faster than traditional stoves. Perfect for Indian cooking with multi-cook modes.',badge:'bestseller'},
+ 
+ {id:2,  name:'INFRARED Induction Cooktop Pro Gold',  brand:'UA RIKON',category:'Induction',   icon:'🍳',image:'Image/ind2.png',images:['Image/ind21.png','Image/ind22.png','Image/ind23.png','Image/ind24.png'],video:'Image/ind2.mp4',colors:['Black','Gold'],price:3199, mrp:4299, rating:4.7,reviews:976, spec:'2200W · Premium Black & Gold Edition · 8 Modes · Crystal Glass Panel',specs:[
+   'Multiple Preset Cooking Modes',
+   'Auto Shut-Off Safety Protection',
+   'Energy Efficient Heating Technology',
+   'Fast & Uniform Heat Distribution',
+   'Built-in Safety Timer',
+   'Easy-to-Clean Tempered Glass Surface',
+   'Compact & Portable Design',
+   'Low Power Consumption',
+   'Suitable for Home, Office & Hostel Use',
+   'Indian Cooking Compatible'
+],description:'Premium gold edition induction cooktop with crystal glass top. Enhanced design with 8 different cooking modes for versatile cooking.',badge:'new'},
+ 
+{id:13, name:'BOOM BOX UB-80 (21 inch) 80W',  brand:'UA RIKON',category:'Home Theatre',icon:'🔊',image:'Image/mic1.png',images:['Image/mic11.png','Image/mic12.png','Image/mic13.png','Image/mic14.png'],video:'Image/mic1.mp4',colors:['Black'],price:7999, mrp:10999,rating:4.7,reviews:1123,spec:'80W · 5.1 Channel · Dolby · BT · FM · USB · Remote',specs:[
+   '80 Watt RMS Powerful Output',
+   'Bluetooth Wireless Connectivity',
+   'FM Radio Support (88MHz - 108MHz)',
+   'RGB Lighting Effects',
+   'TWS (True Wireless Stereo) Function',
+   'USB Media Playback Support',
+   'Digital LED Display',
+   'HDMI (ARC) Connectivity',
+   'Remote Control Included',
+   'Wired & Wireless Microphone Support',
+   'Volume, Bass & Treble Controls',
+   'RCA Input & Output Jack'
+],
+description:'UA RIKON Boom Box UB-80 delivers 80W RMS powerful sound with deep bass, Bluetooth streaming, HDMI ARC connectivity, RGB lighting, TWS pairing, FM radio, USB playback, and wired/wireless microphone support. Perfect for home entertainment, parties, karaoke, and TV audio enhancement.',
+badge:'hot'},
+
+  {id:14,   name:'BOOMER Party Speaker 120W (34 Inch)',
+  brand:'UA RIKON',
+  category:'Party Speaker',
+  icon:'🔊',
+  image:'Image/mic2.png',
+  images:['Image/mic21.png','Image/mic22.png','Image/mic23.png','Image/mic24.png'],
+  video:'Image/mic2.mp4',
+  colors:['Black'],
+  price:3999,
+  mrp:5499,
+  rating:4.5,
+  reviews:876,
+  spec:'120W RMS · Bluetooth · TWS · FM Radio · RGB Lighting · Remote Control',
+  specs:[
+    '120 Watt RMS Powerful Sound Output',
+    'Bluetooth Wireless Connectivity',
+    'RGB Dynamic Lighting Effects',
+    'FM Radio Support',
+    'TWS (True Wireless Stereo) Function',
+    'USB Media Playback Support',
+    'Digital LED Display',
+    'Volume, Bass & Treble Controls',
+    'Wired & Wireless Microphone Support',
+    'Multi Rotary Knob Control',
+    'Remote Control Included',
+    'Dual 8-Inch Woofers',
+    '4-Inch Mid Speaker',
+    '4-Inch Tweeter',
+    'Bluetooth Enabled Connectivity'
+  ],
+  description:'UA RIKON BOOMER Party Speaker delivers powerful 120W RMS sound with dual 8-inch woofers, RGB lighting effects, Bluetooth streaming, FM radio, TWS pairing, USB playback, and wired/wireless microphone support. Designed for parties, karaoke, home entertainment, and outdoor gatherings with deep bass and immersive audio performance.',
+  badge:'hot'},
+  
+ {id:15, name:'BOOM BOX UB-60  60W (22 Inch)',
+  brand:'UA RIKON',
+  category:'Party Speaker',
+  icon:'🔊',
+  image:'Image/mic3.png',
+  images:['Image/mic31.png','Image/mic32.png','Image/mic33.png','Image/mic34.png'],
+  video:'Image/mic3.mp4',
+  colors:['Black'],
+  price:5499,
+  mrp:7999,
+  rating:4.6,
+  reviews:543,
+  spec:'60W RMS · Bluetooth · TWS · FM Radio · RGB Lighting · Remote Control',
+  specs:[
+    '60 Watt RMS Powerful Sound Output',
+    'Bluetooth Wireless Connectivity',
+    'RGB Lighting Effects',
+    'FM Radio Support (88MHz - 108MHz)',
+    'TWS (True Wireless Stereo) Function',
+    'USB Media Playback Support',
+    'Digital LED Display',
+    'Volume, Bass & Treble Controls',
+    'Multi Rotary Knob Control',
+    'Remote Control Included',
+    'Wired & Wireless Microphone Support',
+    'Dual 3-Inch Speakers',
+    '5.25-Inch Woofer',
+    'RCA Input & Output Jack',
+    'AC 220V - 260V / 50Hz Power Supply'
+  ],
+  description:'UA RIKON UB-60 Boom Box delivers 60W RMS powerful audio with deep bass, Bluetooth connectivity, RGB lighting, FM radio, USB playback, TWS pairing, and wired/wireless microphone support. Featuring a 5.25-inch woofer, dual 3-inch speakers, digital LED display, remote control, and versatile RCA connectivity, it is ideal for home entertainment, karaoke, parties, and music lovers.',
+  badge:'new'},
+  
+ {id:16,  name:'STS-3202 Tower Speaker 80W (32 Inch)',
+  brand:'UA RIKON',
+  category:'Tower Speaker',
+  icon:'🔊',
+  image:'Image/mic4.png',
+  images:['Image/mic41.png','Image/mic42.png','Image/mic43.png','Image/mic44.png'],
+  video:'Image/mic4.mp4',
+  colors:['Wood Brown'],
+  price:5999,
+  mrp:8499,
+  rating:4.6,
+  reviews:654,
+  spec:'80W RMS · Bluetooth · TWS · FM Radio · RGB Lighting · Wireless Mic',
+  specs:[
+    '80 Watt RMS Powerful Sound Output',
+    'Bluetooth Wireless Connectivity',
+    'RGB Dynamic Lighting Effects',
+    'FM Radio Support (88MHz - 108MHz)',
+    'TWS (True Wireless Stereo) Function',
+    'USB Media Playback Support',
+    'Digital LED Display',
+    'Volume, Bass & Treble Controls',
+    'Wireless Microphone Connectivity',
+    'Multi Rotary Knob Control',
+    'Remote Control Included',
+    '4-Inch RMS Speaker',
+    '4-Inch Tweeter',
+    '8-Inch Woofer',
+    'RCA Input & Output Jack',
+    'AC 220V - 260V / 50Hz Power Supply'
+  ],
+  description:'UA RIKON STS-3202 Tower Speaker delivers 80W RMS powerful audio with an 8-inch woofer, 4-inch speaker, and 4-inch tweeter for rich bass and clear vocals. Featuring Bluetooth connectivity, RGB lighting, FM radio, TWS pairing, USB playback, wireless microphone support, digital LED display, and remote control. The elegant 32-inch wooden tower design is ideal for home entertainment, karaoke, parties, and music enthusiasts.',
+  badge:'hot'},
+  
+ {id:17, 
+  name:'STS-60 Tower Speaker 50W (24 Inch)',
+  brand:'UA RIKON',
+  category:'Tower Speaker',
+  icon:'🔊',
+  image:'Image/mic4.png',
+  images:['Image/mic41.png','Image/mic42.png','Image/mic43.png','Image/mic44.png'],
+  video:'Image/mic4.mp4',
+  colors:['Black'],
+  price:4499,
+  mrp:6499,
+  rating:4.5,
+  reviews:654,
+  spec:'50W RMS · Bluetooth · TWS · FM Radio · RGB Lighting · AUX Input',
+  specs:[
+    '50 Watt RMS Powerful Sound Output',
+    'Bluetooth Wireless Connectivity',
+    'RGB Dynamic Lighting Effects',
+    'FM Radio Support (88MHz - 108MHz)',
+    'TWS (True Wireless Stereo) Function',
+    'USB Media Playback Support',
+    'AUX Input Support',
+    'Digital LED Display',
+    'Volume, Bass & Treble Controls',
+    'Multi Rotary Knob Control',
+    'Wired & Wireless Microphone Support',
+    'Remote Control Included',
+    'Dual 3-Inch Speakers',
+    '5.25-Inch Woofer',
+    'RCA Input & Output Jack',
+    'AC 220V - 260V / 50Hz Power Supply'
+  ],
+  description:'UA RIKON STS-60 Tower Speaker delivers 50W RMS powerful sound with a 5.25-inch woofer and dual 3-inch speakers for clear vocals and deep bass. Featuring Bluetooth connectivity, RGB lighting, FM radio, TWS pairing, USB playback, AUX input, wired and wireless microphone support, digital LED display, and remote control. Its 24-inch tower design makes it ideal for home entertainment, karaoke sessions, parties, and everyday music listening.',
+  badge:''},
+  
+ {id:18, 
+  name:'UA-220 Tower Speaker (24 Inch)',
+  brand:'UA RIKON',
+  category:'Tower Speaker',
+  icon:'🔊',
+  image:'Image/mic6.png',
+  images:['Image/mic61.png','Image/mic62.png','Image/mic63.png','Image/mic64.png'],
+  video:'Image/mic6.mp4',
+  colors:['Black'],
+  price:6999,
+  mrp:9999,
+  rating:4.6,
+  reviews:321,
+  spec:'220W RMS · Bluetooth · TWS · FM Radio · RGB Lighting · Dual Tower Speakers',
+  specs:[
+    '220 Watt RMS Powerful Sound Output',
+    'Bluetooth Wireless Connectivity',
+    'RGB Dynamic Lighting Effects',
+    'FM Radio Support (88MHz - 108MHz)',
+    'TWS (True Wireless Stereo) Function',
+    'USB Media Playback Support',
+    'Digital LED Display',
+    'Volume, Bass & Treble Controls',
+    'Multi Rotary Knob Control',
+    'Remote Control Included',
+    'Wired & Wireless Microphone Support',
+    'Dual 4-Inch Speakers',
+    'Dual 8-Inch Woofers',
+    'RCA Input & Output Jack',
+    'AC 220V - 260V / 50Hz Power Supply',
+    'Dual Tower Speaker Design'
+  ],
+  description:'UA RIKON UA-220 Tower Speaker delivers a powerful 220W RMS audio experience with dual 8-inch woofers and dual 4-inch speakers for deep bass and crystal-clear sound. Featuring Bluetooth connectivity, RGB lighting, FM radio, TWS pairing, USB playback, digital LED display, remote control, and wired/wireless microphone support. The stylish 24-inch dual tower design is perfect for home entertainment, parties, karaoke, and immersive music listening.',
+  badge:'sale'},
+
+ {id:19,   name:'Desert Air Cooler 50L',
+  brand:'UA RIKON',
+  category:'Cooler',
+  icon:'❄️',
+  image:'Image/cool4.png',
+  images:['Image/cool41.png','Image/cool42.png','Image/cool43.png','Image/cool44.png'],
+  video:'Image/cool4.mp4',
+  colors:['White'],
+  price:5999,
+  mrp:7999,
+  rating:4.5,
+  reviews:876,
+  spec:'50L Tank · High Air Delivery · Honeycomb Pads · Powerful Fan',
+  specs:[
+'Large-capacity desert cooler',
+    'High-efficiency honeycomb cooling pads',
+    'Powerful air delivery system',
+    'Dual mechanical control knobs',
+    'Multi-speed fan operation',
+    'Automatic swing air distribution',
+    'Heavy-duty thermoplastic body',
+    'Rust-free and corrosion-resistant construction',
+    'Water level indicator',
+    'Top water filling inlet',
+    '4 smooth-rolling caster wheels',
+    'Suitable for homes, offices, shops and halls'
+  ],
+  description:'UA RIKON Desert Air Cooler is designed to provide powerful and efficient cooling for homes, offices, shops and large rooms. Equipped with a large 90-litre water tank, honeycomb cooling pads and powerful air circulation, it delivers long-lasting cooling performance even during peak summer conditions. The durable rust-free body, auto swing function, water level indicator and smooth-rolling caster wheels make it a reliable and convenient cooling solution.',
+badge:'Best Seller'},
+  
+ {id:3,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool5.png',images:['Image/cool51.png','Image/cool52.png','Image/cool53.png','Image/cool54.png'],video:'Image/cool5.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
+  
+ {id:4,  name:'UA RIKON Desert Air Cooler 50L',       brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool1.png',images:['Image/cool11.png','Image/cool12.png','Image/cool13.png','Image/cool14.png'],video:'Image/cool1.mp4',colors:['White','Gray','Black'],price:7499, mrp:9999, rating:4.6,reviews:1234,spec:'50L Tank · 3 Speed · Honeycomb Pad · Remote Included',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Powerful desert cooler with 50L capacity. Cools large spaces efficiently with honeycomb cooling pads and remote control.',badge:'hot'},
+ 
+ {id:5,  name:'UA RIKON Tower Air Cooler 30L',        brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool2.png',images:['Image/cool21.png','Image/cool22.png','Image/cool23.png','Image/cool24.png'],video:'Image/cool2.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
+
+ {id:6,  name:'UA RIKON Personal Room Cooler 20L',    brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool3.png',images:['Image/cool31.png','Image/cool32.png','Image/cool33.png','Image/cool34.png'],video:'Image/cool3.mp4',colors:['White','Gray','Black'],price:3999, mrp:5499, rating:4.4,reviews:432, spec:'20L · Portable · 3 Speeds · Humidity Control',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Portable personal room cooler. Perfect for bedrooms with humidity control and 3 variable speed settings.',badge:'sale'},
+ 
+ {id:20,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool6.png',images:['Image/cool61.png','Image/cool62.png','Image/cool63.png','Image/cool64.png'],video:'Image/cool6.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
+  
+ {id:21,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool7.png',images:['Image/cool71.png','Image/cool72.png','Image/cool73.png','Image/cool74.png'],video:'Image/cool7.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
+ 
+ {id:22,  name:'UA RIKON Desert Air Cooler 50L',       brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool8.png',images:['Image/cool81.png','Image/cool82.png','Image/cool83.png','Image/cool84.png'],video:'Image/cool8.mp4',colors:['White','Gray','Black'],price:7499, mrp:9999, rating:4.6,reviews:1234,spec:'50L Tank · 3 Speed · Honeycomb Pad · Remote Included',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Powerful desert cooler with 50L capacity. Cools large spaces efficiently with honeycomb cooling pads and remote control.',badge:'hot'},
+ 
+ {id:7,   name: 'UA LED | 24" Inch | 60 CM | Full HD | Smart Android TV',
+  brand: 'UA RIKON',
+  category: 'LED TV',
+  icon: '📺',
+  image: 'Image/led1.png',
+  images: [
+    'Image/led11.png',
+    'Image/led12.png',
+    'Image/led13.png',
+    'Image/led14.png'
+  ],
+  video: 'Image/led1.mp4',
+  colors: ['Black'],
+  price: 8999,
+  mrp: 12999,
+  rating: 4.4,
+  reviews: 1587,
+  spec: '24" · Full HD 1920×1080 · Smart TV · WiFi Hotspot · HDMI & USB Support',
+  specs: [
+    '24-inch (60cm) Full HD LED Display',
+    '1920 × 1080 Resolution Panel',
+    'Built-in Smart TV Platform',
+    'YouTube & Netflix Support',
+    'Prime Video & Google Play Access',
+    'WiFi Hotspot Connectivity',
+    'HDMI Input Support',
+    'USB Multimedia Playback',
+    'Eco Mode for Energy Saving',
+    'High Quality Stereo Sound',
+    'Screen Mirroring Support',
+    '1 Year Manufacturer Warranty'
+  ],
+  description: 'Enjoy crystal-clear Full HD entertainment on a 24-inch smart LED TV. Stream content directly from YouTube, Netflix, Prime Video and other apps with built-in WiFi connectivity. Features HDMI and USB support, Eco Mode, and a sleek modern design for bedrooms, offices, and small living spaces.',
+  badge: 'bestseller'},
+ 
+ {id:8,    name: 'UA LED | 32" Inch | 80 CM | 4KFull HD | Smart Android TV',
+  brand: 'UA RIKON',
+  category: 'LED TV',
+  icon: '📺',
+  image: 'Image/led2.png',
+  images: [
+    'Image/led21.png',
+    'Image/led22.png',
+    'Image/led23.png',
+    'Image/led24.png'
+  ],
+  video: 'Image/led2.mp4',
+  colors: ['Black'],
+  price: 10999,
+  mrp: 14999,
+  rating: 4.3,
+  reviews: 1567,
+  spec: '32" · Full HD 1920×1080 · Smart TV · WiFi & MCast · HDMI & USB',
+  specs: [
+    '32-inch (80cm) Smart LED Display',
+    'Full HD 1920 × 1080 Resolution',
+    'Built-in Smart TV Operating System',
+    'WiFi & MCast Screen Mirroring',
+    'YouTube Streaming Support',
+    'Netflix Entertainment Ready',
+    'Prime Video Compatibility',
+    'Google Play Store Access',
+    'HDMI Connectivity for Set-Top Box & Gaming',
+    'USB Multimedia Playback Support',
+    'Eco Mode Energy Saving Technology',
+    '1 Year Manufacturer Warranty'
+  ],
+  description: 'Experience immersive entertainment on the 32-inch (80cm) Full HD Smart LED TV with crystal-clear 1920×1080 resolution. Enjoy YouTube, Netflix, Prime Video, and Google Play with built-in WiFi connectivity and MCast screen mirroring. Equipped with HDMI and USB support, Eco Mode technology, and a sleek bezel design for modern homes.',
+  badge: 'smart'},
+ 
+ {id:9,   name: 'UA LED | 40" Inch | 100 CM | 4K Full HD | Smart Android TV',
+  brand: 'UA RIKON',
+  category: 'LED TV',
+  icon: '📺',
+  image: 'Image/led3.png',
+  images: [
+    'Image/led31.png',
+    'Image/led32.png',
+    'Image/led33.png',
+    'Image/led34.png'
+  ],
+  video: 'Image/led3.mp4',
+  colors: ['Black'],
+  price: 15999,
+  mrp: 21999,
+  rating: 4.7,
+  reviews: 654,
+  spec: '40" · Full HD 1920×1080 · Smart TV · WiFi & MCast · HDMI & USB',
+  specs: [
+    '40-inch (99cm) Smart LED Display',
+    'Full HD 1920 × 1080 Resolution Panel',
+    'Built-in Smart TV Platform',
+    'WiFi Hotspot Connectivity',
+    'MCast Screen Mirroring Support',
+    'YouTube Streaming Ready',
+    'Netflix Entertainment Access',
+    'Prime Video Compatibility',
+    'Google Play Store Support',
+    'HDMI Connectivity for Multiple Devices',
+    'USB Multimedia Playback',
+    'Eco Mode Energy Saving Technology',
+    'Slim Bezel Modern Design',
+    '1 Year Manufacturer Warranty'
+  ],
+  description: 'Enjoy a larger-than-life viewing experience with the UA RIKON 40-inch (99cm) Full HD Smart LED TV. Featuring a crisp 1920×1080 display, built-in WiFi, MCast screen mirroring, and access to YouTube, Netflix, Prime Video, and Google Play. HDMI and USB connectivity make it perfect for streaming, gaming, and home entertainment.',
+  badge: 'new'},
+ 
+ {id:23,    name: 'UA LED | 50" Inch | 125 CM | 4K Full HD | Smart Android TV',
+  brand: 'UA RIKON',
+  category: 'LED TV',
+  icon: '📺',
+  image: 'Image/led4.png',
+  images: [
+    'Image/led41.png',
+    'Image/led42.png',
+    'Image/led43.png',
+    'Image/led44.png'
+  ],
+  video: 'Image/led4.mp4',
+  colors: ['Black'],
+  price: 21999,
+  mrp: 29999,
+  rating: 4.7,
+  reviews: 654,
+  spec: '50" · Full HD 1920×1080 · Smart TV · WiFi & MCast · HDMI & USB',
+  specs: [
+    '50-inch (125cm) Smart LED Display',
+    'Full HD 1920 × 1080 Resolution Panel',
+    'Built-in Smart TV Platform',
+    'WiFi Hotspot Connectivity',
+    'MCast Screen Mirroring Support',
+    'YouTube Streaming Ready',
+    'Netflix Entertainment Access',
+    'Prime Video Compatibility',
+    'Google Play Store Support',
+    'HDMI Connectivity for Set-Top Box & Gaming',
+    'USB Multimedia Playback Support',
+    'Eco Mode Energy Saving Technology',
+    'Slim Bezel Premium Design',
+    'Wide Viewing Angle Display',
+    '1 Year Manufacturer Warranty'
+  ],
+  description: 'Transform your home entertainment experience with the UA RIKON 50-inch (125cm) Full HD Smart LED TV. Featuring a crisp 1920×1080 display, built-in WiFi and MCast screen mirroring, it provides seamless access to YouTube, Netflix, Prime Video, and Google Play. Equipped with HDMI and USB connectivity, Eco Mode technology, and a sleek modern design for immersive viewing.',
+  badge: 'new'},
+   
+ {id:24,   name: 'UA LED | 55" Inch | 138 CM | 4K Full HD | Smart Android TV',
+  brand: 'UA RIKON',
+  category: 'LED TV',
+  icon: '📺',
+  image: 'Image/led5.png',
+  images: [
+    'Image/led51.png',
+    'Image/led52.png',
+    'Image/led53.png',
+    'Image/led54.png'
+  ],
+  video: 'Image/led5.mp4',
+  colors: ['Black'],
+  price: 24999,
+  mrp: 34999,
+  rating: 4.8,
+  reviews: 892,
+  spec: '55" · Full HD 1920×1080 · Smart TV · WiFi & MCast · HDMI & USB',
+  specs: [
+    '55-inch (138cm) Smart LED Display',
+    'Full HD 1920 × 1080 Resolution Panel',
+    'Built-in Smart TV Platform',
+    'WiFi Hotspot Connectivity',
+    'MCast Screen Mirroring Support',
+    'YouTube Streaming Ready',
+    'Netflix Entertainment Access',
+    'Prime Video Compatibility',
+    'Google Play Store Support',
+    'HDMI Connectivity for Gaming & Set-Top Boxes',
+    'USB Multimedia Playback Support',
+    'Eco Mode Energy Saving Technology',
+    'Slim Bezel Premium Design',
+    'Wide Viewing Angle Display',
+    'High-Quality Stereo Sound',
+    '1 Year Manufacturer Warranty'
+  ],
+  description: 'Enjoy cinematic entertainment on the UA RIKON 55-inch (138cm) Full HD Smart LED TV. Featuring a vibrant 1920×1080 display, built-in WiFi and MCast screen mirroring, and access to YouTube, Netflix, Prime Video, and Google Play. With HDMI and USB connectivity, Eco Mode technology, and a sleek modern design, it is perfect for living rooms and home entertainment setups.',
+  badge: 'new'},
+ 
+ {id:10,  name: 'UA RIKON Bullet DLX Ceiling Fan 48"',
+  brand: 'UA RIKON',
+  category: 'Fan',
+  icon: '🌀',
+  image: 'Image/fan1.png',
+  images: [
+    'Image/fan11.png',
+    'Image/fan12.png',
+    'Image/fan13.png',
+    'Image/fan14.png'
+  ],
+  video: 'Image/fan1.mp4',
+  colors: ['Ivory', 'White', 'Brown', 'Silver'],
+  price: 2299,
+  mrp: 2999,
+  rating: 4.6,
+  reviews: 3241,
+  spec: '48" · High Speed · Copper Winding · Aluminium Blades · Inverter Compatible',
+  specs: [
+    'CNC Motor Copper Winding',
+    'Automotive Paint Finish',
+    'Wide Side Blade Design',
+    'Aluminium Body & Blades',
+    'High Speed Motor Performance',
+    'Powerful Air Throw Technology',
+    'Super Air Delivery',
+    'Energy Efficient Operation',
+    'Inverter Compatible',
+    'World Class Technology',
+    'Available In Multiple Colors',
+    'Low Maintenance Construction'
+  ],
+  description: 'The UA RIKON Bullet DLX Ceiling Fan features CNC motor copper winding, wide aluminium blades, and a durable automotive paint finish for long-lasting performance. Designed for powerful air throw and superior air delivery, this energy-efficient fan is inverter compatible and ideal for homes, offices, and commercial spaces.',
+  badge: 'bestseller'},
+ 
+ {id:11,   name: 'UA RIKON Star Ceiling Fan 48"',
+  brand: 'UA RIKON',
+  category: 'Fan',
+  icon: '🌀',
+  image: 'Image/fan2.png',
+  images: [
+    'Image/fan21.png',
+    'Image/fan22.png',
+    'Image/fan23.png',
+    'Image/fan24.png'
+  ],
+  video: 'Image/fan2.mp4',
+  colors: ['Grey', 'White', 'Brown', 'Silver'],
+  price: 2399,
+  mrp: 3199,
+  rating: 4.5,
+  reviews: 2187,
+  spec: '48" · High Speed · Copper Winding · Aluminium Blades · Inverter Compatible',
+  specs: [
+    'CNC Motor Copper Winding',
+    'Automotive Paint Finish',
+    'Wide Side Blade Design',
+    'Aluminium Body & Blades',
+    'Powerful Air Throw Technology',
+    'Super Air Delivery Performance',
+    'High Speed Motor Operation',
+    'Energy Efficient Performance',
+    'Inverter Compatible Design',
+    'World Class Technology',
+    'Available In Multiple Colors',
+    'Low Noise & Smooth Operation'
+  ],
+  description: 'The UA RIKON Star Ceiling Fan combines elegant styling with powerful performance. Equipped with CNC motor copper winding, aluminium body and blades, and advanced aerodynamic design for superior air delivery. Its energy-efficient motor, inverter compatibility, and durable automotive paint finish make it ideal for homes, offices, and commercial spaces.',
+  badge: 'popular'
+},
+ 
+ {id:12,  name: 'UA RIKON Bullet DLX Ceiling Fan 48"',
+  brand: 'UA RIKON',
+  category: 'Fan',
+  icon: '🌀',
+  image: 'Image/fan3.png',
+  images: [
+    'Image/fan31.png',
+    'Image/fan32.png',
+    'Image/fan33.png',
+    'Image/fan34.png'
+  ],
+  video: 'Image/fan3.mp4',
+  colors: ['Blue', 'White', 'Brown', 'Silver'],
+  price: 2499,
+  mrp: 3299,
+  rating: 4.6,
+  reviews: 1876,
+  spec: '48" · High Speed · Copper Winding · Aluminium Blades · Inverter Compatible',
+  specs: [
+    'CNC Motor Copper Winding',
+    'Automotive Paint Finish',
+    'Wide Side Blade Design',
+    'Aluminium Body & Blades',
+    'Powerful Air Throw Technology',
+    'Super Air Delivery Performance',
+    'High Speed & High Air Delivery',
+    'Energy Efficient Operation',
+    'Inverter Compatible Design',
+    'World Class Technology',
+    'Available In Multiple Colors',
+    'Durable & Low Maintenance Construction'
+  ],
+  description: 'The UA RIKON Bullet DLX Ceiling Fan is engineered for superior cooling performance with CNC motor copper winding and aerodynamic wide-side aluminium blades. Featuring powerful air throw, high-speed operation, inverter compatibility, and an attractive automotive paint finish, it delivers reliable and energy-efficient cooling for homes and offices.',
+  badge: 'new'},
   ];
 
 const FAQS = [
@@ -8171,15 +8818,36 @@ function openGallery(productId) {
   // Set specifications
   const specDiv = document.getElementById('gallerySpec');
   specDiv.innerHTML = '';
-  if (product.spec) {
-    const specs = product.spec.split('·').map(s => s.trim());
-    specs.slice(0, 3).forEach(spec => {
-      const item = document.createElement('div');
-      item.className = 'gallery-spec-item';
-      item.innerHTML = `<div class="gallery-spec-label">Feature</div><div class="gallery-spec-value">${spec}</div>`;
-      specDiv.appendChild(item);
-    });
-  }
+  specDiv.innerHTML = '';
+
+if (product.specifications && product.specifications.length) {
+
+  specDiv.innerHTML = `
+    <div class="gallery-spec-title">Specifications</div>
+    <div class="gallery-spec-list">
+      ${product.specifications.map(item => `
+        <div class="gallery-spec-item">
+          <div class="gallery-spec-value">${item}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+} else if (product.spec) {
+
+  const specs = product.spec.split('·').map(s => s.trim());
+
+  specs.forEach(spec => {
+    const item = document.createElement('div');
+    item.className = 'gallery-spec-item';
+    item.innerHTML = `
+      <div class="gallery-spec-label">Feature</div>
+      <div class="gallery-spec-value">${spec}</div>
+    `;
+    specDiv.appendChild(item);
+  });
+
+}
   
   // Set color options
   const colorSection = document.getElementById('galleryColorSection');
@@ -8225,7 +8893,31 @@ function openGallery(productId) {
   
   // Display main image
   updateGalleryMainImage();
-  
+  // Display Details & Features below thumbnails
+const specsContainer = document.getElementById('gallerySpecsContainer');
+
+if (specsContainer) {
+
+  if (product.specs && product.specs.length) {
+
+    specsContainer.innerHTML = `
+      <div class="modal-specs-wrapper">
+        <h3>Key Details & Features</h3>
+        <ul class="modal-specs-list">
+          ${product.specs.map(spec => `
+            <li>${spec}</li>
+          `).join('')}
+        </ul>
+      </div>
+    `;
+
+  } else {
+
+    specsContainer.innerHTML = '';
+
+  }
+
+}
   // Update wishlist button
   const isWishlisted = wishlist.includes(productId);
   document.getElementById('galleryWishlist').textContent = isWishlisted ? '❤️ IN WISHLIST' : '❤️ ADD TO WISHLIST';
