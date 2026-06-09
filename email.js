@@ -107,14 +107,7 @@ async function sendEmailWithGmailAPI(mailOptions, retries = 5, delay = 3000) {
       mimeMessage += `Content-Type: text/html; charset="UTF-8"\r\n`;
       mimeMessage += `MIME-Version: 1.0\r\n`;
       mimeMessage += `Reply-To: ${GMAIL_USER}\r\n`;
-      mimeMessage += `Return-Path: ${GMAIL_USER}\r\n`;
-      mimeMessage += `X-Priority: 3\r\n`;
-      mimeMessage += `X-Mailer: UA Electronics Server (Gmail API)\r\n`;
-      mimeMessage += `X-Originating-IP: [127.0.0.1]\r\n`;
-      mimeMessage += `Precedence: bulk\r\n`;
-      mimeMessage += `List-Unsubscribe: <mailto:${GMAIL_USER}?subject=unsubscribe>\r\n`;
-      mimeMessage += `List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n`;
-      mimeMessage += `X-UA-Electronics: order-confirmation\r\n`;
+
       mimeMessage += `\r\n`;
       mimeMessage += mailOptions.html;
 
@@ -134,14 +127,6 @@ async function sendEmailWithGmailAPI(mailOptions, retries = 5, delay = 3000) {
     `MIME-Version: 1.0`,
     `Content-Type: multipart/mixed; boundary="${boundary}"`,
     `Reply-To: ${GMAIL_USER}`,
-    `Return-Path: ${GMAIL_USER}`,
-    `X-Priority: 3`,
-    `X-Mailer: UA Electronics Server (Gmail API)`,
-    `X-Originating-IP: [127.0.0.1]`,
-    `Precedence: bulk`,
-    `List-Unsubscribe: <mailto:${GMAIL_USER}?subject=unsubscribe>`,
-    `List-Unsubscribe-Post: List-Unsubscribe=One-Click`,
-    `X-UA-Electronics: order-confirmation`,
     ``,
     `--${boundary}`,
     `Content-Type: text/html; charset="UTF-8"`,
@@ -864,7 +849,7 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
     const mailOptions = {
       from: `"UA Electronics India" <${GMAIL_USER}>`,
       to,
-      subject: `✅ Order Confirmed - ${orderData.orderId} | UA Electronics`,
+subject: `Order Confirmation - ${orderData.orderId}`,
       html: buildEmailHTML(orderData, customerName, orderDate, itemsHtml),
       attachments: []
     };
