@@ -844,7 +844,7 @@ html { scroll-behavior: smooth; font-size: 16px; }
 nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
 .nav-top{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:1rem;padding:.8rem 1.25rem;flex-wrap:wrap}
 .logo-wrap{text-decoration:none;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.logo-wrap img{height:80px;width:auto;max-width:150px;object-fit:contain}
+.logo-wrap img{height:70px;width:auto;max-width:150px;object-fit:contain}
 .logo-main{font-family:'Oswald',sans-serif;font-size:1.45rem;font-weight:700;color:var(--gold2);letter-spacing:2.5px;line-height:1;text-shadow:0 0 18px rgba(33,137,255,.35)}
 .logo-sub{font-size:.58rem;color:var(--text2);letter-spacing:3.5px;text-transform:uppercase;margin-top:2px}
 .logo-badge{background:var(--gold);color:var(--black);font-size:.52rem;font-weight:700;padding:1px 5px;border-radius:3px;letter-spacing:1px;margin-left:3px;font-family:'Oswald',sans-serif;vertical-align:middle}
@@ -3611,7 +3611,7 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   .nav-top{flex-wrap:wrap;gap:.5rem;justify-content:space-between}
   .search-wrap{order:3;width:100%;min-width:100%}
   .logo-sub{display:none}
-  .logo-wrap img{height:60px}
+  .logo-wrap img{height:56px}
   .nav-actions{justify-content:flex-end;gap:.4rem}
   .footer-grid{grid-template-columns:1fr;text-align:center}
   .footer-desc{max-width:100%}
@@ -3648,7 +3648,7 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   .cat-cards{grid-template-columns:repeat(2,1fr)}
   .nav-top{padding:.65rem .85rem;gap:.35rem;justify-content:space-between}
   .logo-main{font-size:1rem;letter-spacing:1px}
-  .logo-wrap img{height:54px}
+  .logo-wrap img{height:48px}
   .search-wrap{min-width:140px;order:3;width:100%}
   .search-wrap input{font-size:.8rem;padding:.45rem .6rem}
   .nav-actions{gap:.3rem;justify-content:flex-end}
@@ -3724,7 +3724,7 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   .m-form-row{gap:.4rem}
   .nav-top{padding:.5rem .6rem}
   .logo-main{font-size:.95rem}
-  .logo-wrap img{height:48px}
+  .logo-wrap img{height:44px}
   .hero-featured{padding:12px;gap:10px}
   .hf-price{font-size:1.15rem}
 }
@@ -5016,7 +5016,7 @@ nav, .cart-drawer, .modal-overlay {
   }
 
   .logo-wrap img {
-    height: 58px !important; /* Scale down branding to free up vital horizontal viewport space */
+    height: 52px !important; /* Scale down branding to free up vital horizontal viewport space */
   }
 
   .nav-actions {
@@ -7702,6 +7702,91 @@ function selectPM(method) {
 function selUpiApp(el) {
   document.querySelectorAll('.upi-app').forEach(a => a.classList.remove('sel'));
   el.classList.add('sel');
+}
+function selUpiApp(el) {
+  // Visual selection
+  document.querySelectorAll('.upi-app').forEach(a => a.classList.remove('sel'));
+  el.classList.add('sel');
+
+  // ── Live cart total ───────────────────────────────────────────────
+  const subtotal = cart.reduce((s, c) => s + c.price * c.qty, 0);
+  const shipping  = subtotal >= 999 ? 0 : 49;
+  const grand     = subtotal + shipping;
+
+  const params = new URLSearchParams({
+    pa: 'merchant@oksbi',            // ← Your Merchant UPI VPA
+    pn: 'UA Electronics',
+    am: grand.toFixed(2),            // ← Auto from cart
+    cu: 'INR',
+    tn: 'UA Electronics Order',
+  }).toString();
+  // ─────────────────────────────────────────────────────────────────
+
+  const isIOS     = /iP(hone|ad|od)/.test(navigator.userAgent);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const label     = el.textContent.trim();
+
+  const appMap = {
+    'Google Pay':  {
+      android:   `tez://upi/pay?${params}`,
+      ios:       `gpay://upi/pay?${params}`,
+      playStore: 'https://play.google.com/store/apps/details?id=com.google.android.apps.nbu.paisa.user',
+      appStore:  'https://apps.apple.com/in/app/google-pay/id1193357976',
+    },
+    'PhonePe': {
+      android:   `phonepe://pay?${params}`,
+      ios:       `phonepe://pay?${params}`,
+      playStore: 'https://play.google.com/store/apps/details?id=com.phonepe.app',
+      appStore:  'https://apps.apple.com/in/app/phonepe/id1170055821',
+    },
+    'Paytm': {
+      android:   `paytmmp://upi/pay?${params}`,
+      ios:       `paytmmp://upi/pay?${params}`,
+      playStore: 'https://play.google.com/store/apps/details?id=net.one97.paytm',
+      appStore:  'https://apps.apple.com/in/app/paytm/id473941634',
+    },
+    'BHIM': {
+      android:   `bhim://pay?${params}`,
+      ios:       `bhim://pay?${params}`,
+      playStore: 'https://play.google.com/store/apps/details?id=in.org.npci.upiapp',
+      appStore:  'https://apps.apple.com/in/app/bhim/id1200315258',
+    },
+    'Amazon Pay': {
+      android:   `amazonpay://pay?${params}`,
+      ios:       `amzn://pay?${params}`,
+      playStore: 'https://play.google.com/store/apps/details?id=in.amazon.mShop.android.shopping',
+      appStore:  'https://apps.apple.com/in/app/amazon-in/id1209829122',
+    },
+  };
+
+  const key = Object.keys(appMap).find(k => label.includes(k));
+  if (!key) return;
+  const cfg = appMap[key];
+
+  function launch(deepLink, storeUrl) {
+    let appOpened = false;
+
+    // If the app opens, page goes hidden — cancel store fallback
+    document.addEventListener('visibilitychange', function onHide() {
+      if (document.hidden) {
+        appOpened = true;
+        document.removeEventListener('visibilitychange', onHide);
+      }
+    });
+
+    // After 1.8s, if still visible → app not installed → open store
+    setTimeout(() => {
+      if (!appOpened && !document.hidden) {
+        window.location.href = storeUrl;
+      }
+    }, 1800);
+
+    window.location.href = deepLink;
+  }
+
+  if (isAndroid)  launch(cfg.android, cfg.playStore);
+  else if (isIOS) launch(cfg.ios,     cfg.appStore);
+  else            alert('Please open this page on your mobile to pay via UPI.');
 }
 
 function fmtCard(el) {
