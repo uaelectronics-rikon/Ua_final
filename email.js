@@ -107,7 +107,14 @@ async function sendEmailWithGmailAPI(mailOptions, retries = 5, delay = 3000) {
       mimeMessage += `Content-Type: text/html; charset="UTF-8"\r\n`;
       mimeMessage += `MIME-Version: 1.0\r\n`;
       mimeMessage += `Reply-To: ${GMAIL_USER}\r\n`;
-
+      mimeMessage += `Return-Path: ${GMAIL_USER}\r\n`;
+      mimeMessage += `X-Priority: 3\r\n`;
+      mimeMessage += `X-Mailer: UA Electronics Server (Gmail API)\r\n`;
+      mimeMessage += `X-MSMail-Priority: Normal\r\n`;
+      mimeMessage += `X-Mailer-Plugin: Order Confirmation System\r\n`;
+      mimeMessage += `X-UA-Electronics: order-confirmation\r\n`;
+      mimeMessage += `Auto-Submitted: auto-generated\r\n`;
+      mimeMessage += `List-Unsubscribe: <mailto:${GMAIL_USER}?subject=unsubscribe>\r\n`;
       mimeMessage += `\r\n`;
       mimeMessage += mailOptions.html;
 
@@ -127,6 +134,14 @@ async function sendEmailWithGmailAPI(mailOptions, retries = 5, delay = 3000) {
     `MIME-Version: 1.0`,
     `Content-Type: multipart/mixed; boundary="${boundary}"`,
     `Reply-To: ${GMAIL_USER}`,
+    `Return-Path: ${GMAIL_USER}`,
+    `X-Priority: 3`,
+    `X-Mailer: UA Electronics Server (Gmail API)`,
+    `X-MSMail-Priority: Normal`,
+    `X-Mailer-Plugin: Order Confirmation System`,
+    `X-UA-Electronics: order-confirmation`,
+    `Auto-Submitted: auto-generated`,
+    `List-Unsubscribe: <mailto:${GMAIL_USER}?subject=unsubscribe>`,
     ``,
     `--${boundary}`,
     `Content-Type: text/html; charset="UTF-8"`,
@@ -849,7 +864,7 @@ async function sendEmail(to, orderData, pdfFilePath = null) {
     const mailOptions = {
       from: `"UA Electronics India" <${GMAIL_USER}>`,
       to,
-subject: `Order Confirmation - ${orderData.orderId}`,
+      subject: `✅ Order Confirmed - ${orderData.orderId} | UA Electronics`,
       html: buildEmailHTML(orderData, customerName, orderDate, itemsHtml),
       attachments: []
     };
