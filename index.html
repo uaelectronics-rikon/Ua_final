@@ -9264,47 +9264,13 @@ const firebaseConfig = {
   measurementId: "G-NTS0YJL3D8"
 };
 
-let auth = null;
-let GoogleProvider = null;
-
-async function loadFirebase() {
-
-  if (auth) return;
-
-  const { initializeApp } = await import(
-    "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"
-  );
-
-  const {
-    getAuth,
-    GoogleAuthProvider,
-    signInWithPopup,
-    signOut
-  } = await import(
-    "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"
-  );
-
-  const app = initializeApp(firebaseConfig);
-
-  auth = getAuth(app);
-  GoogleProvider = GoogleAuthProvider;
-
-  window.firebaseSignInWithPopup = signInWithPopup;
-  window.firebaseSignOut = signOut;
-}
-
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 window.googleLogin = async function() {
   try {
 
- await loadFirebase();
-
-const provider = new GoogleProvider();
-
-const result =
-  await window.firebaseSignInWithPopup(
-    auth,
-    provider
-  );
+const provider = new GoogleAuthProvider();
+const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
     // Firebase User
@@ -9354,9 +9320,7 @@ const result =
 window.logoutGoogle = async function() {
 
   try {
-await loadFirebase();
-
-await window.firebaseSignOut(auth);  } catch(e) {
+await signOut(auth); } catch(e) {
     console.log(e);
   }
 
