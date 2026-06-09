@@ -7694,6 +7694,91 @@ function selUpiApp(el) {
   el.classList.add('sel');
 }
 
+function selUpiApp(el) {
+  // Visual selection
+  document.querySelectorAll('.upi-app').forEach(a => a.classList.remove('sel'));
+  el.classList.add('sel');
+
+  // ── Live cart total ───────────────────────────────────────────────
+  const subtotal = cart.reduce((s, c) => s + c.price * c.qty, 0);
+  const shipping  = subtotal >= 999 ? 0 : 49;
+  const grand     = subtotal + shipping;
+
+  const params = new URLSearchParams({
+    pa: 'merchant@oksbi',            // ← Your Merchant UPI VPA
+    pn: 'UA Electronics',
+    am: grand.toFixed(2),            // ← Auto from cart
+    cu: 'INR',
+    tn: 'UA Electronics Order',
+  }).toString();
+  // ─────────────────────────────────────────────────────────────────
+
+  const isIOS     = /iP(hone|ad|od)/.test(navigator.userAgent);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const label     = el.textContent.trim();
+
+  const appMap = {
+    'Google Pay':  {
+      android:   `tez://upi/pay?${params}`,
+      ios:       `gpay://upi/pay?${params}`,
+      playStore: 'https://play.google.com/store/apps/details?id=com.google.android.apps.nbu.paisa.user',
+      appStore:  'https://apps.apple.com/in/app/google-pay/id1193357976',
+    },
+    'PhonePe': {
+      android:   `phonepe://pay?${params}`,
+      ios:       `phonepe://pay?${params}`,
+      playStore: 'https://play.google.com/store/apps/details?id=com.phonepe.app',
+      appStore:  'https://apps.apple.com/in/app/phonepe/id1170055821',
+    },
+    'Paytm': {
+      android:   `paytmmp://upi/pay?${params}`,
+      ios:       `paytmmp://upi/pay?${params}`,
+      playStore: 'https://play.google.com/store/apps/details?id=net.one97.paytm',
+      appStore:  'https://apps.apple.com/in/app/paytm/id473941634',
+    },
+    'BHIM': {
+      android:   `bhim://pay?${params}`,
+      ios:       `bhim://pay?${params}`,
+      playStore: 'https://play.google.com/store/apps/details?id=in.org.npci.upiapp',
+      appStore:  'https://apps.apple.com/in/app/bhim/id1200315258',
+    },
+    'Amazon Pay': {
+      android:   `amazonpay://pay?${params}`,
+      ios:       `amzn://pay?${params}`,
+      playStore: 'https://play.google.com/store/apps/details?id=in.amazon.mShop.android.shopping',
+      appStore:  'https://apps.apple.com/in/app/amazon-in/id1209829122',
+    },
+  };
+
+  const key = Object.keys(appMap).find(k => label.includes(k));
+  if (!key) return;
+  const cfg = appMap[key];
+
+  function launch(deepLink, storeUrl) {
+    let appOpened = false;
+
+    // If the app opens, page goes hidden — cancel store fallback
+    document.addEventListener('visibilitychange', function onHide() {
+      if (document.hidden) {
+        appOpened = true;
+        document.removeEventListener('visibilitychange', onHide);
+      }
+    });
+
+    // After 1.8s, if still visible → app not installed → open store
+    setTimeout(() => {
+      if (!appOpened && !document.hidden) {
+        window.location.href = storeUrl;
+      }
+    }, 1800);
+
+    window.location.href = deepLink;
+  }
+
+  if (isAndroid)  launch(cfg.android, cfg.playStore);
+  else if (isIOS) launch(cfg.ios,     cfg.appStore);
+  else            alert('Please open this page on your mobile to pay via UPI.');
+}
 
 function fmtCard(el) {
   let v = el.value.replace(/\D/g,'').substring(0,16);
