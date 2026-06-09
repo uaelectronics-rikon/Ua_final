@@ -111,48 +111,27 @@
 
 <!-- ========== GOOGLE ANALYTICS 4 (GTM & GA4) ========== -->
 <!-- Replace YOUR_GA_ID with your actual Google Analytics ID (G-XXXXXXXXXX) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-XXXXXXXXXX', {
-    'page_path': window.location.pathname,
-    'send_page_view': true
-  });
-  
-  // Track page views
-  gtag('event', 'page_view', {
-    'page_title': document.title,
-    'page_location': window.location.href
-  });
-</script>
 
-<!-- ========== META PIXEL (FACEBOOK ADS TRACKING) ========== -->
-<!-- Replace YOUR_PIXEL_ID with your actual Meta Pixel ID -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+
 <script>
-  !function(f,b,e,v,n,t,s)
-  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-  n.queue=[];t=b.createElement(e);t.async=!0;
-  t.src=v;s=b.getElementsByTagName(e)[0];
-  s.parentNode.insertBefore(t,s)}(window, document,'script',
-  'https://connect.facebook.net/en_US/fbevents.js');
-  fbq('init', 'YOUR_PIXEL_ID');
-  fbq('track', 'PageView');
+window.dataLayer = window.dataLayer || [];
+
+function gtag(){
+  dataLayer.push(arguments);
+}
+
+gtag('js', new Date());
+
+gtag('config', 'G-XXXXXXXXXX');
+gtag('config', 'AW-CONVERSION_ID');
 </script>
+<!-- ========== META PIXEL (FACEBOOK ADS TRACKING) ========== -->
+
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1" /></noscript>
 
 <!-- ========== GOOGLE ADS CONVERSION TRACKING ========== -->
 <!-- Replace YOUR_CONVERSION_ID with your Google Ads conversion ID -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-CONVERSION_ID"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'AW-CONVERSION_ID');
-</script>
 
 <!-- ========== PERFORMANCE OPTIMIZATIONS ========== -->
 <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
@@ -163,7 +142,17 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=DM+Sans:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;700&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'">
+
+<noscript>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;700&display=swap">
+</noscript>
+
 <style>
 /* ============================================================
    UA ELECTRONICS — GLOBAL TOKENS & RESET
@@ -9275,14 +9264,47 @@ const firebaseConfig = {
   measurementId: "G-NTS0YJL3D8"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+let auth = null;
+let GoogleProvider = null;
+
+async function loadFirebase() {
+
+  if (auth) return;
+
+  const { initializeApp } = await import(
+    "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js"
+  );
+
+  const {
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signOut
+  } = await import(
+    "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js"
+  );
+
+  const app = initializeApp(firebaseConfig);
+
+  auth = getAuth(app);
+  GoogleProvider = GoogleAuthProvider;
+
+  window.firebaseSignInWithPopup = signInWithPopup;
+  window.firebaseSignOut = signOut;
+}
 
 window.googleLogin = async function() {
   try {
 
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
+ await loadFirebase();
+
+const provider = new GoogleProvider();
+
+const result =
+  await window.firebaseSignInWithPopup(
+    auth,
+    provider
+  );
     const user = result.user;
 
     // Firebase User
@@ -9332,8 +9354,9 @@ window.googleLogin = async function() {
 window.logoutGoogle = async function() {
 
   try {
-    await signOut(auth);
-  } catch(e) {
+await loadFirebase();
+
+await window.firebaseSignOut(auth);  } catch(e) {
     console.log(e);
   }
 
@@ -9367,6 +9390,44 @@ window.logoutGoogle = async function() {
 
   location.reload();
 };
+</script>
+<script>
+window.addEventListener('load', function() {
+
+  setTimeout(function() {
+
+    !function(f,b,e,v,n,t,s)
+    {
+      if(f.fbq)return;
+      n=f.fbq=function(){
+        n.callMethod ?
+        n.callMethod.apply(n,arguments) :
+        n.queue.push(arguments)
+      };
+
+      if(!f._fbq)f._fbq=n;
+
+      n.push=n;
+      n.loaded=!0;
+      n.version='2.0';
+      n.queue=[];
+
+      t=b.createElement(e);
+      t.async=true;
+      t.src=v;
+
+      s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s);
+
+    }(window,document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+
+    fbq('init','YOUR_PIXEL_ID');
+    fbq('track','PageView');
+
+  },3000);
+
+});
 </script>
 </body>
 </html>
