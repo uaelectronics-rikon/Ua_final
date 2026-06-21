@@ -4,7 +4,7 @@
  */
 
 // ======================== GLOBAL STATE ========================
-let currentUser = null;
+// NOTE: currentUser is declared in index.html — do NOT re-declare it here
 let cartItems = [];
 // Dynamic API base URL - works for both localhost and production
 const API_BASE = window.location.origin;
@@ -471,6 +471,18 @@ async function submitOrder(order) {
     }
 
     console.log("✅ Order submitted successfully:", data.orderId);
+
+    // Save to user's local order history so Track Order / renderOrders() can find it
+    if (currentUser && currentUser.email) {
+      try {
+        const uk = 'ua_orders_' + currentUser.email.replace(/[^a-z0-9]/gi, '_');
+        const existing = JSON.parse(localStorage.getItem(uk) || '[]');
+        existing.unshift(order); // newest first
+        localStorage.setItem(uk, JSON.stringify(existing));
+      } catch (e) {
+        console.warn('Could not save order to localStorage:', e.message);
+      }
+    }
 
     // Clear cart
     clearCart();

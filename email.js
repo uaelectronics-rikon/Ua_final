@@ -95,10 +95,11 @@ async function sendEmailWithGmailAPI(mailOptions, retries = 5, delay = 3000) {
         throw new Error("Gmail API not initialized — check credentials");
       }
 
-      // Build MIME message with anti-spam headers
-      const messageId = `<${Date.now()}@uaelectronicsindia.com>`;
+      // Define these here so both the simple and multipart paths use the same values
+      const messageId = `<${Date.now()}.${Math.random().toString(36).slice(2)}@uaelectronicsindia.com>`;
       const timestamp = new Date().toUTCString();
-      
+
+      // Build MIME message
       let mimeMessage = `From: ${mailOptions.from}\r\n`;
 mimeMessage += `To: ${mailOptions.to}\r\n`;
 mimeMessage += `Subject: =?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=\r\n`;
@@ -107,7 +108,6 @@ mimeMessage += `Message-ID: ${messageId}\r\n`;
 mimeMessage += `MIME-Version: 1.0\r\n`;
 mimeMessage += `Content-Type: text/html; charset="UTF-8"\r\n`;
 mimeMessage += `Reply-To: ${GMAIL_USER}\r\n`;
-mimeMessage += `Auto-Submitted: auto-generated\r\n`;
 mimeMessage += `\r\n`;
 mimeMessage += mailOptions.html;
 
@@ -115,8 +115,6 @@ mimeMessage += mailOptions.html;
      if (mailOptions.attachments && mailOptions.attachments.length > 0) {
   const boundary = '===============boundary' + Date.now() + '==';
   const encodedSubject = `=?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=`;
-  const messageId = `<${Date.now()}@uaelectronicsindia.com>`;
-  const timestamp = new Date().toUTCString();
 
 mimeMessage = [
   `From: ${mailOptions.from}`,
@@ -127,7 +125,6 @@ mimeMessage = [
   `MIME-Version: 1.0`,
   `Content-Type: multipart/mixed; boundary="${boundary}"`,
   `Reply-To: ${GMAIL_USER}`,
-  `Auto-Submitted: auto-generated`,
   ``,
   `--${boundary}`,
   `Content-Type: text/html; charset="UTF-8"`,

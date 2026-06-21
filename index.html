@@ -128,7 +128,8 @@ gtag('config', 'AW-CONVERSION_ID');
 </script>
 <!-- ========== META PIXEL (FACEBOOK ADS TRACKING) ========== -->
 
-<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1" /></noscript>
+<!-- Meta Pixel noscript: uncomment and replace YOUR_PIXEL_ID once configured -->
+<!-- <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1" /></noscript> -->
 
 <!-- ========== GOOGLE ADS CONVERSION TRACKING ========== -->
 <!-- Replace YOUR_CONVERSION_ID with your Google Ads conversion ID -->
@@ -1128,7 +1129,7 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
 .hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 65% 55% at 65% 50%,rgba(201,162,39,.07) 0%,transparent 65%),radial-gradient(ellipse 40% 30% at 10% 80%,rgba(201,162,39,.04) 0%,transparent 60%)}
 .hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(201,162,39,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(201,162,39,.04) 1px,transparent 1px);background-size:60px 60px}
 .hero-inner{max-width:100%;padding:2.5rem 1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:3.5rem;align-items:center;position:relative;z-index:1;width:100vw;margin-left:calc(-50vw + 50%)}
-.hero-tag{display:inline-flex;align-items:center;gap:.45rem;border:1px solid var(--border);padding:.32rem .85rem;border-radius:30px;font-size:.72rem;color:var(--gold);letter-spacing:2px;font-family:'Oswald',sans-serif;margin-bottom:1.25rem;animation:fadeUp .6s ease both}
+.hero-tag{display:inline-flex;align-items:center;gap:.45rem;border:1px solid var(--border);padding:.32rem .85rem;border-radius:30px;font-size:.72rem;color: var(--blue);;letter-spacing:2px;font-family:'Oswald',sans-serif;margin-bottom:1.25rem;animation:fadeUp .6s ease both}
 .hero-tag::before{content:'';width:6px;height:6px;background:var(--gold);border-radius:50%;animation:blink 1.5s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
@@ -5198,14 +5199,17 @@ nav, .cart-drawer, .modal-overlay {
       <p class="carousel-subtitle">Explore top deals across categories</p>
     </div>
 
-    <div class="carousel-slider" id="carouselSlider">
+     <div class="carousel-slider" id="carouselSlider">
       
       <!-- Slide 1 -->
       <div class="carousel-slide active">
         <div class="slide-content">
+                  <div class="hero-tag">✦ UA RIKON — INDIA</div>
+          
           <h2>Induction Cooktops</h2>
           <p>Flat ₹500 OFF + Fast Cooking</p>
       <button class="cat-btn" onclick="filterCat('Induction',this)">Shop Now</button>
+
         </div>
         <video class="slide-video" src="Image/induction.mp4" autoplay muted loop playsinline></video>
       </div>
@@ -5215,9 +5219,12 @@ nav, .cart-drawer, .modal-overlay {
       <!-- Slide 4 -->
       <div class="carousel-slide">
         <div class="slide-content">
+                  <div class="hero-tag">✦ UA RIKON — INDIA</div>
+ 
           <h2>LED TVs</h2>
           <p>Smart Viewing Experience</p>
           <button class="cat-btn" onclick="filterCat('LED TV',this)">Shop Now</button>
+
         </div>
         <video class="slide-video" src="Image/led2.mp4" muted loop playsinline></video>
       </div>
@@ -5225,17 +5232,23 @@ nav, .cart-drawer, .modal-overlay {
       <!-- Slide 5 -->
       <div class="carousel-slide">
         <div class="slide-content">
+                  <div class="hero-tag">✦ UA RIKON — INDIA</div>
+ 
           <h2>Home Theatre</h2>
           <p>Cinema at Home</p>
           <button class="cat-btn" onclick="filterCat('Home Theatre',this)">Shop Now</button>
+
         </div>
         <video class="slide-video" src="Image/home.mp4" muted loop playsinline ></video>
       </div>
       <div class="carousel-slide">
         <div class="slide-content">
+                  <div class="hero-tag">✦ UA RIKON — INDIA</div>
+
           <h2>Air Coolers</h2>
           <p>Stay Cool This Summer</p>
           <button class="cat-btn" onclick="filterCat('Cooler',this)">Shop Now</button>
+
         </div>
         <video class="slide-video" src="Image/cooler.mp4" muted loop playsinline ></video>
       </div>
@@ -5243,9 +5256,12 @@ nav, .cart-drawer, .modal-overlay {
       <!-- Slide 3 -->
       <div class="carousel-slide">
         <div class="slide-content">
+                  <div class="hero-tag">✦ UA RIKON — INDIA</div>
+
           <h2>Fans</h2>
           <p>High Speed + Energy Saving</p>
           <button class="cat-btn" onclick="filterCat('Fan',this)">Shop Now</button>
+
         </div>
         <video class="slide-video" src="Image/fan.mp4" muted loop playsinline></video>
       </div>
@@ -6366,6 +6382,114 @@ badge:'hot'},
   ],
   description:'UA RIKON UA-220 Tower Speaker delivers a powerful 220W RMS audio experience with dual 8-inch woofers and dual 4-inch speakers for deep bass and crystal-clear sound. Featuring Bluetooth connectivity, RGB lighting, FM radio, TWS pairing, USB playback, digital LED display, remote control, and wired/wireless microphone support. The stylish 24-inch dual tower design is perfect for home entertainment, parties, karaoke, and immersive music listening.',
   badge:'sale'},
+
+ {id:19,   name:'Desert Air Cooler 50L',
+  brand:'UA RIKON',
+  category:'Cooler',
+  icon:'❄️',
+  image:'Image/cool4.webp',
+  images:['Image/cool41.webp','Image/cool42.webp','Image/cool43.webp','Image/cool44.webp'],
+  video:'Image/cool4.mp4',
+  colors:['White'],
+  price:5999,
+  mrp:7999,
+  rating:4.5,
+  reviews:876,
+  spec:'50L Tank · High Air Delivery · Honeycomb Pads · Powerful Fan',
+  specs:[
+'Large-capacity desert cooler',
+    'High-efficiency honeycomb cooling pads',
+    'Powerful air delivery system',
+    'Dual mechanical control knobs',
+    'Multi-speed fan operation',
+    'Automatic swing air distribution',
+    'Heavy-duty thermoplastic body',
+    'Rust-free and corrosion-resistant construction',
+    'Water level indicator',
+    'Top water filling inlet',
+    '4 smooth-rolling caster wheels',
+    'Suitable for homes, offices, shops and halls'
+  ],
+  description:'UA RIKON Desert Air Cooler is designed to provide powerful and efficient cooling for homes, offices, shops and large rooms. Equipped with a large 90-litre water tank, honeycomb cooling pads and powerful air circulation, it delivers long-lasting cooling performance even during peak summer conditions. The durable rust-free body, auto swing function, water level indicator and smooth-rolling caster wheels make it a reliable and convenient cooling solution.',
+badge:'Best Seller'},
+  
+ {id:3,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool5.webp',images:['Image/cool51.webp','Image/cool52.webp','Image/cool53.webp','Image/cool54.webp'],video:'Image/cool5.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
+  
+ {id:4,  name:'UA RIKON Desert Air Cooler 50L',       brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool1.webp',images:['Image/cool11.webp','Image/cool12.webp','Image/cool13.webp','Image/cool14.webp'],video:'Image/cool1.mp4',colors:['White','Gray','Black'],price:7499, mrp:9999, rating:4.6,reviews:1234,spec:'50L Tank · 3 Speed · Honeycomb Pad · Remote Included',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Powerful desert cooler with 50L capacity. Cools large spaces efficiently with honeycomb cooling pads and remote control.',badge:'hot'},
+ 
+ {id:5,  name:'UA RIKON Tower Air Cooler 30L',        brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool2.webp',images:['Image/cool21.webp','Image/cool22.webp','Image/cool23.webp','Image/cool24.webp'],video:'Image/cool2.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
+
+ {id:6,  name:'UA RIKON Personal Room Cooler 20L',    brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool3.webp',images:['Image/cool31.webp','Image/cool32.webp','Image/cool33.webp','Image/cool34.webp'],video:'Image/cool3.mp4',colors:['White','Gray','Black'],price:3999, mrp:5499, rating:4.4,reviews:432, spec:'20L · Portable · 3 Speeds · Humidity Control',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Portable personal room cooler. Perfect for bedrooms with humidity control and 3 variable speed settings.',badge:'sale'},
+ 
+ {id:20,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool6.webp',images:['Image/cool61.webp','Image/cool62.webp','Image/cool63.webp','Image/cool64.webp'],video:'Image/cool6.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
+  
+ {id:21,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool7.webp',images:['Image/cool71.webp','Image/cool72.webp','Image/cool73.webp','Image/cool74.webp'],video:'Image/cool7.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
+ 
+ {id:22,  name:'UA RIKON Desert Air Cooler 50L',       brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool8.webp',images:['Image/cool81.webp','Image/cool82.webp','Image/cool83.webp','Image/cool84.webp'],video:'Image/cool8.mp4',colors:['White','Gray','Black'],price:7499, mrp:9999, rating:4.6,reviews:1234,spec:'50L Tank · 3 Speed · Honeycomb Pad · Remote Included',specs:[
+   '2200W Infrared Heating Technology',
+   'Touch Control Panel',
+   '6 Preset Cooking Modes',
+   'Auto Shut-Off Protection',
+   'Crystal Glass Surface',
+   'Fast & Energy Efficient Heating',
+   'Suitable For Indian Cooking',
+   'Overheat Protection System'
+ ],description:'Powerful desert cooler with 50L capacity. Cools large spaces efficiently with honeycomb cooling pads and remote control.',badge:'hot'},
+ 
  {id:7,   name: 'UA LED | 24" Inch | 60 CM | Full HD | Smart Android TV',
   brand: 'UA RIKON',
   category: 'LED TV',
@@ -6550,114 +6674,6 @@ badge:'hot'},
   description: 'Enjoy cinematic entertainment on the UA RIKON 55-inch (138cm) Full HD Smart LED TV. Featuring a vibrant 1920×1080 display, built-in WiFi and MCast screen mirroring, and access to YouTube, Netflix, Prime Video, and Google Play. With HDMI and USB connectivity, Eco Mode technology, and a sleek modern design, it is perfect for living rooms and home entertainment setups.',
   badge: 'new'},
  
- {id:19,   name:'Desert Air Cooler 50L',
-  brand:'UA RIKON',
-  category:'Cooler',
-  icon:'❄️',
-  image:'Image/cool4.webp',
-  images:['Image/cool41.webp','Image/cool42.webp','Image/cool43.webp','Image/cool44.webp'],
-  video:'Image/cool4.mp4',
-  colors:['White'],
-  price:5999,
-  mrp:7999,
-  rating:4.5,
-  reviews:876,
-  spec:'50L Tank · High Air Delivery · Honeycomb Pads · Powerful Fan',
-  specs:[
-'Large-capacity desert cooler',
-    'High-efficiency honeycomb cooling pads',
-    'Powerful air delivery system',
-    'Dual mechanical control knobs',
-    'Multi-speed fan operation',
-    'Automatic swing air distribution',
-    'Heavy-duty thermoplastic body',
-    'Rust-free and corrosion-resistant construction',
-    'Water level indicator',
-    'Top water filling inlet',
-    '4 smooth-rolling caster wheels',
-    'Suitable for homes, offices, shops and halls'
-  ],
-  description:'UA RIKON Desert Air Cooler is designed to provide powerful and efficient cooling for homes, offices, shops and large rooms. Equipped with a large 90-litre water tank, honeycomb cooling pads and powerful air circulation, it delivers long-lasting cooling performance even during peak summer conditions. The durable rust-free body, auto swing function, water level indicator and smooth-rolling caster wheels make it a reliable and convenient cooling solution.',
-badge:'Best Seller'},
-  
- {id:3,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool5.webp',images:['Image/cool51.webp','Image/cool52.webp','Image/cool53.webp','Image/cool54.webp'],video:'Image/cool5.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',specs:[
-   '2200W Infrared Heating Technology',
-   'Touch Control Panel',
-   '6 Preset Cooking Modes',
-   'Auto Shut-Off Protection',
-   'Crystal Glass Surface',
-   'Fast & Energy Efficient Heating',
-   'Suitable For Indian Cooking',
-   'Overheat Protection System'
- ],description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
-  
- {id:4,  name:'UA RIKON Desert Air Cooler 50L',       brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool1.webp',images:['Image/cool11.webp','Image/cool12.webp','Image/cool13.webp','Image/cool14.webp'],video:'Image/cool1.mp4',colors:['White','Gray','Black'],price:7499, mrp:9999, rating:4.6,reviews:1234,spec:'50L Tank · 3 Speed · Honeycomb Pad · Remote Included',specs:[
-   '2200W Infrared Heating Technology',
-   'Touch Control Panel',
-   '6 Preset Cooking Modes',
-   'Auto Shut-Off Protection',
-   'Crystal Glass Surface',
-   'Fast & Energy Efficient Heating',
-   'Suitable For Indian Cooking',
-   'Overheat Protection System'
- ],description:'Powerful desert cooler with 50L capacity. Cools large spaces efficiently with honeycomb cooling pads and remote control.',badge:'hot'},
- 
- {id:5,  name:'UA RIKON Tower Air Cooler 30L',        brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool2.webp',images:['Image/cool21.webp','Image/cool22.webp','Image/cool23.webp','Image/cool24.webp'],video:'Image/cool2.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',specs:[
-   '2200W Infrared Heating Technology',
-   'Touch Control Panel',
-   '6 Preset Cooking Modes',
-   'Auto Shut-Off Protection',
-   'Crystal Glass Surface',
-   'Fast & Energy Efficient Heating',
-   'Suitable For Indian Cooking',
-   'Overheat Protection System'
- ],description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
-
- {id:6,  name:'UA RIKON Personal Room Cooler 20L',    brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool3.webp',images:['Image/cool31.webp','Image/cool32.webp','Image/cool33.webp','Image/cool34.webp'],video:'Image/cool3.mp4',colors:['White','Gray','Black'],price:3999, mrp:5499, rating:4.4,reviews:432, spec:'20L · Portable · 3 Speeds · Humidity Control',specs:[
-   '2200W Infrared Heating Technology',
-   'Touch Control Panel',
-   '6 Preset Cooking Modes',
-   'Auto Shut-Off Protection',
-   'Crystal Glass Surface',
-   'Fast & Energy Efficient Heating',
-   'Suitable For Indian Cooking',
-   'Overheat Protection System'
- ],description:'Portable personal room cooler. Perfect for bedrooms with humidity control and 3 variable speed settings.',badge:'sale'},
- 
- {id:20,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool6.webp',images:['Image/cool61.webp','Image/cool62.webp','Image/cool63.webp','Image/cool64.webp'],video:'Image/cool6.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',specs:[
-   '2200W Infrared Heating Technology',
-   'Touch Control Panel',
-   '6 Preset Cooking Modes',
-   'Auto Shut-Off Protection',
-   'Crystal Glass Surface',
-   'Fast & Energy Efficient Heating',
-   'Suitable For Indian Cooking',
-   'Overheat Protection System'
- ],description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
-  
- {id:21,  name:'UA RIKON Desert Air Cooler 50L',      brand:'UA RIKON',category:'Cooler',   icon:'❄️',image:'Image/cool7.webp',images:['Image/cool71.webp','Image/cool72.webp','Image/cool73.webp','Image/cool74.webp'],video:'Image/cool7.mp4',colors:['White','Gray','Black'],price:5999, mrp:7999, rating:4.5,reviews:876, spec:'30L · Tower Fan · 4-Way Air Flow · Auto Fill',specs:[
-   '2200W Infrared Heating Technology',
-   'Touch Control Panel',
-   '6 Preset Cooking Modes',
-   'Auto Shut-Off Protection',
-   'Crystal Glass Surface',
-   'Fast & Energy Efficient Heating',
-   'Suitable For Indian Cooking',
-   'Overheat Protection System'
- ],description:'Elegant tower cooler design. 4-way air flow distribution with automatic water filling system for continuous cooling.',badge:''},
- 
- {id:22,  name:'UA RIKON Desert Air Cooler 50L',       brand:'UA RIKON',category:'Cooler',      icon:'❄️',image:'Image/cool8.webp',images:['Image/cool81.webp','Image/cool82.webp','Image/cool83.webp','Image/cool84.webp'],video:'Image/cool8.mp4',colors:['White','Gray','Black'],price:7499, mrp:9999, rating:4.6,reviews:1234,spec:'50L Tank · 3 Speed · Honeycomb Pad · Remote Included',specs:[
-   '2200W Infrared Heating Technology',
-   'Touch Control Panel',
-   '6 Preset Cooking Modes',
-   'Auto Shut-Off Protection',
-   'Crystal Glass Surface',
-   'Fast & Energy Efficient Heating',
-   'Suitable For Indian Cooking',
-   'Overheat Protection System'
- ],description:'Powerful desert cooler with 50L capacity. Cools large spaces efficiently with honeycomb cooling pads and remote control.',badge:'hot'},
- 
-
  {id:10,  name: 'UA RIKON Bullet DLX Ceiling Fan 48"',
   brand: 'UA RIKON',
   category: 'Fan',
@@ -7196,6 +7212,7 @@ function showPage(id) {
   // Special page actions
   if (id === 'admin') renderAdminDash();
   if (id === 'home') renderProducts(allProducts);
+  if (id === 'orders') renderOrders();
 }
 
 function scrollToProducts() {
@@ -9275,7 +9292,6 @@ setTimeout(function() {
   </div>
 </div>
 
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="checkout.js"></script>
 <script>
 let currentSlide = 0;
@@ -9445,6 +9461,9 @@ window.addEventListener('load', function() {
 
   setTimeout(function() {
 
+    const PIXEL_ID = 'YOUR_PIXEL_ID'; // ← Replace with your real Meta Pixel ID
+    if (!PIXEL_ID || PIXEL_ID === 'YOUR_PIXEL_ID') return; // Skip if not configured
+
     !function(f,b,e,v,n,t,s)
     {
       if(f.fbq)return;
@@ -9471,7 +9490,7 @@ window.addEventListener('load', function() {
     }(window,document,'script',
     'https://connect.facebook.net/en_US/fbevents.js');
 
-    fbq('init','YOUR_PIXEL_ID');
+    fbq('init', PIXEL_ID);
     fbq('track','PageView');
 
   },3000);
