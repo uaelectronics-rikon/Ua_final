@@ -128,8 +128,7 @@ gtag('config', 'AW-CONVERSION_ID');
 </script>
 <!-- ========== META PIXEL (FACEBOOK ADS TRACKING) ========== -->
 
-<!-- Meta Pixel noscript: uncomment and replace YOUR_PIXEL_ID once configured -->
-<!-- <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1" /></noscript> -->
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1" /></noscript>
 
 <!-- ========== GOOGLE ADS CONVERSION TRACKING ========== -->
 <!-- Replace YOUR_CONVERSION_ID with your Google Ads conversion ID -->
@@ -1129,7 +1128,7 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
 .hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 65% 55% at 65% 50%,rgba(201,162,39,.07) 0%,transparent 65%),radial-gradient(ellipse 40% 30% at 10% 80%,rgba(201,162,39,.04) 0%,transparent 60%)}
 .hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(201,162,39,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(201,162,39,.04) 1px,transparent 1px);background-size:60px 60px}
 .hero-inner{max-width:100%;padding:2.5rem 1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:3.5rem;align-items:center;position:relative;z-index:1;width:100vw;margin-left:calc(-50vw + 50%)}
-.hero-tag{display:inline-flex;align-items:center;gap:.45rem;border:1px solid var(--border);padding:.32rem .85rem;border-radius:30px;font-size:.72rem;color: var(--blue);;letter-spacing:2px;font-family:'Oswald',sans-serif;margin-bottom:1.25rem;animation:fadeUp .6s ease both}
+.hero-tag{display:inline-flex;align-items:center;gap:.45rem;border:1px solid var(--border);padding:.32rem .85rem;border-radius:30px;font-size:.72rem;color:var(--gold);letter-spacing:2px;font-family:'Oswald',sans-serif;margin-bottom:1.25rem;animation:fadeUp .6s ease both}
 .hero-tag::before{content:'';width:6px;height:6px;background:var(--gold);border-radius:50%;animation:blink 1.5s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
@@ -5199,17 +5198,14 @@ nav, .cart-drawer, .modal-overlay {
       <p class="carousel-subtitle">Explore top deals across categories</p>
     </div>
 
-     <div class="carousel-slider" id="carouselSlider">
+    <div class="carousel-slider" id="carouselSlider">
       
       <!-- Slide 1 -->
       <div class="carousel-slide active">
         <div class="slide-content">
-                  <div class="hero-tag">✦ UA RIKON — INDIA</div>
-          
           <h2>Induction Cooktops</h2>
           <p>Flat ₹500 OFF + Fast Cooking</p>
       <button class="cat-btn" onclick="filterCat('Induction',this)">Shop Now</button>
-
         </div>
         <video class="slide-video" src="Image/induction.mp4" autoplay muted loop playsinline></video>
       </div>
@@ -5219,12 +5215,9 @@ nav, .cart-drawer, .modal-overlay {
       <!-- Slide 4 -->
       <div class="carousel-slide">
         <div class="slide-content">
-                  <div class="hero-tag">✦ UA RIKON — INDIA</div>
- 
           <h2>LED TVs</h2>
           <p>Smart Viewing Experience</p>
           <button class="cat-btn" onclick="filterCat('LED TV',this)">Shop Now</button>
-
         </div>
         <video class="slide-video" src="Image/led2.mp4" muted loop playsinline></video>
       </div>
@@ -5232,23 +5225,17 @@ nav, .cart-drawer, .modal-overlay {
       <!-- Slide 5 -->
       <div class="carousel-slide">
         <div class="slide-content">
-                  <div class="hero-tag">✦ UA RIKON — INDIA</div>
- 
           <h2>Home Theatre</h2>
           <p>Cinema at Home</p>
           <button class="cat-btn" onclick="filterCat('Home Theatre',this)">Shop Now</button>
-
         </div>
         <video class="slide-video" src="Image/home.mp4" muted loop playsinline ></video>
       </div>
       <div class="carousel-slide">
         <div class="slide-content">
-                  <div class="hero-tag">✦ UA RIKON — INDIA</div>
-
           <h2>Air Coolers</h2>
           <p>Stay Cool This Summer</p>
           <button class="cat-btn" onclick="filterCat('Cooler',this)">Shop Now</button>
-
         </div>
         <video class="slide-video" src="Image/cooler.mp4" muted loop playsinline ></video>
       </div>
@@ -5256,12 +5243,9 @@ nav, .cart-drawer, .modal-overlay {
       <!-- Slide 3 -->
       <div class="carousel-slide">
         <div class="slide-content">
-                  <div class="hero-tag">✦ UA RIKON — INDIA</div>
-
           <h2>Fans</h2>
           <p>High Speed + Energy Saving</p>
           <button class="cat-btn" onclick="filterCat('Fan',this)">Shop Now</button>
-
         </div>
         <video class="slide-video" src="Image/fan.mp4" muted loop playsinline></video>
       </div>
@@ -7212,7 +7196,6 @@ function showPage(id) {
   // Special page actions
   if (id === 'admin') renderAdminDash();
   if (id === 'home') renderProducts(allProducts);
-  if (id === 'orders') renderOrders();
 }
 
 function scrollToProducts() {
@@ -9292,6 +9275,7 @@ setTimeout(function() {
   </div>
 </div>
 
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="checkout.js"></script>
 <script>
 let currentSlide = 0;
@@ -9461,9 +9445,6 @@ window.addEventListener('load', function() {
 
   setTimeout(function() {
 
-    const PIXEL_ID = 'YOUR_PIXEL_ID'; // ← Replace with your real Meta Pixel ID
-    if (!PIXEL_ID || PIXEL_ID === 'YOUR_PIXEL_ID') return; // Skip if not configured
-
     !function(f,b,e,v,n,t,s)
     {
       if(f.fbq)return;
@@ -9490,7 +9471,7 @@ window.addEventListener('load', function() {
     }(window,document,'script',
     'https://connect.facebook.net/en_US/fbevents.js');
 
-    fbq('init', PIXEL_ID);
+    fbq('init','YOUR_PIXEL_ID');
     fbq('track','PageView');
 
   },3000);
