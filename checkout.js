@@ -1,22 +1,21 @@
 /**
  * UA ELECTRONICS - CHECKOUT SYSTEM
  * Handles complete checkout flow: auth, cart, payment, order submission
- * NOTE: currentUser & cartItems are already declared in index.html - DO NOT REDECLARE
  */
 
 // ======================== GLOBAL STATE ========================
-// currentUser is already declared in index.html
-// cartItems is already declared in index.html
+let currentUser = null;
+let cartItems = [];
 // Dynamic API base URL - works for both localhost and production
 const API_BASE = window.location.origin;
 
 // Load saved state on page load
 if (typeof window !== "undefined") {
-  if (!currentUser) currentUser = JSON.parse(localStorage.getItem("currentUser")) || null;
-  if (!cartItems || cartItems.length === 0) cartItems = JSON.parse(localStorage.getItem("cartItems")) || [];
+  currentUser = JSON.parse(localStorage.getItem("currentUser")) || null;
+  cartItems = JSON.parse(localStorage.getItem("cartItems")) || [];
   
   // Update UI if user is logged in
-  if (currentUser && typeof updateUserUI === 'function') {
+  if (currentUser) {
     updateUserUI();
   }
 }
