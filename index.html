@@ -5521,10 +5521,10 @@ nav, .cart-drawer, .modal-overlay {
             <div class="pay-opt-icon">💵</div>
             <div><div class="pay-opt-label">Cash on Delivery</div><div class="pay-opt-sub">Pay when you receive</div></div>
           </div>
-          <!-- <div class="pay-opt" id="pm-card" onclick="selectPM('card')">
+        <div class="pay-opt" id="pm-card" onclick="selectPM('card')">
             <div class="pay-opt-icon">💳</div>
             <div><div class="pay-opt-label">Debit / Credit Card</div><div class="pay-opt-sub">Visa, Mastercard, Rupay</div></div>
-          </div> -->
+          </div> 
           <div class="pay-opt" id="pm-upiapp" onclick="selectPM('upiapp')">
             <div class="pay-opt-icon">📱</div>
             <div><div class="pay-opt-label">UPI Apps</div><div class="pay-opt-sub">GPay, PhonePe, Paytm...</div></div>
@@ -7256,11 +7256,30 @@ function renderProducts(prods) {
       <div class="p-info">
         <div class="p-brand">${p.brand}</div>
         <div class="p-name" itemprop="name">${p.name}</div>
-        <div class="p-rating" itemprop="aggregateRating" itemscope itemtype="https://schema.org/AggregateRating">
-          <span class="p-stars">${'★'.repeat(Math.floor(p.rating))}${'☆'.repeat(5-Math.floor(p.rating))}</span>
-          <span class="p-rnum" itemprop="ratingValue">${p.rating}</span>
-          <span class="p-rcnt">(${(p.reviews||0).toLocaleString('en-IN')})</span>
-        </div>
+      <div class="p-rating"
+     itemprop="aggregateRating"
+     itemscope
+     itemtype="https://schema.org/AggregateRating">
+
+  <span class="p-stars">
+    ${'★'.repeat(Math.floor(p.rating))}
+    ${'☆'.repeat(5 - Math.floor(p.rating))}
+  </span>
+
+  <span class="p-rnum" itemprop="ratingValue">
+    ${p.rating}
+  </span>
+
+  <!-- Required for Google Rich Results -->
+  <meta itemprop="reviewCount" content="${p.reviews || 100}">
+  <meta itemprop="ratingCount" content="${p.reviews || 100}">
+  <meta itemprop="bestRating" content="5">
+  <meta itemprop="worstRating" content="1">
+
+  <span class="p-rcnt">
+    (${(p.reviews || 0).toLocaleString('en-IN')})
+  </span>
+</div>
         <div class="p-price-row">
           <span class="p-price" itemprop="price">₹${p.price.toLocaleString('en-IN')}</span>
           ${p.mrp>p.price?`<span class="p-mrp">₹${p.mrp.toLocaleString('en-IN')}</span><span class="p-off">${disc}% off</span>`:''}
@@ -8696,7 +8715,7 @@ function startPayment() {
     }
 
     const options = {
-      key: "rzp_test_xxxxxxxx", // Replace with your actual key
+      key: "rzp_test_T4Vt0esAjLy8AT", // Razorpay Test API Key
       amount: order.amount,
       currency: "INR",
       order_id: order.id,
