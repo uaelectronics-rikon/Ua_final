@@ -1736,7 +1736,11 @@ nav{position:sticky;top:0;z-index:900;background:rgba(11, 31, 61,.97);backdrop-f
   display: flex;
   align-items: center;
   gap: 30px;
-  animation: fadeInUp 0.8s 0.8s ease-out both;
+  /* Uses its own keyframes (not the shared fadeInUp) because fadeInUp's
+     transform:translateY(...) would overwrite the translateX(-50%) above
+     instead of combining with it, leaving the whole control bar shifted
+     off-center to the right once the animation finishes. */
+  animation: fadeInUpCentered 0.8s 0.8s ease-out both;
 }
 
 .carousel-nav-btn {
@@ -1898,30 +1902,27 @@ nav{position:sticky;top:0;z-index:900;background:rgba(11, 31, 61,.97);backdrop-f
   .carousel-slide {
     justify-content: center;
     padding: 20px 0;
-    width: 100vw;
-    margin-left: calc(-50vw + 50%);
+    /* width/margin-left removed: .carousel-slide is width:100% of
+       .carousel-container, which is already full-bleed 100vw itself.
+       Re-applying 100vw + the negative-margin trick here double-offsets
+       the slide, dragging it (and the arrows/dots that sit on top of it)
+       out of alignment on the right edge. */
   }
 
   .slide-video {
     display: block;
     position: absolute;
     inset: 0;
-    width: 100vw;
     height: 100%;
     object-fit: cover;
     z-index: 0;
-    left: 0;
-    margin: 0;
   }
   .carousel-slide img {
     display: block;
-    width: 100vw;
     height: 100%;
     object-fit: cover;
     position: absolute;
     inset: 0;
-    right: 0;
-    top: 0;
     z-index: 1;
   }
 
@@ -1979,19 +1980,8 @@ nav{position:sticky;top:0;z-index:900;background:rgba(11, 31, 61,.97);backdrop-f
 
   .carousel-slide {
     padding: 0;
-    width: 100vw;
-    margin-left: calc(-50vw + 50%);
-  }
-
-  .slide-video {
-    width: 100vw;
-    margin-left: 0;
-    left: 0;
-  }
-
-  .carousel-slide img {
-    width: 100vw;
-    margin-left: 0;
+    /* width/margin-left removed here too, same reason as the 768px
+       breakpoint above — the parent is already full-bleed. */
   }
 
   .slide-content {
@@ -3877,6 +3867,13 @@ footer{background:var(--black2);border-top:1px solid var(--border);padding:3.5re
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Same fade-up motion as fadeInUp, but keeps the translateX(-50%)
+   horizontal centering used by .carousel-controls intact throughout. */
+@keyframes fadeInUpCentered {
+  from { opacity: 0; transform: translateX(-50%) translateY(15px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
 @keyframes fadeInDown {
   from { opacity: 0; transform: translateY(-15px); }
   to { opacity: 1; transform: translateY(0); }
@@ -5255,6 +5252,15 @@ footer .footer-logo{
 footer .footer-bottom{
   border-top-color: rgba(245,247,250,.15) !important;
   color: rgba(245,247,250,.6);
+}
+footer .footer-bottom p{
+  color: rgba(245,247,250,.6) !important;
+}
+footer .footer-seal{
+  color: rgba(245,247,250,.72) !important;
+}
+footer .footer-seal b{
+  color: var(--gold3) !important;
 }
 </style>
 </head>
