@@ -136,8 +136,10 @@ gtag('config', 'AW-CONVERSION_ID');
 <!-- ========== PERFORMANCE OPTIMIZATIONS ========== -->
 <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
 <link rel="dns-prefetch" href="https://connect.facebook.net">
+<link rel="preconnect" href="https://checkout.razorpay.com" crossorigin>
+<link rel="dns-prefetch" href="https://checkout.razorpay.com">
 <meta name="format-detection" content="telephone=no">
-<meta name="theme-color" content="#1428A0">
+<meta name="theme-color" content="#0B1F3D">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><text y='20' font-size='20' fill='%232189FF'>⚡</text></svg>">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -158,41 +160,45 @@ gtag('config', 'AW-CONVERSION_ID');
    UA ELECTRONICS — GLOBAL TOKENS & RESET
    ============================================================ */
 :root {
-  /* Samsung-Inspired Premium Electronics */
+  /* UA RIKON — Premium Navy & Brushed Gold */
   --black:   #ffffff;
-  --black2:  #f5f7fa;
-  --black3:  #e5e7eb;
-  --card:    #fafbfc;
-  --card2:   #f0f2f8;
-  /* Primary: Samsung Blue */
-  --primary: #1428A0;
-  --primary-light: #2189FF;
-  --primary-dark: #0F172A;
-  /* Accent: Samsung Accent Blue */
-  --accent: #2189FF;
-  --accent-light: #4DA3FF;
-  --accent-dark: #1428A0;
-  /* Secondary: Dark Navy */
-  --gold:    #0F172A;
-  --gold2:   #1428A0;
-  --gold3:   #2189FF;
-  --platinum: #E5E7EB;
-  --rose-gold: #2189FF;
+  --black2:  #f6f7fa;
+  --black3:  #e8eaf0;
+  --card:    #ffffff;
+  --card2:   #f3f4f8;
+  /* Primary: Deep Navy */
+  --primary: #0B1F3D;
+  --primary-light: #14335F;
+  --primary-dark: #060D1A;
+  /* Accent: Refined Blue (secondary interactive accent) */
+  --accent: #2C6BED;
+  --accent-light: #5088F5;
+  --accent-dark: #1B4BC4;
+  /* Signature: Brushed Gold */
+  --gold:    #C9962C;
+  --gold2:   #B8841F;
+  --gold3:   #E0B357;
+  --platinum: #E4E7EC;
+  --rose-gold: #C68A5B;
   /* Gradients */
-  --gradient-1: linear-gradient(135deg, #1428A0 0%, #2189FF 100%);
-  --gradient-2: linear-gradient(135deg, #0F172A 0%, #1428A0 100%);
-  --gradient-3: linear-gradient(135deg, #2189FF 0%, #4DA3FF 100%);
-  --gradient-premium: linear-gradient(135deg, #1428A0, #2189FF, #0F172A);
-  --gold-light: rgba(33, 137, 255, 0.12);
-  --gold-glow:  0 0 28px rgba(33, 137, 255, 0.35);
-  --text:    #111111;
-  --text2:   #333333;
-  --text3:   #666666;
-  --border:  #E5E7EB;
-  --border2: rgba(20, 40, 160, 0.1);
+  --gradient-1: linear-gradient(135deg, #0B1F3D 0%, #14335F 100%);
+  --gradient-2: linear-gradient(135deg, #060D1A 0%, #0B1F3D 100%);
+  --gradient-3: linear-gradient(135deg, #C9962C 0%, #E0B357 100%);
+  --gradient-premium: linear-gradient(135deg, #0B1F3D 0%, #14335F 55%, #C9962C 100%);
+  --gold-light: rgba(201, 150, 44, 0.12);
+  --gold-glow:  0 0 28px rgba(201, 150, 44, 0.35);
+  --text:    #12141A;
+  --text2:   #333A44;
+  --text3:   #656D78;
+  --border:  #E4E7EC;
+  --border2: rgba(11, 31, 61, 0.1);
   --success: #10b981;
   --danger:  #ef4444;
   --radius:  10px;
+  /* Fixed footer navy — intentionally NOT redefined in dark-mode
+     blocks, so the footer always stays deep-navy with legible
+     gold highlight text regardless of light/dark mode. */
+  --footer-bg: #0B1F3D;
 }
 
 /* ═══ ANIMATION TIMING & 3D TRANSFORMS ═══ */
@@ -209,28 +215,28 @@ gtag('config', 'AW-CONVERSION_ID');
 /* Dark Mode - Detect device preference */
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Dark Mode - Samsung Premium */
-    --black:   #0F172A;
-    --black2:  #1A2847;
-    --black3:  #2C3E5A;
-    --card:    #1A2847;
-    --card2:   #0F172A;
-    --primary: #2189FF;
-    --primary-light: #4DA3FF;
-    --primary-dark: #1428A0;
-    --accent: #2189FF;
-    --accent-light: #4DA3FF;
-    --accent-dark: #1428A0;
-    --gold:    #2189FF;
-    --gold2:   #4DA3FF;
-    --gold3:   #6BB5FF;
-    --gold-light: rgba(33, 137, 255, 0.12);
-    --gold-glow: 0 0 28px rgba(33, 137, 255, 0.40);
+    /* Dark Mode - Navy & Brushed Gold */
+    --black:   #0A1120;
+    --black2:  #121A2E;
+    --black3:  #1E2A44;
+    --card:    #121A2E;
+    --card2:   #0A1120;
+    --primary: #E0B357;
+    --primary-light: #F0C978;
+    --primary-dark: #C9962C;
+    --accent: #4DA3FF;
+    --accent-light: #7CBBFF;
+    --accent-dark: #C9962C;
+    --gold:    #E0B357;
+    --gold2:   #F0C978;
+    --gold3:   #F5D98C;
+    --gold-light: rgba(224, 179, 87, 0.14);
+    --gold-glow: 0 0 28px rgba(224, 179, 87, 0.40);
     --text:    #F5F7FA;
     --text2:   #CBD5E1;
     --text3:   #94A3B8;
-    --border:  rgba(33, 137, 255, 0.25);
-    --border2: rgba(33, 137, 255, 0.08);
+    --border:  rgba(224, 179, 87, 0.22);
+    --border2: rgba(224, 179, 87, 0.08);
     --success: #10b981;
     --danger:  #ff6b6b;
     --radius:  10px;
@@ -239,27 +245,27 @@ gtag('config', 'AW-CONVERSION_ID');
 
 /* Manual Dark Mode Toggle */
 body.dark-mode {
-  --black:   #0F172A;
-  --black2:  #1A2847;
-  --black3:  #2C3E5A;
-  --card:    #1A2847;
-  --card2:   #0F172A;
-  --primary: #2189FF;
-  --primary-light: #4DA3FF;
-  --primary-dark: #1428A0;
-  --accent: #2189FF;
-  --accent-light: #4DA3FF;
-  --accent-dark: #1428A0;
-  --gold:    #2189FF;
-  --gold2:   #4DA3FF;
-  --gold3:   #6BB5FF;
-  --gold-light: rgba(33, 137, 255, 0.12);
-  --gold-glow: 0 0 28px rgba(33, 137, 255, 0.40);
+  --black:   #0A1120;
+  --black2:  #121A2E;
+  --black3:  #1E2A44;
+  --card:    #121A2E;
+  --card2:   #0A1120;
+  --primary: #E0B357;
+  --primary-light: #F0C978;
+  --primary-dark: #C9962C;
+  --accent: #4DA3FF;
+  --accent-light: #7CBBFF;
+  --accent-dark: #C9962C;
+  --gold:    #E0B357;
+  --gold2:   #F0C978;
+  --gold3:   #F5D98C;
+  --gold-light: rgba(224, 179, 87, 0.14);
+  --gold-glow: 0 0 28px rgba(224, 179, 87, 0.40);
   --text:    #F5F7FA;
   --text2:   #CBD5E1;
   --text3:   #94A3B8;
-  --border:  rgba(33, 137, 255, 0.25);
-  --border2: rgba(33, 137, 255, 0.08);
+  --border:  rgba(224, 179, 87, 0.22);
+  --border2: rgba(224, 179, 87, 0.08);
   --success: #10b981;
   --danger:  #ff6b6b;
   --radius:  10px;
@@ -272,22 +278,22 @@ body.light-mode {
   --black3:  #e5e7eb;
   --card:    #fafbfc;
   --card2:   #f0f2f8;
-  --primary: #1428A0;
-  --primary-light: #2189FF;
+  --primary: #0B1F3D;
+  --primary-light: #C9962C;
   --primary-dark: #0F172A;
-  --accent: #2189FF;
+  --accent: #C9962C;
   --accent-light: #4DA3FF;
-  --accent-dark: #1428A0;
+  --accent-dark: #0B1F3D;
   --gold:    #0F172A;
-  --gold2:   #1428A0;
-  --gold3:   #2189FF;
-  --gold-light: rgba(33, 137, 255, 0.12);
-  --gold-glow:  0 0 28px rgba(33, 137, 255, 0.35);
+  --gold2:   #0B1F3D;
+  --gold3:   #C9962C;
+  --gold-light: rgba(201, 150, 44, 0.12);
+  --gold-glow:  0 0 28px rgba(201, 150, 44, 0.35);
   --text:    #111111;
   --text2:   #333333;
   --text3:   #666666;
   --border:  #E5E7EB;
-  --border2: rgba(20, 40, 160, 0.1);
+  --border2: rgba(11, 31, 61, 0.1);
   --success: #10b981;
   --danger:  #ef4444;
   --radius:  10px;
@@ -361,8 +367,8 @@ input,select,textarea{font-family:inherit}
 }
 
 @keyframes neon-glow {
-  0%, 100% { box-shadow: 0 0 10px rgba(33, 137, 255, 0.5), 0 0 20px rgba(20, 40, 160, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(33, 137, 255, 0.8), 0 0 40px rgba(20, 40, 160, 0.6); }
+  0%, 100% { box-shadow: 0 0 10px rgba(201, 150, 44, 0.5), 0 0 20px rgba(11, 31, 61, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(201, 150, 44, 0.8), 0 0 40px rgba(11, 31, 61, 0.6); }
 }
 
 @keyframes slideInScale {
@@ -494,10 +500,10 @@ input,select,textarea{font-family:inherit}
 /* Pulse Glow */
 @keyframes pulseGlow {
   0%, 100% { 
-    box-shadow: 0 0 5px rgba(33, 137, 255, 0.3), inset 0 0 5px rgba(33, 137, 255, 0.1);
+    box-shadow: 0 0 5px rgba(201, 150, 44, 0.3), inset 0 0 5px rgba(201, 150, 44, 0.1);
   }
   50% {
-    box-shadow: 0 0 30px rgba(33, 137, 255, 0.8), inset 0 0 15px rgba(33, 137, 255, 0.3);
+    box-shadow: 0 0 30px rgba(201, 150, 44, 0.8), inset 0 0 15px rgba(201, 150, 44, 0.3);
   }
 }
 
@@ -612,60 +618,60 @@ input,select,textarea{font-family:inherit}
 
 /* Samsung Dark Blue Theme */
 :root[data-theme="sapphire"] {
-  --gold: #2189FF;
+  --gold: #C9962C;
   --gold2: #4DA3FF;
   --gold3: #6BB5FF;
-  --accent: #2189FF;
+  --accent: #C9962C;
   --accent-light: #4DA3FF;
-  --primary: #1428A0;
+  --primary: #0B1F3D;
 }
 
 /* Samsung Navy Deep Theme */
 :root[data-theme="coral"] {
   --gold: #0F172A;
-  --gold2: #1428A0;
-  --gold3: #2189FF;
-  --accent: #2189FF;
+  --gold2: #0B1F3D;
+  --gold3: #C9962C;
+  --accent: #C9962C;
   --accent-light: #4DA3FF;
   --primary: #0F172A;
 }
 
 /* Samsung Light Blue Theme */
 :root[data-theme="emerald"] {
-  --gold: #2189FF;
+  --gold: #C9962C;
   --gold2: #4DA3FF;
   --gold3: #6BB5FF;
-  --accent: #1428A0;
-  --accent-light: #2189FF;
-  --primary: #1428A0;
+  --accent: #0B1F3D;
+  --accent-light: #C9962C;
+  --primary: #0B1F3D;
 }
 
 /* Samsung Deep Primary Theme */
 :root[data-theme="cosmic"] {
-  --gold: #1428A0;
-  --gold2: #2189FF;
+  --gold: #0B1F3D;
+  --gold2: #C9962C;
   --gold3: #4DA3FF;
-  --accent: #2189FF;
+  --accent: #C9962C;
   --accent-light: #4DA3FF;
   --primary: #0F172A;
 }
 
 /* Samsung Accent Bright Theme */
 :root[data-theme="aurora"] {
-  --gold: #2189FF;
+  --gold: #C9962C;
   --gold2: #4DA3FF;
   --gold3: #6BB5FF;
   --accent: #0F172A;
-  --accent-light: #2189FF;
-  --primary: #1428A0;
+  --accent-light: #C9962C;
+  --primary: #0B1F3D;
 }
 
 /* Samsung Premium Blue */
 :root[data-theme="rose-gold"] {
-  --gold: #1428A0;
-  --gold2: #2189FF;
+  --gold: #0B1F3D;
+  --gold2: #C9962C;
   --gold3: #4DA3FF;
-  --accent: #2189FF;
+  --accent: #C9962C;
   --accent-light: #4DA3FF;
   --primary: #0F172A;
 }
@@ -726,7 +732,7 @@ input,select,textarea{font-family:inherit}
 
 /* Sapphire Theme Selector */
 .theme-btn-sapphire {
-  background: linear-gradient(135deg, #1428A0, #2189FF);
+  background: linear-gradient(135deg, #0B1F3D, #C9962C);
   color: #fff;
 }
 
@@ -744,19 +750,19 @@ input,select,textarea{font-family:inherit}
 
 /* Cosmic Theme Selector */
 .theme-btn-cosmic {
-  background: linear-gradient(135deg, #1428A0, #2189FF);
+  background: linear-gradient(135deg, #0B1F3D, #C9962C);
   color: #fff;
 }
 
 /* Aurora Theme Selector */
 .theme-btn-aurora {
-  background: linear-gradient(135deg, #2189FF, #4DA3FF);
+  background: linear-gradient(135deg, #C9962C, #4DA3FF);
   color: #fff;
 }
 
 /* Rose Gold Theme Selector */
 .theme-btn-rose {
-  background: linear-gradient(135deg, #0F172A, #1428A0);
+  background: linear-gradient(135deg, #0F172A, #0B1F3D);
   color: #fff;
 }
 
@@ -831,11 +837,11 @@ html { scroll-behavior: smooth; font-size: 16px; }
 /* ============================================================
    NAVBAR
    ============================================================ */
-nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+nav{position:sticky;top:0;z-index:900;background:rgba(11, 31, 61,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
 .nav-top{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:1rem;padding:.8rem 1.25rem;flex-wrap:wrap}
 .logo-wrap{text-decoration:none;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .logo-wrap img{height:70px;width:auto;max-width:190px;object-fit:contain}
-.logo-main{font-family:'Oswald',sans-serif;font-size:1.45rem;font-weight:700;color:var(--gold2);letter-spacing:2.5px;line-height:1;text-shadow:0 0 18px rgba(33,137,255,.35)}
+.logo-main{font-family:'Oswald',sans-serif;font-size:1.45rem;font-weight:700;color:var(--gold2);letter-spacing:2.5px;line-height:1;text-shadow:0 0 18px rgba(201, 150, 44,.35)}
 .logo-sub{font-size:.58rem;color:var(--text2);letter-spacing:3.5px;text-transform:uppercase;margin-top:2px}
 .logo-badge{background:var(--gold);color:var(--black);font-size:.52rem;font-weight:700;padding:1px 5px;border-radius:3px;letter-spacing:1px;margin-left:3px;font-family:'Oswald',sans-serif;vertical-align:middle}
 
@@ -867,7 +873,7 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
   white-space:nowrap;
   position:relative;
   overflow:hidden;
-  box-shadow: 0 6px 18px rgba(33, 137, 255, 0.35), 0 0 20px rgba(20, 40, 160, 0.15);
+  box-shadow: 0 6px 18px rgba(201, 150, 44, 0.35), 0 0 20px rgba(11, 31, 61, 0.15);
   perspective: 1000px;
   transform-style: preserve-3d;
 }
@@ -876,7 +882,7 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
   content:'';
   position:absolute;
   inset:0;
-  background: linear-gradient(135deg, #1428A0 0%, #2189FF 100%);
+  background: linear-gradient(135deg, #0B1F3D 0%, #C9962C 100%);
   transform:scaleX(0);
   transform-origin:left;
   transition:transform .35s cubic-bezier(.34, 1.56, .64, 1);
@@ -884,8 +890,8 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
 }
 
 .btn-gold:hover{
-  background: linear-gradient(135deg, #2189FF 0%, #4DA3FF 100%);
-  box-shadow: 0 10px 30px rgba(33, 137, 255, 0.55), 0 0 40px rgba(20, 40, 160, 0.35);
+  background: linear-gradient(135deg, #C9962C 0%, #4DA3FF 100%);
+  box-shadow: 0 10px 30px rgba(201, 150, 44, 0.55), 0 0 40px rgba(11, 31, 61, 0.35);
   transform:translateY(-4px) translateZ(10px) scale(1.02);
   animation: neon-glow 1.5s ease-in-out infinite;
 }
@@ -922,7 +928,7 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
   content:'';
   position:absolute;
   inset:0;
-  background: linear-gradient(135deg, rgba(33, 137, 255, 0.2), rgba(20, 40, 160, 0.1));
+  background: linear-gradient(135deg, rgba(201, 150, 44, 0.2), rgba(11, 31, 61, 0.1));
   transform:scaleX(0);
   transform-origin:left;
   transition:transform .35s cubic-bezier(.34, 1.56, .64, 1);
@@ -930,11 +936,11 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
 }
 
 .btn-outline:hover{
-  background: rgba(33, 137, 255, 0.1);
+  background: rgba(201, 150, 44, 0.1);
   color:var(--gold2);
   border-color:var(--accent-light);
   transform:translateY(-2px) translateZ(5px) scale(1.01);
-  box-shadow: 0 8px 20px rgba(33, 137, 255, 0.25), 0 0 15px rgba(20, 40, 160, 0.2);
+  box-shadow: 0 8px 20px rgba(201, 150, 44, 0.25), 0 0 15px rgba(11, 31, 61, 0.2);
 }
 
 .btn-outline:hover::before{
@@ -1149,12 +1155,12 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
 .hero-featured{
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(20px);
-  border:2px solid rgba(33, 137, 255, 0.2);
+  border:2px solid rgba(201, 150, 44, 0.2);
   border-radius:16px;
   padding:2rem;
   position:relative;
   overflow:hidden;
-  box-shadow: 0 18px 55px rgba(0,0,0,.15), 0 0 40px rgba(33, 137, 255, 0.1), inset 0 1px 0 rgba(33, 137, 255, 0.25);
+  box-shadow: 0 18px 55px rgba(0,0,0,.15), 0 0 40px rgba(201, 150, 44, 0.1), inset 0 1px 0 rgba(201, 150, 44, 0.25);
   animation: slideInScale 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   display:flex;
   align-items:center;
@@ -1169,7 +1175,7 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
   content:'';
   position:absolute;
   inset:0;
-  background: radial-gradient(ellipse 600px 300px at center, rgba(33, 137, 255, 0.1), transparent);
+  background: radial-gradient(ellipse 600px 300px at center, rgba(201, 150, 44, 0.1), transparent);
   animation: float3D 6s ease-in-out infinite;
   z-index:0;
   pointer-events:none;
@@ -1182,7 +1188,7 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
   left:0;
   right:0;
   bottom:0;
-  background: linear-gradient(135deg, transparent 0%, rgba(20, 40, 160, 0.05) 50%, transparent 100%);
+  background: linear-gradient(135deg, transparent 0%, rgba(11, 31, 61, 0.05) 50%, transparent 100%);
   opacity:0;
   transition:opacity .4s;
   z-index:0;
@@ -1208,7 +1214,7 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
   border-radius:6px;
   margin-bottom:1rem;
   animation: pulse3D 2s ease-in-out infinite;
-  box-shadow: 0 4px 15px rgba(33, 137, 255, 0.4), 0 0 20px rgba(20, 40, 160, 0.15);
+  box-shadow: 0 4px 15px rgba(201, 150, 44, 0.4), 0 0 20px rgba(11, 31, 61, 0.15);
   text-transform: uppercase;
   position: relative;
 }
@@ -1625,8 +1631,8 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
   letter-spacing: -1px;
   animation: slideInScale 0.8s 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   font-family: 'Playfair Display', serif;
-  text-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 30px rgba(33, 137, 255, 0.3);
-  background: linear-gradient(135deg, #2189FF, #4DA3FF);
+  text-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 30px rgba(201, 150, 44, 0.3);
+  background: linear-gradient(135deg, #C9962C, #4DA3FF);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1645,7 +1651,7 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
 .slide-content button {
   padding: 1rem 3rem;
   border: none;
-  background: linear-gradient(135deg, #2189FF 0%, #4DA3FF 100%);
+  background: linear-gradient(135deg, #C9962C 0%, #4DA3FF 100%);
   color: #FFF;
   border-radius: 50px;
   font-weight: 700;
@@ -1654,7 +1660,7 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 20px 50px rgba(33,137,255,0.5), 0 0 30px rgba(20, 40, 160, 0.3);
+  box-shadow: 0 20px 50px rgba(201, 150, 44,0.5), 0 0 30px rgba(11, 31, 61, 0.3);
   position: relative;
   overflow: hidden;
   animation: slideInScale 0.8s 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -1674,8 +1680,8 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
 
 .slide-content button:hover {
   transform: translateY(-4px) translateZ(15px) scale(1.08);
-  box-shadow: 0 30px 70px rgba(33,137,255,0.7), 0 0 50px rgba(20, 40, 160, 0.5);
-  background: linear-gradient(135deg, #4DA3FF 0%, #2189FF 100%);
+  box-shadow: 0 30px 70px rgba(201, 150, 44,0.7), 0 0 50px rgba(11, 31, 61, 0.5);
+  background: linear-gradient(135deg, #4DA3FF 0%, #C9962C 100%);
   animation: neon-glow 1.5s ease-in-out infinite;
 }
 
@@ -1737,8 +1743,8 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
   width: 50px;
   height: 50px;
   background: rgba(201,162,39,0.15);
-  border: 2px solid #2189FF;
-  color: #2189FF;
+  border: 2px solid #C9962C;
+  color: #C9962C;
   border-radius: 50%;
   font-size: 1.5rem;
   cursor: pointer;
@@ -1756,7 +1762,7 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(33, 137, 255, 0.2), rgba(20, 40, 160, 0.1));
+  background: linear-gradient(135deg, rgba(201, 150, 44, 0.2), rgba(11, 31, 61, 0.1));
   border-radius: 50%;
   transform: scale(0);
   transition: transform 0.4s ease;
@@ -1764,10 +1770,10 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
 }
 
 .carousel-nav-btn:hover {
-  background: #2189FF;
+  background: #C9962C;
   color: #fff;
   transform: scale(1.15);
-  box-shadow: 0 15px 40px rgba(33,137,255,0.5);
+  box-shadow: 0 15px 40px rgba(201, 150, 44,0.5);
 }
 
 .carousel-nav-btn:hover::after {
@@ -1787,7 +1793,7 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
 .carousel-indicators span {
   width: 10px;
   height: 10px;
-  background: rgba(33,137,255,0.4);
+  background: rgba(201, 150, 44,0.4);
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -1795,15 +1801,15 @@ nav{position:sticky;top:0;z-index:900;background:rgba(20,40,160,.97);backdrop-fi
 }
 
 .carousel-indicators span:hover {
-  background: #2189FF;
+  background: #C9962C;
   transform: scale(1.3);
-  box-shadow: 0 0 20px rgba(33,137,255,0.6);
+  box-shadow: 0 0 20px rgba(201, 150, 44,0.6);
 }
 
 .carousel-indicators .active-dot {
-  background: linear-gradient(135deg, #1428A0, #2189FF);
+  background: linear-gradient(135deg, #0B1F3D, #C9962C);
   transform: scale(1.5);
-  box-shadow: 0 0 30px rgba(33,137,255,0.8), 0 0 50px rgba(33,137,255,0.4);
+  box-shadow: 0 0 30px rgba(201, 150, 44,0.8), 0 0 50px rgba(201, 150, 44,0.4);
   border-color: #4DA3FF;
   width: 12px;
   height: 12px;
@@ -2108,7 +2114,7 @@ footer{
 .cat-card{
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(15px);
-  border: 2px solid rgba(33, 137, 255, 0.15);
+  border: 2px solid rgba(201, 150, 44, 0.15);
   border-radius:14px;
   padding:1.5rem 1rem;
   text-align:center;
@@ -2116,7 +2122,7 @@ footer{
   transition:all .35s cubic-bezier(.34, 1.56, .64, 1);
   position:relative;
   overflow:hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,.08), 0 0 20px rgba(33, 137, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,.08), 0 0 20px rgba(201, 150, 44, 0.08);
   perspective: 1000px;
   transform-style: preserve-3d;
 }
@@ -2138,16 +2144,16 @@ footer{
   content:'';
   position:absolute;
   inset:0;
-  background: radial-gradient(circle at 50% 0%, rgba(33, 137, 255, 0.15), transparent 70%);
+  background: radial-gradient(circle at 50% 0%, rgba(201, 150, 44, 0.15), transparent 70%);
   opacity:0;
   transition:opacity .35s;
 }
 
 .cat-card:hover{
   border-color: var(--accent-light);
-  background: rgba(33, 137, 255, 0.08);
+  background: rgba(201, 150, 44, 0.08);
   transform: translateY(-8px) translateZ(20px) scale(1.05) rotateX(5deg);
-  box-shadow: 0 16px 40px rgba(33, 137, 255, 0.25), 0 0 30px rgba(20, 40, 160, 0.15);
+  box-shadow: 0 16px 40px rgba(201, 150, 44, 0.25), 0 0 30px rgba(11, 31, 61, 0.15);
   animation: neon-glow 1.5s ease-in-out infinite;
 }
 
@@ -2191,7 +2197,7 @@ footer{
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 0 10px rgba(33, 137, 255, 0.3);
+  text-shadow: 0 0 10px rgba(201, 150, 44, 0.3);
 }
 
 .cat-card-count{
@@ -2222,7 +2228,7 @@ footer{
 
 /* DEALS BANNER - ENHANCED */
 .deals-strip{
-  background:linear-gradient(135deg,#0F172A,#1428A0 50%,#0F172A);
+  background:linear-gradient(135deg,#0F172A,#0B1F3D 50%,#0F172A);
   border:1.5px solid var(--gold);
   border-radius:14px;
   padding:2rem;
@@ -2251,7 +2257,7 @@ footer{
   content:'';
   position:absolute;
   inset:0;
-  background:linear-gradient(90deg,transparent,rgba(33,137,255,.05),transparent);
+  background:linear-gradient(90deg,transparent,rgba(201, 150, 44,.05),transparent);
   animation:wave 2s ease-in-out infinite;
   z-index:0;
   pointer-events:none;
@@ -2339,7 +2345,7 @@ footer{
 
 /* RIKON BAND - ENHANCED */
 .rikon-band{
-  background:linear-gradient(135deg,#0F172A,#1428A0 40%,#0F172A);
+  background:linear-gradient(135deg,#0F172A,#0B1F3D 40%,#0F172A);
   border:1.5px solid var(--gold);
   border-radius:14px;
   padding:3rem;
@@ -2347,7 +2353,7 @@ footer{
   position:relative;
   overflow:hidden;
   color:#f5f0e8;
-  box-shadow:0 0 35px #2189ff1f,inset 0 1px 0 rgba(33,137,255,.1);
+  box-shadow:0 0 35px #2189ff1f,inset 0 1px 0 rgba(201, 150, 44,.1);
   animation:slideInUp .6s .1s cubic-bezier(.34, 1.56, .64, 1) both;
 }
 
@@ -2599,12 +2605,12 @@ footer{
 .p-card{
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);
-  border: 2px solid rgba(33, 137, 255, 0.15);
+  border: 2px solid rgba(201, 150, 44, 0.15);
   border-radius:16px;
   overflow:hidden;
   transition:all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   position:relative;
-  box-shadow: 0 6px 20px rgba(0,0,0,.12), 0 0 25px rgba(33, 137, 255, 0.08), inset 0 1px 0 rgba(33, 137, 255, 0.15);
+  box-shadow: 0 6px 20px rgba(0,0,0,.12), 0 0 25px rgba(201, 150, 44, 0.08), inset 0 1px 0 rgba(201, 150, 44, 0.15);
   animation: slideInScale 0.5s ease-out backwards;
   will-change:transform,box-shadow;
   backface-visibility:hidden;
@@ -2623,7 +2629,7 @@ footer{
   content:'';
   position:absolute;
   inset:0;
-  background: linear-gradient(135deg, rgba(33, 137, 255, 0.1), transparent 60%);
+  background: linear-gradient(135deg, rgba(201, 150, 44, 0.1), transparent 60%);
   opacity:0;
   transition:opacity .35s;
   z-index:2;
@@ -2634,7 +2640,7 @@ footer{
   content:'';
   position:absolute;
   inset:0;
-  background: radial-gradient(circle at center, rgba(20, 40, 160, 0.05), transparent 70%);
+  background: radial-gradient(circle at center, rgba(11, 31, 61, 0.05), transparent 70%);
   opacity:0;
   transition:opacity .35s;
   z-index:2;
@@ -2644,7 +2650,7 @@ footer{
 .p-card:hover{
   border-color: var(--accent-light);
   transform: translateY(-15px) translateZ(25px) scale(1.1) rotateX(3deg);
-  box-shadow: 0 30px 70px rgba(33, 137, 255, 0.35), 0 0 60px rgba(20, 40, 160, 0.3), inset 0 1px 0 rgba(33, 137, 255, 0.25);
+  box-shadow: 0 30px 70px rgba(201, 150, 44, 0.35), 0 0 60px rgba(11, 31, 61, 0.3), inset 0 1px 0 rgba(201, 150, 44, 0.25);
   animation: neon-glow 1.2s ease-in-out infinite;
   z-index:10;
 }
@@ -2667,7 +2673,7 @@ footer{
   letter-spacing:2px;
   z-index:3;
   animation: pulse3D .6s cubic-bezier(.34, 1.56, .64, 1) ease-out;
-  box-shadow: 0 8px 25px rgba(0,0,0,.35), 0 0 20px rgba(251, 191, 36, 0.3);
+  box-shadow: 0 8px 25px rgba(0,0,0,.35), 0 0 20px rgba(201, 150, 44, 0.3);
   text-transform:uppercase;
   backdrop-filter: blur(15px);
   border: 2px solid rgba(255,255,255,.3);
@@ -2679,7 +2685,7 @@ footer{
   background: var(--gradient-2);
   color:var(--black);
   animation: pulse3D 2s ease-in-out infinite;
-  box-shadow: 0 8px 25px rgba(251, 191, 36, 0.4), 0 0 30px rgba(251, 191, 36, 0.2);
+  box-shadow: 0 8px 25px rgba(201, 150, 44, 0.4), 0 0 30px rgba(201, 150, 44, 0.2);
 }
 
 .badge-sale{
@@ -3061,7 +3067,7 @@ footer{
 }
 .cart-drawer{position:fixed;top:0;right:-480px;z-index:1100;width:460px;max-width:100vw;height:100vh;background:var(--black2);border-left:1px solid var(--border);display:flex;flex-direction:column;transition:right .4s cubic-bezier(.34,.1,.68,.55);box-shadow:-12px 0 55px rgba(0,0,0,.6);animation:slideInCart .4s cubic-bezier(.34,.1,.68,.55)}
 .cart-drawer.open{right:0;animation:slideInCart .4s cubic-bezier(.34,.1,.68,.55)}
-.cart-hd{padding:1.1rem 1.35rem;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(33,137,255,.08),transparent)}
+.cart-hd{padding:1.1rem 1.35rem;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(201, 150, 44,.08),transparent)}
 .cart-hd h3{font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:800;letter-spacing:.5px}
 .cart-x{background:none;border:none;color:var(--text2);font-size:1.05rem;transition:all .3s cubic-bezier(.34,.1,.68,.55);cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:6px}
 .cart-x:hover{color:var(--danger);background:rgba(229,57,53,.1);transform:rotate(90deg)}
@@ -3093,7 +3099,7 @@ footer{
   content:'';
   position:absolute;
   inset:0;
-  background:linear-gradient(135deg,rgba(33,137,255,.08),transparent);
+  background:linear-gradient(135deg,rgba(201, 150, 44,.08),transparent);
   opacity:0;
   transition:opacity .4s;
 }
@@ -4424,7 +4430,7 @@ nav, .cart-drawer, .modal-overlay {
 }
 
 .gallery-thumb.active {
-  background: linear-gradient(135deg, rgba(33,137,255,0.2), rgba(20,40,160,0.05));
+  background: linear-gradient(135deg, rgba(201, 150, 44,0.2), rgba(11, 31, 61,0.05));
 }
 
 .gallery-info {
@@ -5120,6 +5126,136 @@ nav, .cart-drawer, .modal-overlay {
   gap:10px;
   margin-top:10px;
 }
+
+/* ============================================================
+   PREMIUM REDESIGN LAYER — refined navy & brushed-gold finish
+   for product cards, badges, buttons and header. Appended last
+   on purpose so it wins the cascade over earlier declarations
+   without deleting/renaming anything the JS depends on (all
+   original class names, IDs and onclick hooks are untouched).
+   ============================================================ */
+
+/* Calmer, more premium card surface: subtle border + soft shadow
+   instead of a heavy glass/neon look, with a refined hover lift
+   in place of the scale+rotate+infinite-pulse treatment. */
+.p-card{
+  background: var(--card) !important;
+  backdrop-filter: none !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 2px 10px rgba(11,31,61,.07) !important;
+  transition: transform .3s var(--easing-out), box-shadow .3s var(--easing-out), border-color .3s var(--easing-out) !important;
+}
+.p-card::before,
+.p-card::after{
+  background: linear-gradient(135deg, rgba(201,150,44,.08), transparent 60%) !important;
+}
+.p-card:hover{
+  transform: translateY(-6px) !important;
+  box-shadow: 0 18px 40px rgba(11,31,61,.16), 0 0 0 1px rgba(201,150,44,.25) !important;
+  border-color: var(--gold) !important;
+  animation: none !important;
+  z-index: 4 !important;
+}
+.p-card:hover .p-img{
+  transform: scale(1.04) !important;
+  background: linear-gradient(135deg, var(--gold-light), var(--black2)) !important;
+}
+.p-card:hover .p-name{
+  transform: none !important;
+  text-shadow: none !important;
+}
+
+/* Product image stage: clean neutral backdrop so the product is
+   the focus, consistent height, no stray radial glows at rest. */
+.p-img{
+  background: linear-gradient(180deg, var(--black2), var(--card2)) !important;
+}
+.p-img::before,
+.p-img::after{
+  background: none !important;
+}
+
+/* Badges: one clean entrance, no forever-looping bounce/pulse
+   (quieter, more premium — and lighter on the CPU/GPU across a
+   full grid of cards). Consistent brand-led palette. */
+.p-badge{
+  animation: fadeInScale .4s var(--easing-out) both !important;
+  box-shadow: 0 6px 16px rgba(11,31,61,.25) !important;
+  border: 1px solid rgba(255,255,255,.25) !important;
+  backdrop-filter: none !important;
+}
+.badge-new{
+  background: var(--gradient-2) !important;
+  color: #fff !important;
+  animation: fadeInScale .4s var(--easing-out) both !important;
+  box-shadow: 0 6px 16px rgba(11,31,61,.3) !important;
+}
+.badge-sale{
+  background: linear-gradient(135deg,#c0392b,#e05d4c) !important;
+  animation: fadeInScale .4s var(--easing-out) both !important;
+}
+.badge-hot{
+  background: linear-gradient(135deg,#b45309,#d97706) !important;
+  animation: fadeInScale .4s var(--easing-out) both !important;
+}
+.badge-bestseller{
+  background: linear-gradient(135deg,#0d7a5f,#10b981) !important;
+  animation: fadeInScale .4s var(--easing-out) both !important;
+}
+
+/* Rating, price & CTA: restrained gold used as a genuine accent
+   rather than a glow effect on every element. */
+.p-stars{ animation: none !important; }
+.p-price{ text-shadow: none !important; }
+.p-off{ animation: none !important; }
+.p-add{
+  box-shadow: 0 2px 10px rgba(201,150,44,.15) !important;
+}
+.p-add:hover{
+  box-shadow: 0 10px 22px rgba(201,150,44,.3) !important;
+  transform: translateY(-2px) !important;
+}
+.p-wl{
+  background: rgba(11,31,61,.85) !important;
+}
+
+/* Header: solid premium navy, no bright-blue glass tint */
+nav{
+  background: rgba(11,31,61,.97) !important;
+  border-bottom: 1px solid rgba(201,150,44,.2) !important;
+}
+
+/* Fix: .hero-tag referenced an undefined --blue variable, leaving
+   its text color unset. Use the brand gold used by the matching
+   carousel tag instead. */
+.hero-tag{
+  color: var(--gold) !important;
+}
+
+/* Footer: a permanent deep-navy "premium bookend" regardless of
+   light/dark mode, with light text and gold headings for contrast. */
+footer{
+  background: var(--footer-bg) !important;
+  border-top: 1px solid rgba(201,150,44,.25) !important;
+}
+footer .footer-desc,
+footer .footer-col ul li{
+  color: rgba(245,247,250,.72) !important;
+}
+footer .footer-col ul li:hover{
+  color: var(--gold3) !important;
+}
+footer .footer-col h5,
+footer .footer-sub{
+  color: var(--gold3) !important;
+}
+footer .footer-logo{
+  color: #fff !important;
+}
+footer .footer-bottom{
+  border-top-color: rgba(245,247,250,.15) !important;
+  color: rgba(245,247,250,.6);
+}
 </style>
 </head>
 <body>
@@ -5208,7 +5344,7 @@ nav, .cart-drawer, .modal-overlay {
           <p>Flat ₹500 OFF + Fast Cooking</p>
       <button class="cat-btn" onclick="filterCat('Induction',this)">Shop Now</button>
         </div>
-        <video class="slide-video" src="Image/induction.mp4" autoplay muted loop playsinline></video>
+        <video class="slide-video" src="Image/induction.mp4" autoplay muted loop playsinline preload="auto" fetchpriority="high"></video>
       </div>
 
       <!-- Slide 2 -->
@@ -5222,7 +5358,7 @@ nav, .cart-drawer, .modal-overlay {
           <p>Smart Viewing Experience</p>
           <button class="cat-btn" onclick="filterCat('LED TV',this)">Shop Now</button>
         </div>
-        <video class="slide-video" src="Image/led2.mp4" muted loop playsinline></video>
+        <video class="slide-video" src="Image/led2.mp4" muted loop playsinline preload="none"></video>
       </div>
 
       <!-- Slide 5 -->
@@ -5234,7 +5370,7 @@ nav, .cart-drawer, .modal-overlay {
           <p>Cinema at Home</p>
           <button class="cat-btn" onclick="filterCat('Home Theatre',this)">Shop Now</button>
         </div>
-        <video class="slide-video" src="Image/home.mp4" muted loop playsinline ></video>
+        <video class="slide-video" src="Image/home.mp4" muted loop playsinline preload="none"></video>
       </div>
       <div class="carousel-slide">
         <div class="slide-content">
@@ -5243,7 +5379,7 @@ nav, .cart-drawer, .modal-overlay {
           <p>Stay Cool This Summer</p>
           <button class="cat-btn" onclick="filterCat('Cooler',this)">Shop Now</button>
         </div>
-        <video class="slide-video" src="Image/cooler.mp4" muted loop playsinline ></video>
+        <video class="slide-video" src="Image/cooler.mp4" muted loop playsinline preload="none"></video>
       </div>
 
       <!-- Slide 3 -->
@@ -5254,7 +5390,7 @@ nav, .cart-drawer, .modal-overlay {
           <p>High Speed + Energy Saving</p>
           <button class="cat-btn" onclick="filterCat('Fan',this)">Shop Now</button>
         </div>
-        <video class="slide-video" src="Image/fan.mp4" muted loop playsinline></video>
+        <video class="slide-video" src="Image/fan.mp4" muted loop playsinline preload="none"></video>
       </div>
 
     </div>
@@ -7308,7 +7444,7 @@ function renderProducts(prods) {
     return `<div class="p-card" itemscope itemtype="https://schema.org/Product">
       ${outOfStock ? `<div class="p-badge" style="background:#6b7280">OUT OF STOCK</div>` : p.badge ? `<div class="p-badge badge-${p.badge}">${p.badge.toUpperCase()}</div>` : ''}
       <div class="p-img" aria-hidden="true" onclick="openGallery(${p.id})" role="button" tabindex="0" style="cursor:pointer">
-        ${p.video ? `<video width="100%" height="100%" style="object-fit:contain;padding:.5rem" autoplay muted loop playsinline><source src="${p.video}" type="video/mp4"></video><div class="gallery-video-play-indicator">▶</div>` : p.image ? `<img itemprop="image" src="${p.image}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;padding:.5rem" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:3rem">${p.icon || '📦'}</span>` : `<span itemprop="image" style="display:inline-block;width:100%;text-align:center;padding:2rem;font-size:3rem">${p.icon || '📦'}</span>`}
+        ${p.video ? `<video class="p-video-preview" width="100%" height="100%" style="object-fit:contain;padding:.5rem" muted loop playsinline preload="metadata"><source src="${p.video}" type="video/mp4"></video><div class="gallery-video-play-indicator">▶</div>` : p.image ? `<img itemprop="image" src="${p.image}" alt="${p.name}" width="300" height="300" style="width:100%;height:100%;object-fit:contain;padding:.5rem" loading="lazy" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:3rem">${p.icon || '📦'}</span>` : `<span itemprop="image" style="display:inline-block;width:100%;text-align:center;padding:2rem;font-size:3rem">${p.icon || '📦'}</span>`}
         <div class="p-wl ${wl?'active':''}" onclick="toggleWishlist(${p.id},event)" role="button" aria-label="${wl?'Remove from':'Add to'} wishlist">${wl?'❤️':'🤍'}</div>
       </div>
       <div class="p-info">
@@ -7330,6 +7466,41 @@ function renderProducts(prods) {
   }).join('');
   
   console.log(`✅ Rendered ${prods.length} products to grid. Grid innerHTML length: ${grid.innerHTML.length} chars`);
+  initProductVideoObserver();
+}
+
+/* ============================================================
+   PERFORMANCE: only play product preview videos while they are
+   actually visible on screen, instead of autoplaying every video
+   on the page at once. Videos outside the viewport stay paused
+   (and never even start downloading beyond metadata) until the
+   user scrolls to them, then pause again once scrolled away.
+   ============================================================ */
+let __pVideoObserver = null;
+function initProductVideoObserver() {
+  const videos = document.querySelectorAll('#productsGrid .p-video-preview');
+  if (!videos.length) return;
+
+  if (!('IntersectionObserver' in window)) {
+    // Fallback for very old browsers: just play them all as before
+    videos.forEach(v => v.play().catch(() => {}));
+    return;
+  }
+
+  if (__pVideoObserver) __pVideoObserver.disconnect();
+
+  __pVideoObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const v = entry.target;
+      if (entry.isIntersecting) {
+        v.play().catch(() => {});
+      } else {
+        v.pause();
+      }
+    });
+  }, { rootMargin: '150px 0px', threshold: 0.15 });
+
+  videos.forEach(v => __pVideoObserver.observe(v));
 }
 
 function filterCat(cat, el) {
@@ -7378,6 +7549,7 @@ function handleSearch() {
 function addToCart(id, color = null) {
   const p = allProducts.find(x => x.id === id);
   if (!p) return;
+  if (p.inStock === false) { toast(`${p.name} is currently out of stock`, 'red'); return; }
   const ex = cart.find(c => c.id === id && c.color === color);
   if (ex) ex.qty++;
   else cart.push({...p, qty:1, color: color});
@@ -7993,7 +8165,7 @@ async function processRazorpayPayment(orderId, amount) {
         contact: pendingOrderInfo?.mobile || ''
       },
       theme: {
-        color: '#1428A0'
+        color: '#0B1F3D'
       }
     };
 
@@ -8041,9 +8213,30 @@ function completeOrderPlacement(orderId, grand, isCOD, paymentId = null, razorpa
     status: 'Confirmed'
   };
 
-  // Save order to server
-  saveOrder(orderData);
-  
+  const placeBtn = document.getElementById('placeOrderBtn');
+  if (placeBtn) { placeBtn.disabled = true; placeBtn.textContent = 'Placing order...'; }
+  toast("📤 Processing your order...", 'gold');
+
+  // Wait for the server to confirm — it revalidates stock and prices before
+  // anything is saved. Only on success do we clear the cart and show the
+  // confirmation screen, so a rejected order (e.g. an item just went out of
+  // stock) leaves the customer's cart intact instead of silently losing it.
+  saveOrder(orderData).then(confirmedOrder => {
+    finishOrderConfirmationUI(confirmedOrder, orderId, isCOD, paymentId);
+  }).catch(err => {
+    console.error("❌ Order could not be placed:", err);
+    const err2 = document.getElementById('coErr2');
+    if (err2) err2.textContent = '❌ ' + err.message;
+    toast('❌ ' + err.message, 'red');
+    if (placeBtn) { placeBtn.disabled = false; placeBtn.textContent = 'PLACE ORDER'; }
+    // Refresh the cart display in case an item needs to be removed
+    renderCart();
+  });
+}
+
+function finishOrderConfirmationUI(orderData, orderId, isCOD, paymentId) {
+  const grand = orderData.grand;
+
   // Store last order for success page
   ls('ua_last_order', JSON.stringify(orderData));
 
@@ -8100,8 +8293,8 @@ function completeOrderPlacement(orderId, grand, isCOD, paymentId = null, razorpa
     console.log('✓ Order items populated');
     
     // Totals
-    document.getElementById('coConfSubtotal').textContent = `₹${total.toLocaleString('en-IN')}`;
-    document.getElementById('coConfShipping').textContent = shipping > 0 ? `₹${shipping.toLocaleString('en-IN')}` : 'FREE';
+    document.getElementById('coConfSubtotal').textContent = `₹${(orderData.subtotal||0).toLocaleString('en-IN')}`;
+    document.getElementById('coConfShipping').textContent = orderData.shipping > 0 ? `₹${orderData.shipping.toLocaleString('en-IN')}` : 'FREE';
     document.getElementById('coConfTotal').textContent = `₹${grand.toLocaleString('en-IN')}`;
     console.log('✓ Totals populated');
 
@@ -8121,7 +8314,7 @@ function completeOrderPlacement(orderId, grand, isCOD, paymentId = null, razorpa
       'value': grand,
       'currency': 'INR',
       'tax': 0,
-      'shipping': shipping,
+      'shipping': orderData.shipping,
       'items': orderData.items.map(item => ({
         'item_id': item.id,
         'item_name': item.name,
@@ -8151,49 +8344,43 @@ function completeOrderPlacement(orderId, grand, isCOD, paymentId = null, razorpa
 function saveOrder(order) {
   if (!order || !order.orderId) {
     console.error("❌ Invalid order data");
-    toast("Error: Invalid order data", "red");
-    return;
+    return Promise.reject(new Error("Invalid order data"));
   }
-  
+
   console.log("📤 Sending order to server...", order.orderId);
-  toast("📤 Processing your order...", 'gold');
-  
-  fetch("/save-order", {
+
+  return fetch("/save-order", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(order)
   })
-  .then(res => {
-    if (!res.ok) throw new Error('Save order failed with status ' + res.status);
-    return res.json();
-  })
-  .then(data => {
-    if (data.success) {
-      console.log("✅ Order saved successfully:", order.orderId);
-      toast("✅ Order saved! Generating receipt...", "green");
-      // Save to user's local order history
-      if (currentUser) {
-        const uk = 'ua_orders_' + currentUser.email.replace(/[^a-z0-9]/gi,'_');
-        const existing = JSON.parse(ls(uk) || '[]');
-        existing.unshift(order); // newest first
-        ls(uk, JSON.stringify(existing));
-      }
-      // Generate PDF after order is saved
-      setTimeout(() => {
-        generateOrderPDF(order);
-      }, 500);
-      
-      // Send confirmation email
-      console.log("📧 Sending confirmation email to:", order.customer?.email);
-    } else {
-      throw new Error(data.error || 'Server returned unsuccessful');
+  .then(res => res.json().then(data => ({ ok: res.ok, data })))
+  .then(({ ok, data }) => {
+    if (!ok || !data.success) {
+      throw new Error(data.error || 'Order could not be placed');
     }
-  })
-  .catch(err => {
-    console.error("❌ Error saving order:", err);
-    toast("⚠️ Order placed but may need confirmation. Retry?", "gold");
+
+    console.log("✅ Order saved successfully:", order.orderId);
+    // Server recomputes prices/totals from the live catalog — adopt whatever
+    // it sent back so the confirmation screen and PDF show the real charged amount.
+    if (data.order) Object.assign(order, data.order);
+
+    // Save to user's local order history
+    if (currentUser) {
+      const uk = 'ua_orders_' + currentUser.email.replace(/[^a-z0-9]/gi,'_');
+      const existing = JSON.parse(ls(uk) || '[]');
+      existing.unshift(order); // newest first
+      ls(uk, JSON.stringify(existing));
+    }
+    // Generate PDF after order is saved
+    setTimeout(() => {
+      generateOrderPDF(order);
+    }, 500);
+
+    console.log("📧 Confirmation email will be sent to:", order.customer?.email);
+    return order;
   });
 }
 
@@ -8343,6 +8530,8 @@ function renderOrders() {
     c.innerHTML = merged.map(o => {
       const dt = new Date(o.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
       const items = (o.items || []).map(i => `<div class="oc-item-chip">${i.icon || '📦'} ${i.name} ×${i.qty}</div>`).join('');
+      const status = o.status || 'Confirmed';
+      const nonCancellable = ['Shipped', 'Out for Delivery', 'Delivered', 'Cancelled'].includes(status);
       return `<div class="order-card" style="margin-bottom:1.25rem">
         <div class="oc-head">
           <div>
@@ -8351,6 +8540,7 @@ function renderOrders() {
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.35rem">
             <span class="oc-status ${o.paid ? 'paid' : 'cod'}">${o.paid ? '✅ PAID' : '💵 ' + (o.paymentMethod || 'COD')}</span>
+            ${status === 'Cancelled' ? `<span style="font-size:.7rem;color:#ef4444;font-weight:700">❌ CANCELLED</span>` : ''}
           </div>
         </div>
         <div class="oc-items">${items}</div>
@@ -8359,9 +8549,41 @@ function renderOrders() {
           <div class="oc-total">₹${(o.grand || 0).toLocaleString('en-IN')}</div>
           <div class="oc-addr">📍 ${o.customer?.addr1 || ''}, ${o.customer?.city || ''}, ${o.customer?.state || ''} - ${o.customer?.pin || ''}</div>
         </div>
+        ${!nonCancellable ? `<div style="margin-top:.85rem;text-align:right">
+          <button class="btn-outline" style="padding:.5rem 1rem;font-size:.75rem;color:#ef4444;border-color:#ef4444" onclick="cancelOrder('${o.orderId}')">✕ Cancel Order</button>
+        </div>` : ''}
       </div>`;
     }).join('');
   });
+}
+
+function cancelOrder(orderId) {
+  if (!currentUser) return;
+  if (!confirm(`Cancel order #${orderId}? This can't be undone.`)) return;
+
+  fetch('/api/cancel-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderId, email: currentUser.email })
+  })
+  .then(res => res.json().then(data => ({ ok: res.ok, data })))
+  .then(({ ok, data }) => {
+    if (ok && data.success) {
+      toast(`✅ Order #${orderId} cancelled`, 'green');
+      // Reflect the cancellation in this user's local order history too
+      if (currentUser) {
+        const uk = 'ua_orders_' + currentUser.email.replace(/[^a-z0-9]/gi,'_');
+        const existing = JSON.parse(ls(uk) || '[]');
+        const idx = existing.findIndex(o => o.orderId === orderId);
+        if (idx > -1) existing[idx].status = 'Cancelled';
+        ls(uk, JSON.stringify(existing));
+      }
+      renderOrders();
+    } else {
+      toast('❌ ' + (data.error || 'Could not cancel this order'), 'red');
+    }
+  })
+  .catch(() => toast('⚠️ Failed to cancel order — please try again', 'red'));
 }
 
 /* ============================================================
@@ -9438,7 +9660,7 @@ setTimeout(function() {
 
 </script>
 
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
 <script>
 let currentSlide = 0;
 const slides = document.querySelectorAll(".carousel-slide");

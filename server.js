@@ -575,6 +575,45 @@ app.post("/save-order", async (req, res) => {
       return res.status(400).json({ error: "Customer email required", success: false });
     }
 
+    // ✅ Re-validate every item against the live catalog. Prices and totals sent
+    // by the browser are never trusted — this recomputes them from products.json
+    // so a stale cart or a tampered request can't under-charge or sell something
+    // that's out of stock.
+    let catalog = [];
+    try {
+      catalog = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
+    } catch (e) {
+      catalog = [];
+    }
+
+    const outOfStock = [];
+    const missing = [];
+    let subtotal = 0;
+
+    for (const item of newOrder.items) {
+      const product = catalog.find(p => String(p.id) === String(item.id));
+      if (!product) { missing.push(item.name || item.id); continue; }
+      if (product.inStock === false) { outOfStock.push(product.name); continue; }
+      const qty = Math.max(1, Math.min(99, parseInt(item.qty) || 1));
+      item.qty = qty;
+      item.price = product.price; // server price wins, always
+      item.name = product.name;
+      item.subtotal = product.price * qty;
+      subtotal += item.subtotal;
+    }
+
+    if (missing.length) {
+      return res.status(409).json({ error: `No longer available: ${missing.join(", ")}. Please remove from your cart.`, success: false, code: "ITEMS_MISSING" });
+    }
+    if (outOfStock.length) {
+      return res.status(409).json({ error: `Out of stock: ${outOfStock.join(", ")}. Please remove from your cart.`, success: false, code: "OUT_OF_STOCK" });
+    }
+
+    const shipping = subtotal >= 999 ? 0 : 49;
+    newOrder.subtotal = subtotal;
+    newOrder.shipping = shipping;
+    newOrder.grand = subtotal + shipping;
+
     // Generate Order ID if not present
     if (!newOrder.orderId) {
       newOrder.orderId = "UAE" + Date.now();
@@ -584,6 +623,9 @@ app.post("/save-order", async (req, res) => {
     if (!newOrder.date) {
       newOrder.date = new Date().toISOString();
     }
+
+    // New orders always start in the "Confirmed" tracking stage
+    newOrder.status = "Confirmed";
 
     console.log("📝 Saving order:", newOrder.orderId);
 
@@ -624,7 +666,7 @@ app.post("/save-order", async (req, res) => {
       console.warn("⚠️ No customer email provided - skipping email notification");
     }
 
-    res.json({ success: true, orderId: newOrder.orderId, message: "Order placed successfully" });
+    res.json({ success: true, orderId: newOrder.orderId, message: "Order placed successfully", order: newOrder });
   } catch (err) {
     console.error("❌ Order save error:", err);
     res.status(500).json({ error: "Failed to save order", details: err.message, success: false });
@@ -716,6 +758,47 @@ app.get("/track/:id", (req, res) => {
     res.status(500).json({ error: "Failed to track order" });
   }
 });
+
+/* ===============================
+   ❌ CUSTOMER: CANCEL ORDER
+   =============================== */
+// A customer can cancel their own order — verified by exact order ID + the
+// email it was placed under — as long as it hasn't shipped yet.
+const NON_CANCELLABLE_STATUSES = ["Shipped", "Out for Delivery", "Delivered", "Cancelled"];
+
+app.post("/api/cancel-order", (req, res) => {
+  try {
+    const { orderId, email } = req.body;
+    if (!orderId || !email) {
+      return res.status(400).json({ error: "Order ID and email required" });
+    }
+
+    let orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+    const order = orders.find(o => o.orderId === orderId);
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    if ((order.customer?.email || "").toLowerCase().trim() !== String(email).toLowerCase().trim()) {
+      return res.status(403).json({ error: "This order doesn't match that email address" });
+    }
+
+    const currentStatus = order.status || "Confirmed";
+    if (NON_CANCELLABLE_STATUSES.includes(currentStatus)) {
+      return res.status(409).json({ error: `This order is already "${currentStatus}" and can no longer be cancelled. Please contact support.` });
+    }
+
+    order.status = "Cancelled";
+    order.cancelledAt = new Date().toISOString();
+    fs.writeFileSync(DATA_FILE, JSON.stringify(orders, null, 2));
+
+    res.json({ success: true, message: "Order cancelled", status: order.status });
+  } catch (err) {
+    console.error("Cancel order error:", err);
+    res.status(500).json({ error: "Failed to cancel order" });
+  }
+});
+
 
 /* ===============================
    💳 ONLINE PAYMENTS DISABLED
