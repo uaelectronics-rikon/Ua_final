@@ -7840,7 +7840,7 @@ function placeOrder() {
 function showPaymentGateway(orderId, amount) {
   // Create payment page overlay
   const paymentOverlay = `
-    <div class="overlay" id="paymentOverlay" style="display:flex;z-index:9999">
+    <div class="overlay open" id="paymentOverlay" style="display:flex;z-index:9999">
       <div class="modal" style="max-width:500px;padding:2rem">
         <div class="modal-x" onclick="closePaymentGateway()">✕</div>
         <div class="modal-pre">SECURE PAYMENT</div>
