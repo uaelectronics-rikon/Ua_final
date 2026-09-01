@@ -165,6 +165,106 @@ app.get("/product/:id", (req, res) => {
 });
 
 /* ===============================
+   🛠 ADMIN: UPDATE PRODUCT (price, MRP, offer badge, stock)
+   =============================== */
+const EDITABLE_PRODUCT_FIELDS = ["price", "mrp", "badge", "inStock", "name", "spec"];
+const VALID_BADGES = ["", "new", "sale", "hot", "bestseller"];
+
+app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
+  try {
+    const id = req.params.id;
+    const products = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
+    const product = products.find(p => String(p.id) === String(id));
+    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    if (req.body.price !== undefined) {
+      const price = Number(req.body.price);
+      if (!Number.isFinite(price) || price <= 0) return res.status(400).json({ error: "Price must be a positive number" });
+      product.price = price;
+    }
+    if (req.body.mrp !== undefined) {
+      const mrp = Number(req.body.mrp);
+      if (!Number.isFinite(mrp) || mrp < 0) return res.status(400).json({ error: "MRP must be a valid number" });
+      product.mrp = mrp;
+    }
+    if (req.body.badge !== undefined) {
+      if (!VALID_BADGES.includes(req.body.badge)) return res.status(400).json({ error: "Invalid badge value" });
+      product.badge = req.body.badge;
+    }
+    if (req.body.inStock !== undefined) {
+      product.inStock = !!req.body.inStock;
+    }
+    if (req.body.name !== undefined && String(req.body.name).trim()) {
+      product.name = String(req.body.name).trim();
+    }
+    if (req.body.spec !== undefined) {
+      product.spec = String(req.body.spec);
+    }
+
+    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2));
+    res.json({ success: true, product });
+  } catch (err) {
+    console.error("Update product error:", err);
+    res.status(500).json({ error: "Failed to update product" });
+  }
+});
+
+/* ===============================
+   🛠 ADMIN: ADD NEW PRODUCT
+   =============================== */
+app.post("/api/admin/products", requireAdmin, (req, res) => {
+  try {
+    const { name, brand, category, icon, price, mrp, spec, badge } = req.body;
+    if (!name || !category || !price) {
+      return res.status(400).json({ error: "Name, category, and price are required" });
+    }
+    if (badge !== undefined && !VALID_BADGES.includes(badge)) {
+      return res.status(400).json({ error: "Invalid badge value" });
+    }
+
+    const products = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
+    const newProduct = {
+      id: Date.now(),
+      name: String(name).trim(),
+      brand: brand ? String(brand).trim() : "UA RIKON",
+      category,
+      icon: icon || "📦",
+      price: Number(price),
+      mrp: mrp ? Number(mrp) : Number(price),
+      spec: spec || "",
+      badge: badge || "",
+      rating: 4.5,
+      reviews: 0,
+      inStock: true
+    };
+    products.unshift(newProduct);
+    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2));
+    res.json({ success: true, product: newProduct });
+  } catch (err) {
+    console.error("Add product error:", err);
+    res.status(500).json({ error: "Failed to add product" });
+  }
+});
+
+/* ===============================
+   🛠 ADMIN: DELETE PRODUCT
+   =============================== */
+app.delete("/api/admin/products/:id", requireAdmin, (req, res) => {
+  try {
+    const id = req.params.id;
+    let products = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
+    const before = products.length;
+    products = products.filter(p => String(p.id) !== String(id));
+    if (products.length === before) return res.status(404).json({ error: "Product not found" });
+    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2));
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Delete product error:", err);
+    res.status(500).json({ error: "Failed to delete product" });
+  }
+});
+
+/* ===============================
    👤 USER REGISTRATION
    =============================== */
 app.post("/register", (req, res) => {

@@ -5803,6 +5803,22 @@ nav, .cart-drawer, .modal-overlay {
       <div class="admin-panel-wrap">
         <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem">
           <span style="background:var(--gold);color:var(--black);font-family:'Oswald',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:2px;padding:2px 9px;border-radius:3px">SELLER DASHBOARD</span>
+          <span style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:800">Manage Prices & Offers</span>
+        </div>
+        <p style="font-size:.78rem;color:var(--text3);margin-bottom:1rem">Edit price, MRP, offer badge, and stock for any listed product. Changes go live for every visitor immediately.</p>
+        <div style="overflow-x:auto">
+          <table class="orders-table" id="manageProductsTable">
+            <thead>
+              <tr><th>Product</th><th>Price (₹)</th><th>MRP (₹)</th><th>Offer Badge</th><th>Stock</th><th></th></tr>
+            </thead>
+            <tbody id="manageProductsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-panel-wrap" style="margin-top:1.5rem">
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem">
+          <span style="background:var(--gold);color:var(--black);font-family:'Oswald',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:2px;padding:2px 9px;border-radius:3px">SELLER DASHBOARD</span>
           <span style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:800">List Your UA ELECTRONICS Product</span>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem">
@@ -7118,24 +7134,31 @@ function init() {
     setTimeout(() => openCart(), 100);
   }
   
-  // Load products - always use defaultProducts
+  // Load products - fetch live data from the server so every visitor sees the
+  // same prices/offers the admin sets, falling back to a cached/default copy
+  // if the network request fails (offline, cold start, etc).
   try {
     const sp = ls('ua_products');
-    console.log('📦 LocalStorage ua_products:', sp ? `${sp.length} chars` : 'null/empty');
     allProducts = (sp && JSON.parse(sp).length > 0) ? JSON.parse(sp) : [...defaultProducts];
   } catch(e) {
     console.warn("⚠️ Error loading cached products, using defaults:", e);
     allProducts = [...defaultProducts];
   }
-  
-  // Ensure products array is never empty
   if (!allProducts || allProducts.length === 0) {
-    console.log("❌ Products not found, loading defaults");
     allProducts = [...defaultProducts];
   }
-  
-  console.log(`✅ Products loaded: ${allProducts.length} items`);
-  console.log('📋 First 3 products:', allProducts.slice(0, 3).map(p => ({id: p.id, name: p.name.substring(0, 30)})));
+
+  fetch('/products')
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(serverProducts => {
+      if (Array.isArray(serverProducts) && serverProducts.length > 0) {
+        allProducts = serverProducts;
+        ls('ua_products', JSON.stringify(allProducts));
+        renderProducts(allProducts);
+        console.log(`✅ Live products loaded from server: ${allProducts.length} items`);
+      }
+    })
+    .catch(err => console.warn('⚠️ Could not load live products from server, using cached copy:', err));
   
   // Load cart with 24-hour auto-clear
   const sc = ls('ua_cart');
@@ -7281,8 +7304,9 @@ function renderProducts(prods) {
   grid.innerHTML = prods.map(p => {
     const disc = p.mrp > p.price ? Math.round((1 - p.price/p.mrp)*100) : 0;
     const wl = wishlist.includes(p.id);
+    const outOfStock = p.inStock === false;
     return `<div class="p-card" itemscope itemtype="https://schema.org/Product">
-      ${p.badge ? `<div class="p-badge badge-${p.badge}">${p.badge.toUpperCase()}</div>` : ''}
+      ${outOfStock ? `<div class="p-badge" style="background:#6b7280">OUT OF STOCK</div>` : p.badge ? `<div class="p-badge badge-${p.badge}">${p.badge.toUpperCase()}</div>` : ''}
       <div class="p-img" aria-hidden="true" onclick="openGallery(${p.id})" role="button" tabindex="0" style="cursor:pointer">
         ${p.video ? `<video width="100%" height="100%" style="object-fit:contain;padding:.5rem" autoplay muted loop playsinline><source src="${p.video}" type="video/mp4"></video><div class="gallery-video-play-indicator">▶</div>` : p.image ? `<img itemprop="image" src="${p.image}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;padding:.5rem" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:3rem">${p.icon || '📦'}</span>` : `<span itemprop="image" style="display:inline-block;width:100%;text-align:center;padding:2rem;font-size:3rem">${p.icon || '📦'}</span>`}
         <div class="p-wl ${wl?'active':''}" onclick="toggleWishlist(${p.id},event)" role="button" aria-label="${wl?'Remove from':'Add to'} wishlist">${wl?'❤️':'🤍'}</div>
@@ -7300,7 +7324,7 @@ function renderProducts(prods) {
           ${p.mrp>p.price?`<span class="p-mrp">₹${p.mrp.toLocaleString('en-IN')}</span><span class="p-off">${disc}% off</span>`:''}
         </div>
         ${p.spec ? `<div class="p-spec">${p.spec}</div>` : ''}
-        <button class="p-add" id="padd-${p.id}" onclick="addToCart(${p.id})">ADD TO CART</button>
+        <button class="p-add" id="padd-${p.id}" ${outOfStock ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''} onclick="${outOfStock ? '' : `addToCart(${p.id})`}">${outOfStock ? 'OUT OF STOCK' : 'ADD TO CART'}</button>
       </div>
     </div>`;
   }).join('');
@@ -8434,6 +8458,83 @@ function switchAdminTab(tab, el) {
     document.getElementById('at-'+t).style.display = t===tab ? 'block' : 'none';
   });
   if (tab === 'allorders') renderAdminDash();
+  if (tab === 'products') { renderManageProducts(); renderMyListings(); }
+}
+
+function adminAuthHeaders(extra) {
+  return Object.assign({ 'Authorization': 'Bearer ' + (ls('ua_admin_token') || '') }, extra || {});
+}
+
+/* ============================================================
+   ADMIN: MANAGE EXISTING PRODUCT PRICES / OFFERS / STOCK
+   ============================================================ */
+function renderManageProducts() {
+  const body = document.getElementById('manageProductsBody');
+  if (!body) return;
+  const badgeOpts = [
+    ['', 'None'], ['new', 'NEW'], ['sale', 'SALE'], ['hot', 'HOT'], ['bestseller', 'BESTSELLER']
+  ];
+  body.innerHTML = allProducts.map(p => {
+    const inStock = p.inStock !== false; // undefined/true = in stock
+    const options = badgeOpts.map(([v, label]) =>
+      `<option value="${v}" ${((p.badge || '') === v) ? 'selected' : ''}>${label}</option>`
+    ).join('');
+    return `<tr data-pid="${p.id}">
+      <td style="max-width:200px">
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span style="font-size:1.1rem">${p.icon || '📦'}</span>
+          <span style="font-size:.78rem;color:var(--text)">${p.name}</span>
+        </div>
+      </td>
+      <td><input type="number" class="mp-price" value="${p.price}" min="1" style="width:90px;background:var(--black3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:.35rem .5rem;font-size:.75rem"/></td>
+      <td><input type="number" class="mp-mrp" value="${p.mrp || p.price}" min="0" style="width:90px;background:var(--black3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:.35rem .5rem;font-size:.75rem"/></td>
+      <td>
+        <select class="mp-badge" style="background:var(--black3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:.35rem .5rem;font-size:.72rem">
+          ${options}
+        </select>
+      </td>
+      <td>
+        <label style="display:flex;align-items:center;gap:.35rem;font-size:.72rem;cursor:pointer">
+          <input type="checkbox" class="mp-stock" ${inStock ? 'checked' : ''}/> In stock
+        </label>
+      </td>
+      <td><button class="btn-gold" style="padding:.4rem .8rem;font-size:.72rem" onclick="saveProductEdit(${p.id})">Save</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text3)">No products yet</td></tr>';
+}
+
+function saveProductEdit(id) {
+  const row = document.querySelector(`#manageProductsBody tr[data-pid="${id}"]`);
+  if (!row) return;
+  const price = parseFloat(row.querySelector('.mp-price').value);
+  const mrp = parseFloat(row.querySelector('.mp-mrp').value);
+  const badge = row.querySelector('.mp-badge').value;
+  const inStock = row.querySelector('.mp-stock').checked;
+
+  if (!price || price <= 0) { toast('⚠️ Enter a valid price', 'red'); return; }
+
+  fetch(`/api/admin/products/${id}`, {
+    method: 'PUT',
+    headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ price, mrp, badge, inStock })
+  })
+  .then(res => {
+    if (res.status === 401) { toast('⚠️ Admin session expired — please sign in again', 'red'); doLogout(); return null; }
+    return res.json();
+  })
+  .then(data => {
+    if (!data) return;
+    if (data.success) {
+      const idx = allProducts.findIndex(p => p.id === id);
+      if (idx > -1) allProducts[idx] = data.product;
+      ls('ua_products', JSON.stringify(allProducts));
+      renderProducts(allProducts);
+      toast('✅ Product updated — now live on the site', 'green');
+    } else {
+      toast(data.error || 'Failed to update product', 'red');
+    }
+  })
+  .catch(() => toast('⚠️ Failed to update product', 'red'));
 }
 
 function addProduct() {
@@ -8451,26 +8552,61 @@ function addProduct() {
     msg.innerHTML = '<span style="color:var(--danger);font-size:.78rem">Please fill Name, Category, and Price</span>';
     return;
   }
-  const newP = {id:Date.now(), name, brand, category, icon, price, mrp, spec, badge, rating:4.5, reviews:0};
-  allProducts.unshift(newP);
-  ls('ua_products', JSON.stringify(allProducts));
-  msg.innerHTML = '<span style="color:var(--success);font-size:.78rem">✓ Product listed successfully!</span>';
-  ['ap_name','ap_price','ap_mrp','ap_spec','ap_icon'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
-  ['ap_cat','ap_badge'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
-  setTimeout(() => msg.innerHTML = '', 2500);
-  renderProducts(allProducts);
-  renderMyListings();
-  toast(`"${name}" listed!`, 'green');
+
+  fetch('/api/admin/products', {
+    method: 'POST',
+    headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ name, brand, category, icon, price, mrp, spec, badge })
+  })
+  .then(res => {
+    if (res.status === 401) { toast('⚠️ Admin session expired — please sign in again', 'red'); doLogout(); return null; }
+    return res.json();
+  })
+  .then(data => {
+    if (!data) return;
+    if (!data.success) {
+      msg.innerHTML = `<span style="color:var(--danger);font-size:.78rem">${data.error || 'Failed to list product'}</span>`;
+      return;
+    }
+    allProducts.unshift(data.product);
+    ls('ua_products', JSON.stringify(allProducts));
+    msg.innerHTML = '<span style="color:var(--success);font-size:.78rem">✓ Product listed successfully!</span>';
+    ['ap_name','ap_price','ap_mrp','ap_spec','ap_icon'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
+    ['ap_cat','ap_badge'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
+    setTimeout(() => msg.innerHTML = '', 2500);
+    renderProducts(allProducts);
+    renderManageProducts();
+    renderMyListings();
+    toast(`"${name}" listed!`, 'green');
+  })
+  .catch(() => { msg.innerHTML = '<span style="color:var(--danger);font-size:.78rem">Network error — please try again</span>'; });
 }
 
 function catIcon(c) { return {Induction:'🍳',Cooler:'❄️','LED TV':'📺',Fan:'🌀','Home Theatre':'🔊'}[c]||'📦'; }
 
 function deleteProduct(id) {
-  allProducts = allProducts.filter(p => p.id !== id);
-  ls('ua_products', JSON.stringify(allProducts));
-  renderProducts(allProducts);
-  renderMyListings();
-  toast('Product removed', 'gold');
+  fetch(`/api/admin/products/${id}`, {
+    method: 'DELETE',
+    headers: adminAuthHeaders()
+  })
+  .then(res => {
+    if (res.status === 401) { toast('⚠️ Admin session expired — please sign in again', 'red'); doLogout(); return null; }
+    return res.json();
+  })
+  .then(data => {
+    if (!data) return;
+    if (data.success) {
+      allProducts = allProducts.filter(p => p.id !== id);
+      ls('ua_products', JSON.stringify(allProducts));
+      renderProducts(allProducts);
+      renderManageProducts();
+      renderMyListings();
+      toast('Product removed', 'gold');
+    } else {
+      toast(data.error || 'Failed to remove product', 'red');
+    }
+  })
+  .catch(() => toast('⚠️ Failed to remove product', 'red'));
 }
 
 function renderMyListings() {
