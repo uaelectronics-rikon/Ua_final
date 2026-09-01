@@ -38,6 +38,83 @@ app.get("/", (req, res) => {
 // ✅ Serve Orders folder (PDFs)
 app.use('/Orders', express.static(path.join(__dirname, 'Orders')));
 
+/* ===============================
+   🔐 ADMIN AUTH (server-side)
+   =============================== */
+// Credentials live in environment variables, never in code. On Render, set:
+//   ADMIN_EMAIL=admin@uaelectronics.in
+//   ADMIN_PASSWORD_HASH=<generated below>
+// Generate the hash once locally with:
+//   node -e "const c=require('crypto');const salt=c.randomBytes(16).toString('hex');const hash=c.scryptSync(process.argv[1],salt,64).toString('hex');console.log(salt+':'+hash)" "yourNewAdminPassword"
+// then paste the printed "salt:hash" string as ADMIN_PASSWORD_HASH. The plaintext
+// password is never stored anywhere, on the server or in git.
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@uaelectronics.in";
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || "";
+
+function verifyAdminPassword(password) {
+  if (!ADMIN_PASSWORD_HASH || !ADMIN_PASSWORD_HASH.includes(":")) {
+    console.warn("⚠️ ADMIN_PASSWORD_HASH is not set — admin login is disabled until it's configured.");
+    return false;
+  }
+  const [salt, storedHash] = ADMIN_PASSWORD_HASH.split(":");
+  const candidateHash = crypto.scryptSync(password, salt, 64).toString("hex");
+  const a = Buffer.from(candidateHash, "hex");
+  const b = Buffer.from(storedHash, "hex");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// In-memory session store: token -> expiry timestamp. Tokens are lost on server
+// restart (admin just logs in again) which is fine for a single-admin dashboard.
+const adminSessions = new Map();
+const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+
+function requireAdmin(req, res, next) {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const expiry = token && adminSessions.get(token);
+
+  if (!expiry || expiry < Date.now()) {
+    if (token) adminSessions.delete(token);
+    return res.status(401).json({ error: "Admin session expired or invalid. Please log in again." });
+  }
+
+  // Sliding expiry so an active admin session doesn't die mid-work
+  adminSessions.set(token, Date.now() + ADMIN_SESSION_TTL_MS);
+  next();
+}
+
+app.post("/api/admin-login", (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password required" });
+    }
+
+    // Both checks run regardless of which one fails first, and comparisons are
+    // constant-time, so responses don't leak whether the email or password was wrong.
+    const emailOk = email === ADMIN_EMAIL;
+    const passOk = verifyAdminPassword(password);
+
+    if (!emailOk || !passOk) {
+      return res.status(401).json({ error: "Invalid admin credentials" });
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    adminSessions.set(token, Date.now() + ADMIN_SESSION_TTL_MS);
+
+    res.json({ success: true, token, email: ADMIN_EMAIL });
+  } catch (err) {
+    console.error("Admin login error:", err);
+    res.status(500).json({ error: "Admin login failed" });
+  }
+});
+
+app.post("/api/admin-logout", requireAdmin, (req, res) => {
+  const token = req.headers.authorization.slice(7);
+  adminSessions.delete(token);
+  res.json({ success: true });
+});
+
 const DATA_FILE = path.join(__dirname, "data", "orders.json");
 const PRODUCTS_FILE = path.join(__dirname, "data", "products.json");
 const USERS_FILE = path.join(__dirname, "data", "users.json");
@@ -457,7 +534,7 @@ app.post("/save-order", async (req, res) => {
 /* ===============================
    📦 GET ALL ORDERS
    =============================== */
-app.get("/orders", (req, res) => {
+app.get("/orders", requireAdmin, (req, res) => {
   try {
     const orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
     res.json(orders);
@@ -470,7 +547,7 @@ app.get("/orders", (req, res) => {
 /* ===============================
    🗑 DELETE ORDER
    =============================== */
-app.delete("/delete-order/:id", (req, res) => {
+app.delete("/delete-order/:id", requireAdmin, (req, res) => {
   try {
     const id = req.params.id;
 
@@ -489,7 +566,7 @@ app.delete("/delete-order/:id", (req, res) => {
 /* ===============================
    ✏️ UPDATE STATUS
    =============================== */
-app.post("/update-status", (req, res) => {
+app.post("/update-status", requireAdmin, (req, res) => {
   try {
     const { orderId, status } = req.body;
 

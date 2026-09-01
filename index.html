@@ -8346,8 +8346,11 @@ function renderOrders() {
 function renderAdminDash() {
   if (!currentUser || currentUser.email !== ADMIN_EMAIL) return;
 
-  fetch("/orders")
-    .then(res => res.json())
+  fetch("/orders", { headers: { 'Authorization': 'Bearer ' + (ls('ua_admin_token') || '') } })
+    .then(res => {
+      if (res.status === 401) { toast('⚠️ Admin session expired — please sign in again', 'red'); doLogout(); return Promise.reject('unauthorized'); }
+      return res.json();
+    })
     .then(orders => {
 
       const revenue = orders.filter(o => o.paid).reduce((s,o) => s + (o.grand||0), 0);
@@ -8403,11 +8406,18 @@ function renderAdminDash() {
 function updateOrderStatus(orderId, status) {
   fetch('/update-status', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + (ls('ua_admin_token') || '')
+    },
     body: JSON.stringify({ orderId, status })
   })
-  .then(res => res.json())
+  .then(res => {
+    if (res.status === 401) { toast('⚠️ Admin session expired — please sign in again', 'red'); doLogout(); return null; }
+    return res.json();
+  })
   .then(data => {
+    if (!data) return;
     if (data.success) {
       toast(`✅ Order #${orderId} marked as ${status}`, 'green');
     } else {
@@ -8498,46 +8508,55 @@ function toggleWishlist(id, e) {
 /* ============================================================
    AUTH
    ============================================================ */
-function doLogin() {
+async function doLogin() {
+  const email = document.getElementById('lEmail').value.trim();
+  const pass = document.getElementById('lPass').value;
+  const err = document.getElementById('lErr');
+  if (!err) {
+    console.error('❌ Error element not found');
+    return;
+  }
+  err.textContent = '';
+
+  if (!email || !pass) {
+    err.textContent = '❌ Please fill all fields';
+    return;
+  }
+
   try {
-    const email = document.getElementById('lEmail').value.trim();
-    const pass = document.getElementById('lPass').value;
-    const err = document.getElementById('lErr');
-    if (!err) {
-      console.error('❌ Error element not found');
-      return;
-    }
-    err.textContent = '';
-    
-    if (!email || !pass) { 
-      err.textContent = '❌ Please fill all fields'; 
-      return; 
-    }
-    
     if (email === ADMIN_EMAIL) {
-      if (pass !== 'admin123') { 
-        err.textContent = '❌ Invalid admin credentials'; 
-        return; 
+      // Admin credentials are verified server-side now — nothing about the
+      // password is checked or stored in this file.
+      const res = await fetch('/api/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        err.textContent = '❌ ' + (data.error || 'Invalid admin credentials');
+        return;
       }
-      currentUser = {fname:'Admin',lname:'',email:ADMIN_EMAIL,phone:''};
+      ls('ua_admin_token', data.token);
+      currentUser = { fname: 'Admin', lname: '', email: ADMIN_EMAIL, phone: '' };
       console.log('✅ Admin logged in');
     } else {
       const users = JSON.parse(ls('ua_users') || '[]');
       const user = users.find(u => u.email === email && u.password === pass);
-      if (!user) { 
-        err.textContent = '❌ Invalid email or password'; 
-        return; 
+      if (!user) {
+        err.textContent = '❌ Invalid email or password';
+        return;
       }
       currentUser = user;
       console.log('✅ User logged in:', currentUser.fname);
     }
-    
+
     ls('ua_user', JSON.stringify(currentUser));
-    
+
     // Clear form fields
     document.getElementById('lEmail').value = '';
     document.getElementById('lPass').value = '';
-    
+
     closeOverlay('loginOv');
     updateAuthUI();
     toast(`✅ Welcome back, ${currentUser.fname}! 👋`, 'green');
@@ -8627,6 +8646,7 @@ function doLogout() {
   currentUser = null;
   ls('ua_user', '');
   localStorage.removeItem('ua_user');
+  localStorage.removeItem('ua_admin_token');
   udOpen = false;
   document.getElementById('uDropdown').classList.remove('open');
   updateAuthUI();
