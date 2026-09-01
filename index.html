@@ -5143,7 +5143,7 @@ nav, .cart-drawer, .modal-overlay {
 
     <div class="nav-actions">
       <div id="guestBtns" style="display:flex;gap:.4rem;align-items:center">
-        <button class="btn-outline" onclick="showModal('loginModal')">LOGIN</button>
+        <button class="btn-outline" onclick="openOverlay('loginOv')">LOGIN</button>
       </div>
       <div id="userBtns" style="display:none;align-items:center;gap:.6rem">
         <div class="user-menu">
@@ -9170,149 +9170,7 @@ setTimeout(function() {
 
 </script>
 
-<!-- ========== LOGIN/SIGNUP MODAL ========== -->
-<div class="overlay" data-modal="loginModal" id="loginModalOverlay">
-  <div class="modal" id="loginModal">
-    <div class="modal-x" onclick="hideModal('loginModal')">✕</div>
-    <div class="modal-pre">AUTHENTICATION</div>
-    <div class="modal-h">Create Account or Sign In</div>
-    <div class="modal-sub">Login to place orders and track your purchases</div>
-
-    <!-- Auth Tabs -->
-    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-      <button class="auth-tab active" data-tab="login" style="flex:1; padding:0.6rem; background:var(--gold); color:var(--black); border:none; border-radius:6px; font-weight:700; cursor:pointer;">LOGIN</button>
-      <button class="auth-tab" data-tab="register" style="flex:1; padding:0.6rem; background:transparent; border:1px solid var(--gold); color:var(--gold); border-radius:6px; font-weight:700; cursor:pointer;">SIGN UP</button>
-    </div>
-
-    <!-- Login Form -->
-    <form id="loginForm" class="auth-form" style="display:block;">
-      <div class="mfg">
-        <label>Email Address</label>
-        <input type="email" name="email" placeholder="your@email.com" required>
-      </div>
-      <div class="mfg">
-        <label>Password</label>
-        <input type="password" name="password" placeholder="Enter password" required>
-      </div>
-<button class="google-btn" type="button" onclick="googleLogin()">
-  <img src="https://developers.google.com/identity/images/g-logo.png" width="18">
-  Continue with Google
-</button>
-
-<button type="submit" class="m-submit">LOGIN</button>
-    </form>
-
-    <!-- Register Form -->
-    <form id="registerForm" class="auth-form" style="display:none;">
-      <div class="mfg">
-        <label>Full Name</label>
-        <input type="text" name="name" placeholder="Your name" required>
-      </div>
-      <div class="mfg">
-        <label>Email Address</label>
-        <input type="email" name="email" placeholder="your@email.com" required>
-      </div>
-      <div class="mfg">
-        <label>Password</label>
-        <input type="password" name="password" placeholder="Min 6 characters" required>
-      </div>
-<button class="google-btn" type="button" onclick="googleLogin()">
-  <img src="https://developers.google.com/identity/images/g-logo.npng" width="18">
-  Sign Up with Google
-</button>
-
-<button type="submit" class="m-submit">CREATE ACCOUNT</button>    </form>
-  </div>
-</div>
-
-<!-- ========== CHECKOUT MODAL ========== -->
-<div class="overlay" data-modal="checkoutModal" id="checkoutModalOverlay">
-  <div class="modal" id="checkoutModal" style="max-width: 550px;">
-    <div class="modal-x" onclick="hideModal('checkoutModal')">✕</div>
-    <div class="modal-pre">CHECKOUT</div>
-    <div class="modal-h">Delivery Details</div>
-    <div class="modal-sub">Provide your address for order delivery</div>
-
-    <form id="checkoutForm">
-      <!-- Customer Details -->
-      <div class="mfg" style="grid-column: 1/-1;">
-        <label>Full Name *</label>
-        <input type="text" name="name" placeholder="Your name" required>
-      </div>
-
-      <div class="m-form-row">
-        <div class="mfg">
-          <label>Mobile Number *</label>
-          <input type="tel" name="mobile" placeholder="Your mobile" required>
-        </div>
-        <div class="mfg">
-          <label>Email *</label>
-          <input type="email" name="email" placeholder="Your email" required>
-        </div>
-      </div>
-
-      <!-- Address -->
-      <div class="mfg" style="grid-column: 1/-1;">
-        <label>Address Line 1 *</label>
-        <input type="text" name="addr1" placeholder="Building/Landmark" required>
-      </div>
-
-      <div class="mfg" style="grid-column: 1/-1;">
-        <label>Address Line 2</label>
-        <input type="text" name="addr2" placeholder="Street, Area">
-      </div>
-
-      <div class="m-form-row">
-        <div class="mfg">
-          <label>City *</label>
-          <input type="text" name="city" placeholder="City name" required>
-        </div>
-        <div class="mfg">
-          <label>Postal Code *</label>
-          <input type="text" name="pin" placeholder="PIN code" required>
-        </div>
-      </div>
-
-      <div class="mfg" style="grid-column: 1/-1;">
-        <label>State *</label>
-        <input type="text" name="state" placeholder="State name" required>
-      </div>
-
-      <div class="mfg" style="grid-column: 1/-1;">
-        <label>Delivery Instructions (Optional)</label>
-        <textarea name="notes" placeholder="Special instructions..." style="padding:0.6rem 0.9rem; background:var(--black3); border:1px solid var(--border2); border-radius:6px; color:var(--text); min-height:60px; font-family:inherit;"></textarea>
-      </div>
-
-      <!-- Payment Method -->
-      <div style="grid-column: 1/-1; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border2);">
-        <label style="display:block; font-size:.68rem; color:var(--text2); letter-spacing:1.5px; font-family:'Oswald',sans-serif; margin-bottom: 1rem; text-transform:uppercase;">Payment Method *</label>
-        
-        <div style="display:flex; gap:1rem; flex-wrap:wrap;">
-          <label style="display:flex; align-items:center; gap:0.5rem; padding:0.75rem; background:var(--card); border:1px solid var(--border2); border-radius:6px; cursor:pointer; flex:1; min-width:150px;">
-            <input type="radio" name="paymentMethod" value="cod" checked style="cursor:pointer;">
-            <span>💵 Cash on Delivery</span>
-          </label>
-          <label style="display:flex; align-items:center; gap:0.5rem; padding:0.75rem; background:var(--card); border:1px solid var(--border2); border-radius:6px; cursor:pointer; flex:1; min-width:150px;">
-            <input type="radio" name="paymentMethod" value="online" style="cursor:pointer;">
-            <span>💳 Online Payment</span>
-          </label>
-        </div>
-      </div>
-
-      <button type="submit" class="m-submit" style="margin-top: 1.5rem;">PROCEED TO PAYMENT</button>
-    </form>
-  </div>
-</div>
-
-<!-- ========== ORDER CONFIRMATION MODAL ========== -->
-<div class="overlay" data-modal="confirmationModal" id="confirmationModalOverlay">
-  <div class="modal" id="confirmationModal" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
-    <!-- Content will be dynamically inserted -->
-  </div>
-</div>
-
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script src="checkout.js"></script>
 <script>
 let currentSlide = 0;
 const slides = document.querySelectorAll(".carousel-slide");
