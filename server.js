@@ -6,13 +6,20 @@ dns.setDefaultResultOrder("ipv4first");
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const cors = require("cors");
 const sendEmail = require("./email");
 const emailQueue = require("./email-queue");
 const PDFDocument = require("pdfkit");
+const Razorpay = require("razorpay");
 
 // Load environment variables
 require('dotenv').config();
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
 
 const app = express();
 app.use(express.static('public'));
@@ -141,15 +148,91 @@ app.post("/login", (req, res) => {
   }
 });
 
+app.get("/api/razorpay-config", (req, res) => {
+  res.json({ keyId: process.env.RAZORPAY_KEY_ID || "" });
+});
 
+app.post("/api/create-order", async (req, res) => {
+  try {
+    const { amount, currency = "INR", receipt, orderId } = req.body;
+    const amountInPaise = Number(amount);
 
+    if (!Number.isFinite(amountInPaise) || amountInPaise < 100) {
+      return res.status(400).json({ error: "Amount must be at least 100 paise" });
+    }
 
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(401).json({ error: "Razorpay credentials are not configured" });
+    }
+
+    const orderPayload = {
+      amount: Math.round(amountInPaise),
+      currency,
+      receipt: receipt || orderId || `order-${Date.now()}`
+    };
+
+    const razorpayOrder = await razorpay.orders.create(orderPayload);
+
+    res.json({
+      order_id: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      receipt: razorpayOrder.receipt
+    });
+  } catch (error) {
+    console.error("Razorpay create order error:", error);
+    const statusCode = error.statusCode === 401 ? 401 : 500;
+    res.status(statusCode).json({
+      error: "Failed to create Razorpay order",
+      details: error.error?.description || error.message
+    });
+  }
+});
+
+app.post("/api/verify-payment", (req, res) => {
+  try {
+    const {
+      order_id,
+      orderId,
+      payment_id,
+      paymentId,
+      razorpay_signature,
+      razorpaySignature
+    } = req.body;
+
+    const resolvedOrderId = order_id || orderId;
+    const resolvedPaymentId = payment_id || paymentId;
+    const resolvedSignature = razorpay_signature || razorpaySignature;
+
+    if (!resolvedOrderId || !resolvedPaymentId || !resolvedSignature) {
+      return res.status(400).json({ error: "Missing payment verification fields" });
+    }
+
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "")
+      .update(`${resolvedOrderId}|${resolvedPaymentId}`)
+      .digest("hex");
+
+    const providedSignature = String(resolvedSignature);
+    const isValid = providedSignature.length === expectedSignature.length &&
+      crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(providedSignature));
+
+    if (!isValid) {
+      return res.status(400).json({ success: false, verified: false, error: "Signature mismatch" });
+    }
+
+    res.json({ success: true, verified: true, message: "Payment signature verified" });
+  } catch (error) {
+    console.error("Razorpay verify signature error:", error);
+    res.status(500).json({ error: "Failed to verify Razorpay payment" });
+  }
+});
 
 /* ===============================
    💳 PAYMENT METHOD: CASH ON DELIVERY ONLY
    =============================== */
-// Online payments disabled - Only Cash on Delivery (COD) is available
-console.log("✅ Payment Method: Cash on Delivery (COD) Only - No Online Payments");
+// Online payments are now enabled through Razorpay Standard Checkout
+console.log("✅ Payment Method: Razorpay Standard Checkout + COD available");
 
 /* ===============================
    📄 PDF GENERATION HELPER FUNCTION
@@ -978,8 +1061,8 @@ app.listen(PORT, () => {
   console.log("🚀 UA ELECTRONICS SERVER STARTED");
   console.log("=".repeat(50));
   console.log(`📱 Server running on port: ${PORT}`);
-console.log(`📧 Email: ${process.env.EMAIL_USER ? "✅ Configured" : "❌ Not configured"}`);
-  console.log(`💳 Payment Method: ✅ Cash on Delivery (COD) Only`);
+  console.log(`📧 Email: ${process.env.EMAIL_USER ? "✅ Configured" : "❌ Not configured"}`);
+  console.log(`💳 Payment Method: ✅ Razorpay Standard Checkout + COD available`);
   console.log(`📄 PDF Order Receipts: ✅ Auto-generated and stored in /Orders folder`);
   console.log("=".repeat(50) + "\n");
 });
