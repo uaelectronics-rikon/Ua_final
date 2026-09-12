@@ -904,6 +904,12 @@ nav{position:sticky;top:0;z-index:900;background:rgba(11, 31, 61,.97);backdrop-f
   transform:translateY(0) scale(.96);
 }
 
+/* Light-mode only: .btn-gold's background is a fixed dark navy gradient,
+   so its text must stay white for contrast here. Dark mode is untouched. */
+body.light-mode .btn-gold{
+  color:#ffffff !important;
+}
+
 .btn-outline{
   background:transparent;
   border:2px solid var(--gold);
@@ -5951,7 +5957,7 @@ footer .footer-seal b{
         <div style="overflow-x:auto">
           <table class="orders-table" id="manageProductsTable">
             <thead>
-              <tr><th>Product</th><th>Price (₹)</th><th>MRP (₹)</th><th>Offer Badge</th><th>Stock</th><th></th></tr>
+              <tr><th>Product</th><th>Image URL</th><th>Price (₹)</th><th>MRP (₹)</th><th>Offer Badge</th><th>Stock</th><th></th></tr>
             </thead>
             <tbody id="manageProductsBody"></tbody>
           </table>
@@ -5978,6 +5984,7 @@ footer .footer-seal b{
             </select>
           </div>
           <div class="fg"><label>EMOJI ICON</label><input id="ap_icon" type="text" placeholder="🍳" maxlength="2"/></div>
+          <div class="fg" style="grid-column:1/-1"><label>PRODUCT IMAGE URL</label><input id="ap_image" type="text" placeholder="https://uaelectronicsindia.com/Image/yourphoto.webp"/></div>
           <div class="fg"><label>SELLING PRICE (₹) *</label><input id="ap_price" type="number" placeholder="2499"/></div>
           <div class="fg"><label>MRP (₹)</label><input id="ap_mrp" type="number" placeholder="3499"/></div>
           <div class="fg" style="grid-column:1/-1"><label>SPECIFICATIONS</label><input id="ap_spec" type="text" placeholder="2000W, Touch Control, Auto Shut-Off, ISI Marked"/></div>
@@ -6246,7 +6253,7 @@ footer .footer-seal b{
     <button class="m-submit" onclick="doLogin()">SIGN IN →</button>
     <div class="m-divider">or</div>
     <div class="social-row">
-      <button class="social-b" onclick="quickLogin('Google')">🌐 Google</button>
+      <button class="social-b" onclick="googleLogin()">🌐 Google</button>
       <button class="social-b" onclick="quickLogin('Guest')">👤 Guest</button>
     </div>
     <div class="m-switch">New here? <a onclick="switchOv('loginOv','signupOv')">Create Account</a></div>
@@ -8178,16 +8185,28 @@ async function processRazorpayPayment(orderId, amount) {
     closePaymentGateway();
     toast('💳 Opening secure payment modal...', 'gold');
 
-    if (!window.Razorpay) {
+    function loadRazorpayScript(onSuccess, onFail, isRetry) {
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => {
-        new window.Razorpay(options).open();
-      };
+      script.onload = onSuccess;
       script.onerror = () => {
-        toast('Unable to load Razorpay checkout script.', 'red');
+        if (!isRetry) {
+          // Transient network hiccups happen — try once more before giving up.
+          setTimeout(() => loadRazorpayScript(onSuccess, onFail, true), 800);
+        } else {
+          onFail();
+        }
       };
       document.body.appendChild(script);
+    }
+
+    if (!window.Razorpay) {
+      loadRazorpayScript(
+        () => { new window.Razorpay(options).open(); },
+        () => {
+          toast('⚠️ Could not load the payment gateway. Please disable any ad-blocker/privacy extension for this site, check your internet connection, and try again.', 'red');
+        }
+      );
     } else {
       new window.Razorpay(options).open();
     }
@@ -8714,6 +8733,7 @@ function renderManageProducts() {
           <span style="font-size:.78rem;color:var(--text)">${p.name}</span>
         </div>
       </td>
+      <td><input type="text" class="mp-image" value="${p.image || ''}" placeholder="Image URL" style="width:150px;background:var(--black3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:.35rem .5rem;font-size:.72rem"/></td>
       <td><input type="number" class="mp-price" value="${p.price}" min="1" style="width:90px;background:var(--black3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:.35rem .5rem;font-size:.75rem"/></td>
       <td><input type="number" class="mp-mrp" value="${p.mrp || p.price}" min="0" style="width:90px;background:var(--black3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:.35rem .5rem;font-size:.75rem"/></td>
       <td>
@@ -8728,7 +8748,7 @@ function renderManageProducts() {
       </td>
       <td><button class="btn-gold" style="padding:.4rem .8rem;font-size:.72rem" onclick="saveProductEdit(${p.id})">Save</button></td>
     </tr>`;
-  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--text3)">No products yet</td></tr>';
+  }).join('') || '<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--text3)">No products yet</td></tr>';
 }
 
 function saveProductEdit(id) {
@@ -8738,13 +8758,14 @@ function saveProductEdit(id) {
   const mrp = parseFloat(row.querySelector('.mp-mrp').value);
   const badge = row.querySelector('.mp-badge').value;
   const inStock = row.querySelector('.mp-stock').checked;
+  const image = row.querySelector('.mp-image').value.trim();
 
   if (!price || price <= 0) { toast('⚠️ Enter a valid price', 'red'); return; }
 
   fetch(`/api/admin/products/${id}`, {
     method: 'PUT',
     headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ price, mrp, badge, inStock })
+    body: JSON.stringify({ price, mrp, badge, inStock, image })
   })
   .then(res => {
     if (res.status === 401) { toast('⚠️ Admin session expired — please sign in again', 'red'); doLogout(); return null; }
@@ -8770,6 +8791,7 @@ function addProduct() {
   const brand = document.getElementById('ap_brand').value.trim() || 'UA RIKON';
   const category = document.getElementById('ap_cat').value;
   const icon = document.getElementById('ap_icon').value.trim() || catIcon(category);
+  const image = document.getElementById('ap_image').value.trim();
   const price = parseInt(document.getElementById('ap_price').value);
   const mrp = parseInt(document.getElementById('ap_mrp').value) || price;
   const spec = document.getElementById('ap_spec').value.trim();
@@ -8784,7 +8806,7 @@ function addProduct() {
   fetch('/api/admin/products', {
     method: 'POST',
     headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ name, brand, category, icon, price, mrp, spec, badge })
+    body: JSON.stringify({ name, brand, category, icon, image, price, mrp, spec, badge })
   })
   .then(res => {
     if (res.status === 401) { toast('⚠️ Admin session expired — please sign in again', 'red'); doLogout(); return null; }
@@ -8799,7 +8821,7 @@ function addProduct() {
     allProducts.unshift(data.product);
     ls('ua_products', JSON.stringify(allProducts));
     msg.innerHTML = '<span style="color:var(--success);font-size:.78rem">✓ Product listed successfully!</span>';
-    ['ap_name','ap_price','ap_mrp','ap_spec','ap_icon'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
+    ['ap_name','ap_price','ap_mrp','ap_spec','ap_icon','ap_image'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
     ['ap_cat','ap_badge'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
     setTimeout(() => msg.innerHTML = '', 2500);
     renderProducts(allProducts);

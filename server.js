@@ -167,7 +167,7 @@ app.get("/product/:id", (req, res) => {
 /* ===============================
    🛠 ADMIN: UPDATE PRODUCT (price, MRP, offer badge, stock)
    =============================== */
-const EDITABLE_PRODUCT_FIELDS = ["price", "mrp", "badge", "inStock", "name", "spec"];
+const EDITABLE_PRODUCT_FIELDS = ["price", "mrp", "badge", "inStock", "name", "spec", "image"];
 const VALID_BADGES = ["", "new", "sale", "hot", "bestseller"];
 
 app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
@@ -200,6 +200,9 @@ app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
     if (req.body.spec !== undefined) {
       product.spec = String(req.body.spec);
     }
+    if (req.body.image !== undefined) {
+      product.image = String(req.body.image).trim();
+    }
 
     fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2));
     res.json({ success: true, product });
@@ -214,7 +217,7 @@ app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
    =============================== */
 app.post("/api/admin/products", requireAdmin, (req, res) => {
   try {
-    const { name, brand, category, icon, price, mrp, spec, badge } = req.body;
+    const { name, brand, category, icon, image, price, mrp, spec, badge } = req.body;
     if (!name || !category || !price) {
       return res.status(400).json({ error: "Name, category, and price are required" });
     }
@@ -229,6 +232,7 @@ app.post("/api/admin/products", requireAdmin, (req, res) => {
       brand: brand ? String(brand).trim() : "UA RIKON",
       category,
       icon: icon || "📦",
+      image: image ? String(image).trim() : "",
       price: Number(price),
       mrp: mrp ? Number(mrp) : Number(price),
       spec: spec || "",
