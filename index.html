@@ -7288,6 +7288,20 @@ function setupCarouselHoverPause() {
 /* ============================================================
    INIT
    ============================================================ */
+function mergeServerProductsWithGalleryAssets(serverProducts) {
+  const defaultsById = new Map(defaultProducts.map(product => [String(product.id), product]));
+  return serverProducts.map(product => {
+    const fallback = defaultsById.get(String(product.id));
+    return {
+      ...fallback,
+      ...product,
+      images: Array.isArray(product.images) && product.images.length
+        ? product.images
+        : fallback?.images || (product.image ? [product.image] : [])
+    };
+  });
+}
+
 function init() {
   console.log('🔄 init() called - starting initialization...');
   
@@ -7317,7 +7331,7 @@ function init() {
     .then(r => r.ok ? r.json() : Promise.reject(r.status))
     .then(serverProducts => {
       if (Array.isArray(serverProducts) && serverProducts.length > 0) {
-        allProducts = serverProducts;
+        allProducts = mergeServerProductsWithGalleryAssets(serverProducts);
         ls('ua_products', JSON.stringify(allProducts));
         renderProducts(allProducts);
         console.log(`✅ Live products loaded from server: ${allProducts.length} items`);
