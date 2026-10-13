@@ -5,11 +5,15 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "db:prepare": "node scripts/prepare-neon-runtime.js --apply",
+    "db:prepare:check": "node scripts/prepare-neon-runtime.js"
   },
   "author": "Raju",
   "license": "ISC",
   "dependencies": {
+    "@neon/config": "^1.9.1",
+    "@neon/env": "^1.6.1",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^5.2.1",
@@ -17,6 +21,7 @@
     "googleapis": "^173.0.0",
     "nodemailer": "^8.0.5",
     "pdfkit": "^0.14.0",
+    "pg": "^8.23.1",
     "razorpay": "^2.9.6"
   },
   "keywords": [],

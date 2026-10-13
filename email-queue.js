@@ -1,152 +1,84 @@
-// ============================================
-// EMAIL QUEUE & RETRY SYSTEM
-// ============================================
-// Tracks failed emails and provides retry mechanism
-// Helps ensure no customer emails are lost due to temporary connection issues
-// Useful especially on cloud platforms (Render, Railway, Heroku) where DNS can be slow
+// Persistent email retry queue and email log storage backed by Neon PostgreSQL.
+const crypto = require("crypto");
+const db = require("./db");
 
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-
-const DATA_DIR = process.env.UA_DATA_DIR || path.join(__dirname, 'data');
-const QUEUE_FILE = path.join(DATA_DIR, 'email-queue.json');
-const LOG_FILE = path.join(DATA_DIR, 'email-log.json');
-
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+async function loadQueue() {
+  return db.readCollection("email_queue");
 }
 
-// ============================================
-// QUEUE MANAGEMENT
-// ============================================
-
-function loadQueue() {
-  try {
-    if (fs.existsSync(QUEUE_FILE)) {
-      const data = fs.readFileSync(QUEUE_FILE, 'utf-8');
-      const queue = JSON.parse(data);
-      if (!Array.isArray(queue)) throw new Error('Email queue must contain an array');
-      return queue;
-    }
-    return [];
-  } catch (e) {
-    console.error('❌ Error loading email queue:', e.message);
-    throw e;
-  }
+async function saveQueue(queue) {
+  if (!Array.isArray(queue)) throw new TypeError("Email queue must be an array");
+  await db.replaceCollection("email_queue", queue);
 }
 
-function saveQueue(queue) {
-  const temporaryPath = `${QUEUE_FILE}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`;
-  let descriptor;
-  try {
-    descriptor = fs.openSync(temporaryPath, 'wx', 0o600);
-    fs.writeFileSync(descriptor, JSON.stringify(queue, null, 2));
-    fs.fsyncSync(descriptor);
-    fs.closeSync(descriptor);
-    descriptor = undefined;
-    fs.renameSync(temporaryPath, QUEUE_FILE);
-    const directoryDescriptor = fs.openSync(path.dirname(QUEUE_FILE), 'r');
-    try {
-      fs.fsyncSync(directoryDescriptor);
-    } finally {
-      fs.closeSync(directoryDescriptor);
-    }
-  } catch (e) {
-    if (descriptor !== undefined) fs.closeSync(descriptor);
-    if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
-    console.error('❌ Error saving email queue:', e.message);
-    throw e;
-  }
-}
-
-function addToQueue(to, orderData, pdfFilePath) {
-  const queue = loadQueue();
+async function addToQueue(to, orderData, pdfFilePath) {
+  if (!orderData?.orderId) throw new Error("Cannot queue an email without an order ID");
   const queueItem = {
-    id: `${orderData.orderId}-${Date.now()}`,
+    id: `${orderData.orderId}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
     to,
     orderData,
-    pdfFilePath,
+    pdfFilePath: typeof pdfFilePath === "string" ? pdfFilePath : null,
     attempts: 0,
     createdAt: new Date().toISOString(),
     nextRetry: new Date().toISOString(),
-    status: 'pending'
+    status: "pending"
   };
-  
-  queue.push(queueItem);
-  saveQueue(queue);
-  
+
+  await db.mutateCollection("email_queue", queue => {
+    queue.push(queueItem);
+    return { records: queue, result: queueItem };
+  });
   console.log(`📧 Email queued for retry (Order: ${orderData.orderId})`);
   return queueItem;
 }
 
-function removeFromQueue(id) {
-  const queue = loadQueue();
-  const filtered = queue.filter(item => item.id !== id);
-  saveQueue(filtered);
+async function removeFromQueue(id) {
+  await db.mutateCollection("email_queue", queue => ({
+    records: queue.filter(item => item.id !== id),
+    result: undefined
+  }));
 }
 
-function getQueueSize() {
-  return loadQueue().length;
+async function getQueueSize() {
+  return (await loadQueue()).length;
 }
 
-function getQueueStats() {
-  const queue = loadQueue();
+async function getQueueStats() {
+  const queue = await loadQueue();
   return {
     total: queue.length,
-    pending: queue.filter(item => item.status === 'pending').length,
-    failed: queue.filter(item => item.status === 'failed').length
+    pending: queue.filter(item => item.status === "pending").length,
+    failed: queue.filter(item => item.status === "failed").length
   };
 }
 
-// ============================================
-// LOGGING
-// ============================================
-
-function logEmail(to, orderData, success, error = null) {
+async function logEmail(to, orderData, success, error = null) {
   try {
-    let logs = [];
-    if (fs.existsSync(LOG_FILE)) {
-      const data = fs.readFileSync(LOG_FILE, 'utf-8');
-      logs = JSON.parse(data);
-    }
-
-    logs.push({
-      timestamp: new Date().toISOString(),
-      orderId: orderData.orderId,
-      success,
-      error: error ? error.message : null,
-      errorCode: error ? error.code : null
+    await db.mutateCollection("email_logs", logs => {
+      logs.push({
+        timestamp: new Date().toISOString(),
+        orderId: orderData?.orderId || null,
+        success: Boolean(success),
+        error: error ? String(error.message || error).slice(0, 1000) : null,
+        errorCode: error?.code ? String(error.code).slice(0, 160) : null
+      });
+      if (logs.length > 500) logs.splice(0, logs.length - 500);
+      return { records: logs, result: undefined };
     });
-
-    // Keep last 500 entries to prevent file from getting too large
-    if (logs.length > 500) {
-      logs = logs.slice(-500);
-    }
-
-    fs.writeFileSync(LOG_FILE, JSON.stringify(logs, null, 2));
   } catch (e) {
-    console.error('❌ Error logging email:', e.message);
+    console.error("❌ Error logging email:", e.message);
   }
 }
 
-function getEmailLogs(limit = 50) {
+async function getEmailLogs(limit = 50) {
   try {
-    if (fs.existsSync(LOG_FILE)) {
-      const data = fs.readFileSync(LOG_FILE, 'utf-8');
-      const logs = JSON.parse(data);
-      return logs.slice(-limit).reverse();
-    }
+    const safeLimit = Math.min(500, Math.max(1, Number.parseInt(limit, 10) || 50));
+    return (await db.readCollection("email_logs")).slice(-safeLimit).reverse();
   } catch (e) {
-    console.error('❌ Error reading email logs:', e.message);
+    console.error("❌ Error reading email logs:", e.message);
+    throw e;
   }
-  return [];
 }
-
-// ============================================
-// EXPORTS
-// ============================================
 
 module.exports = {
   loadQueue,
