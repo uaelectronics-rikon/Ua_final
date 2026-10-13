@@ -23,7 +23,7 @@ if (!GMAIL_USER || !GMAIL_PASS) {
   console.error("5. Copy the 16-character password (no spaces)");
   console.error("6. Add to your .env file:");
   console.error("   EMAIL_USER=rikon@uaelectronicsindia.com");
-  console.error("   EMAIL_PASS=mzqjchmciapjvipi   ← your 16-char app password");
+  console.error("   EMAIL_PASS=cnbejwwtqqocbvnm   ← your 16-char app password");
   console.error("7. On Render: Add both as Environment Variables in the dashboard");
   console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 }

@@ -5,5 +5,19 @@
     "password": "QXl1c2hAMjAyNg==",
     "name": "Ayush",
     "createdAt": "2026-04-13T21:15:39.617Z"
+  },
+  {
+    "id": "1791876032389",
+    "email": "neon-smoke-1791876032255@example.invalid",
+    "password": "772bff81d0c8af8df09c729b901f5feb:7e5a9ac4d16600c94ea02c7c10bd0b849910a5cd99e226b4690aefaf8b8e5189599e951628db9e9e2fcb0bb02bb27ed8b158dece67ac6e6ea704fcfec54f4822",
+    "name": "Neon Test Account",
+    "createdAt": "2026-10-13T07:20:32.436Z"
+  },
+  {
+    "id": "1791876498927",
+    "email": "neon-smoke-0085558d-d20f-4f58-b5ec-5299e690bec8@example.invalid",
+    "password": "e5fa989efbf795c70185bab00a30a8d4:00947ceadd3e78cd1ba049e76c51a23c46671e8df2fc6eda33722441fa1c72be158c45306ed767bf7d8225e8d540a9365c3e371238540bfa8ca0ae007c9bbde2",
+    "name": "Temporary Neon Verification",
+    "createdAt": "2026-10-13T07:28:18.959Z"
   }
 ]
