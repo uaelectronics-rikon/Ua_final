@@ -129,23 +129,7 @@ gtag('config', 'AW-CONVERSION_ID');
 <!-- ========== META PIXEL (FACEBOOK ADS TRACKING) ========== -->
 
 <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1" /></noscript>
-<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1118634767356006');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none"
-src="https://www.facebook.com/tr?id=1118634767356006&ev=PageView&noscript=1"
-/></noscript>
-<!-- End Meta Pixel Code -->
+
 <!-- ========== GOOGLE ADS CONVERSION TRACKING ========== -->
 <!-- Replace YOUR_CONVERSION_ID with your Google Ads conversion ID -->
 
@@ -7575,13 +7559,18 @@ function handleSearch() {
 /* ============================================================
    CART
    ============================================================ */
+function normalizeCartColor(color) {
+  return color == null ? '' : String(color);
+}
+
 function addToCart(id, color = null) {
   const p = allProducts.find(x => x.id === id);
   if (!p) return;
   if (p.inStock === false) { toast(`${p.name} is currently out of stock`, 'red'); return; }
-  const ex = cart.find(c => c.id === id && c.color === color);
+  const normalizedColor = normalizeCartColor(color);
+  const ex = cart.find(c => c.id === id && normalizeCartColor(c.color) === normalizedColor);
   if (ex) ex.qty++;
-  else cart.push({...p, qty:1, color: color});
+  else cart.push({...p, qty:1, color: normalizedColor});
   saveCart();
   updateCartCount();
   renderCart();  // Refresh cart display if it's open
@@ -7622,18 +7611,20 @@ function addToCart(id, color = null) {
 }
 
 function removeItem(id, color = null) { 
-  const itemEl = document.getElementById(`cart-item-${id}-${color||'default'}`);
+  const normalizedColor = normalizeCartColor(color);
+  const itemKey = `${id}-${normalizedColor || 'default'}`;
+  const itemEl = document.getElementById(`cart-item-${itemKey}`);
   if (itemEl) {
     itemEl.classList.add('removing');
     setTimeout(() => {
-      cart = cart.filter(c => !(c.id === id && c.color === color));
+      cart = cart.filter(c => !(c.id === id && normalizeCartColor(c.color) === normalizedColor));
       saveCart();
       updateCartCount();
       renderCart();
       toast(`Item removed from cart`, 'red');
     }, 300);
   } else {
-    cart = cart.filter(c => !(c.id === id && c.color === color));
+    cart = cart.filter(c => !(c.id === id && normalizeCartColor(c.color) === normalizedColor));
     saveCart();
     updateCartCount();
     renderCart();
@@ -7651,12 +7642,13 @@ function clearCart() {
 
 function changeQty(id, d, color = null) {
   try {
-    const it = cart.find(c => c.id === id && c.color === color);
+    const normalizedColor = normalizeCartColor(color);
+    const it = cart.find(c => c.id === id && normalizeCartColor(c.color) === normalizedColor);
     if (!it) {
       console.warn('❌ Item not found');
       return;
     }
-    const qtyInput = document.getElementById(`qty-${id}-${color||'default'}`);
+    const qtyInput = document.getElementById(`qty-${id}-${normalizedColor || 'default'}`);
     it.qty += d;
     if (it.qty <= 0) {
       removeItem(id, color);
@@ -7686,9 +7678,10 @@ function changeQty(id, d, color = null) {
 
 function setQty(id, newQty, color = null) {
   try {
+    const normalizedColor = normalizeCartColor(color);
     let qty = parseInt(newQty) || 0;
-    const qtyInput = document.getElementById(`qty-${id}-${color||'default'}`);
-    const it = cart.find(c => c.id === id && c.color === color);
+    const qtyInput = document.getElementById(`qty-${id}-${normalizedColor || 'default'}`);
+    const it = cart.find(c => c.id === id && normalizeCartColor(c.color) === normalizedColor);
     
     if (!it) {
       console.warn('❌ Item not found');
@@ -7785,12 +7778,14 @@ function renderCart() {
   ft.style.display = 'block';
   let total = 0, mrpT = 0, totalQty = 0;
   body.innerHTML = cart.map(it => {
+    const colorKey = normalizeCartColor(it.color);
     total += it.price * it.qty;
     mrpT += (it.mrp || it.price) * it.qty;
     totalQty += it.qty;
     const imgSrc = it.image || '';
     const disc = it.mrp > it.price ? Math.round((1 - it.price/it.mrp)*100) : 0;
-    return `<div class="c-item" id="cart-item-${it.id}-${it.color||'default'}">
+    const itemIdAttr = `${it.id}-${colorKey || 'default'}`;
+    return `<div class="c-item" id="cart-item-${itemIdAttr}">
       <div class="c-item-img">${imgSrc ? `<img src="${imgSrc}" alt="${it.name}">` : it.icon || '📦'}</div>
       <div class="c-item-info">
         <div class="c-item-brand">${it.brand}</div>
@@ -7804,12 +7799,12 @@ function renderCart() {
           </div>
         </div>
         <div class="qty-row">
-          <button class="q-btn" onclick="changeQty(${it.id},-1,'${it.color||''}')" title="Decrease quantity">−</button>
-          <input type="number" class="q-input" id="qty-${it.id}-${it.color||'default'}" value="${it.qty}" min="1" max="99" onchange="setQty(${it.id},this.value,'${it.color||''}')" title="Enter quantity">
-          <button class="q-btn" onclick="changeQty(${it.id},1,'${it.color||''}')" title="Increase quantity">+</button>
+          <button class="q-btn" onclick="changeQty(${it.id},-1,'${colorKey}')" title="Decrease quantity">−</button>
+          <input type="number" class="q-input" id="qty-${itemIdAttr}" value="${it.qty}" min="1" max="99" onchange="setQty(${it.id},this.value,'${colorKey}')" title="Enter quantity">
+          <button class="q-btn" onclick="changeQty(${it.id},1,'${colorKey}')" title="Increase quantity">+</button>
         </div>
       </div>
-      <button class="c-rm" onclick="removeItem(${it.id},'${it.color||''}')" title="Remove item">🗑</button>
+      <button class="c-rm" onclick="removeItem(${it.id},'${colorKey}')" title="Remove item">🗑</button>
     </div>`;
   }).join('');
   document.getElementById('cartTotal').textContent = `₹${total.toLocaleString('en-IN')}`;
@@ -9322,17 +9317,32 @@ function downloadReceipt() {
     toast("❌ No order data found", "gold");
     return;
   }
-  
-  const fileName = `${order.orderId}-receipt.pdf`;
-  const url = `/Orders/${fileName}`;
-  
-  // Try to download the PDF
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  link.click();
-  
-  toast("📥 Receipt downloaded!", "green");
+
+  const email = (order.customer && order.customer.email) ? encodeURIComponent(String(order.customer.email).trim().toLowerCase()) : '';
+  const url = email ? `/api/receipt/${encodeURIComponent(order.orderId)}?email=${email}` : `/api/receipt/${encodeURIComponent(order.orderId)}`;
+
+  fetch(url, { method: 'GET', headers: { Accept: 'application/pdf' } })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error('Unauthorized or receipt unavailable');
+      }
+      return res.blob();
+    })
+    .then(blob => {
+      const fileName = `${order.orderId}-receipt.pdf`;
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      toast("📥 Receipt downloaded!", "green");
+    })
+    .catch(() => {
+      toast("❌ Receipt unavailable or not authorized", "gold");
+    });
 }
 
 function toggleFAQ(i) {
@@ -9868,6 +9878,43 @@ await signOut(auth); } catch(e) {
   location.reload();
 };
 </script>
+<script>
+window.addEventListener('load', function() {
 
+  setTimeout(function() {
+
+    !function(f,b,e,v,n,t,s)
+    {
+      if(f.fbq)return;
+      n=f.fbq=function(){
+        n.callMethod ?
+        n.callMethod.apply(n,arguments) :
+        n.queue.push(arguments)
+      };
+
+      if(!f._fbq)f._fbq=n;
+
+      n.push=n;
+      n.loaded=!0;
+      n.version='2.0';
+      n.queue=[];
+
+      t=b.createElement(e);
+      t.async=true;
+      t.src=v;
+
+      s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s);
+
+    }(window,document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+
+    fbq('init','YOUR_PIXEL_ID');
+    fbq('track','PageView');
+
+  },3000);
+
+});
+</script>
 </body>
 </html>

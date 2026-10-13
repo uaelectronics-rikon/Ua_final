@@ -8,6 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const cors = require("cors");
+const rateLimit = require("express-rate-limit");
 const sendEmail = require("./email");
 const emailQueue = require("./email-queue");
 const PDFDocument = require("pdfkit");
@@ -22,21 +23,91 @@ const razorpay = new Razorpay({
 });
 
 const app = express();
-app.use(express.static('public'));
- 
-app.use(cors());
+const PUBLIC_DIR = path.join(__dirname, "public");
+const ALLOWED_CORS_ORIGINS = [
+  "https://uaelectronicsindia.com",
+  "https://www.uaelectronicsindia.com",
+  "http://localhost:3000",
+  "http://localhost:8080",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:8080"
+];
+const ASSET_HEADS = [
+  ["/checkout.js", path.join(__dirname, "checkout.js")],
+  ["/sitemap.xml", path.join(__dirname, "sitemap.xml")],
+  ["/google0c2bce1fab4a9d99.html", path.join(__dirname, "google0c2bce1fab4a9d99.html")],
+];
+
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+
+if (fs.existsSync(PUBLIC_DIR)) {
+  app.use(express.static(PUBLIC_DIR));
+}
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || ALLOWED_CORS_ORIGINS.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: false
+}));
+
+app.options(/.*/, (req, res) => {
+  res.sendStatus(204);
+});
+
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 180,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please try again later." }
+});
+
+app.use(generalLimiter);
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()" );
+  res.setHeader("X-XSS-Protection", "0");
+  res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+  next();
+});
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-// ✅ Serve frontend
-app.use(express.static(__dirname));
+app.use("/Image", express.static(path.join(__dirname, "Image")));
+
+ASSET_HEADS.forEach(([route, filePath]) => {
+  if (fs.existsSync(filePath)) {
+    app.get(route, (req, res) => {
+      res.sendFile(filePath);
+    });
+  }
+});
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// ✅ Serve Orders folder (PDFs)
-app.use('/Orders', express.static(path.join(__dirname, 'Orders')));
+app.get("/index.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 
 /* ===============================
    🔐 ADMIN AUTH (server-side)
@@ -48,25 +119,110 @@ app.use('/Orders', express.static(path.join(__dirname, 'Orders')));
 //   node -e "const c=require('crypto');const salt=c.randomBytes(16).toString('hex');const hash=c.scryptSync(process.argv[1],salt,64).toString('hex');console.log(salt+':'+hash)" "yourNewAdminPassword"
 // then paste the printed "salt:hash" string as ADMIN_PASSWORD_HASH. The plaintext
 // password is never stored anywhere, on the server or in git.
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@uaelectronics.in";
-const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || "";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ? String(process.env.ADMIN_EMAIL).trim() : "";
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH ? String(process.env.ADMIN_PASSWORD_HASH).trim() : "";
+
+function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
+  const hash = crypto.scryptSync(String(password), salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, storedPassword) {
+  if (!storedPassword || typeof storedPassword !== "string") {
+    return false;
+  }
+
+  if (storedPassword.includes(":")) {
+    const [salt, storedHash] = storedPassword.split(":");
+    if (!salt || !storedHash) return false;
+
+    const candidateHash = crypto.scryptSync(String(password), salt, 64).toString("hex");
+    const a = Buffer.from(candidateHash, "hex");
+    const b = Buffer.from(storedHash, "hex");
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+
+  const legacyEncoded = Buffer.from(String(password)).toString("base64");
+  return storedPassword === legacyEncoded;
+}
+
+function hashUserPassword(password) {
+  return hashPassword(String(password));
+}
+
+function verifyUserPassword(password, storedPassword) {
+  if (!storedPassword || typeof storedPassword !== "string") {
+    return false;
+  }
+
+  if (storedPassword.includes(":")) {
+    return verifyPassword(password, storedPassword);
+  }
+
+  const legacyEncoded = Buffer.from(String(password)).toString("base64");
+  return storedPassword === legacyEncoded;
+}
 
 function verifyAdminPassword(password) {
   if (!ADMIN_PASSWORD_HASH || !ADMIN_PASSWORD_HASH.includes(":")) {
     console.warn("⚠️ ADMIN_PASSWORD_HASH is not set — admin login is disabled until it's configured.");
     return false;
   }
-  const [salt, storedHash] = ADMIN_PASSWORD_HASH.split(":");
-  const candidateHash = crypto.scryptSync(password, salt, 64).toString("hex");
-  const a = Buffer.from(candidateHash, "hex");
-  const b = Buffer.from(storedHash, "hex");
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+
+  return verifyPassword(password, ADMIN_PASSWORD_HASH);
 }
 
-// In-memory session store: token -> expiry timestamp. Tokens are lost on server
-// restart (admin just logs in again) which is fine for a single-admin dashboard.
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function normalizeOrderId(value) {
+  return String(value || "").trim();
+}
+
+function getClientIdentifier(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  const rawIp = Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown";
+  return String(rawIp).split(",")[0].trim() || "unknown";
+}
+
+const requestRateLimits = new Map();
+function enforceRateLimit(key, windowMs, maxRequests, message) {
+  const now = Date.now();
+  const bucket = requestRateLimits.get(key) || [];
+  const recent = bucket.filter(timestamp => now - timestamp < windowMs);
+
+  if (recent.length >= maxRequests) {
+    requestRateLimits.set(key, recent);
+    return false;
+  }
+
+  recent.push(now);
+  requestRateLimits.set(key, recent);
+  return true;
+}
+
 const adminSessions = new Map();
-const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const ADMIN_LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const ADMIN_LOGIN_MAX_ATTEMPTS = 5;
+const adminLoginAttempts = new Map();
+
+function checkAdminLoginRateLimit(email) {
+  const key = String(email || "").trim().toLowerCase();
+  const now = Date.now();
+  const attempts = adminLoginAttempts.get(key) || [];
+  const recent = attempts.filter(ts => now - ts < ADMIN_LOGIN_WINDOW_MS);
+
+  if (recent.length >= ADMIN_LOGIN_MAX_ATTEMPTS) {
+    adminLoginAttempts.set(key, recent);
+    return false;
+  }
+
+  recent.push(now);
+  adminLoginAttempts.set(key, recent);
+  return true;
+}
 
 function requireAdmin(req, res, next) {
   const authHeader = req.headers.authorization || "";
@@ -78,21 +234,29 @@ function requireAdmin(req, res, next) {
     return res.status(401).json({ error: "Admin session expired or invalid. Please log in again." });
   }
 
-  // Sliding expiry so an active admin session doesn't die mid-work
   adminSessions.set(token, Date.now() + ADMIN_SESSION_TTL_MS);
   next();
 }
 
 app.post("/api/admin-login", (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body?.email);
+    const password = req.body?.password;
+
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password required" });
     }
 
-    // Both checks run regardless of which one fails first, and comparisons are
-    // constant-time, so responses don't leak whether the email or password was wrong.
-    const emailOk = email === ADMIN_EMAIL;
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD_HASH) {
+      return res.status(503).json({ error: "Admin authentication is not configured on this server." });
+    }
+
+    const clientKey = `${getClientIdentifier(req)}:${email}`;
+    if (!enforceRateLimit(clientKey, ADMIN_LOGIN_WINDOW_MS, ADMIN_LOGIN_MAX_ATTEMPTS, "Too many failed admin login attempts.")) {
+      return res.status(429).json({ error: "Too many failed admin login attempts. Please try again later." });
+    }
+
+    const emailOk = email === ADMIN_EMAIL.toLowerCase();
     const passOk = verifyAdminPassword(password);
 
     if (!emailOk || !passOk) {
@@ -101,6 +265,8 @@ app.post("/api/admin-login", (req, res) => {
 
     const token = crypto.randomBytes(32).toString("hex");
     adminSessions.set(token, Date.now() + ADMIN_SESSION_TTL_MS);
+    adminLoginAttempts.delete(email);
+    requestRateLimits.delete(clientKey);
 
     res.json({ success: true, token, email: ADMIN_EMAIL });
   } catch (err) {
@@ -110,8 +276,11 @@ app.post("/api/admin-login", (req, res) => {
 });
 
 app.post("/api/admin-logout", requireAdmin, (req, res) => {
-  const token = req.headers.authorization.slice(7);
-  adminSessions.delete(token);
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (token) {
+    adminSessions.delete(token);
+  }
   res.json({ success: true });
 });
 
@@ -119,6 +288,42 @@ const DATA_FILE = path.join(__dirname, "data", "orders.json");
 const PRODUCTS_FILE = path.join(__dirname, "data", "products.json");
 const USERS_FILE = path.join(__dirname, "data", "users.json");
 const ORDERS_PDF_DIR = path.join(__dirname, "Orders");
+
+function readUsers() {
+  try {
+    return JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
+  } catch (err) {
+    return [];
+  }
+}
+
+function backupSensitiveFile(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) return;
+    const backupPath = `${filePath}.bak-${Date.now()}`;
+    fs.copyFileSync(filePath, backupPath);
+  } catch (err) {
+    console.warn(`⚠️ Failed to back up ${filePath}:`, err.message);
+  }
+}
+
+function writeUsers(users) {
+  backupSensitiveFile(USERS_FILE);
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+}
+
+function readOrders() {
+  try {
+    return JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+  } catch (err) {
+    return [];
+  }
+}
+
+function writeOrders(orders) {
+  backupSensitiveFile(DATA_FILE);
+  fs.writeFileSync(DATA_FILE, JSON.stringify(orders, null, 2));
+}
 
 // Ensure directories exist
 if (!fs.existsSync(DATA_FILE.split("/").slice(0, -1).join("/"))) {
@@ -133,6 +338,50 @@ if (!fs.existsSync(USERS_FILE)) {
 if (!fs.existsSync(ORDERS_PDF_DIR)) {
   fs.mkdirSync(ORDERS_PDF_DIR, { recursive: true });
 }
+
+app.get("/api/receipt/:orderId", (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const requestedEmail = String(req.query.email || "").trim().toLowerCase();
+    const authHeader = req.headers.authorization || "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    let orders = [];
+    try {
+      orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+    } catch (err) {
+      orders = [];
+    }
+
+    const order = orders.find(item => String(item.orderId) === String(orderId));
+    if (!order) {
+      return res.status(404).json({ error: "Receipt not found" });
+    }
+
+    const isCustomerMatch = requestedEmail && String(order.customer?.email || "").trim().toLowerCase() === requestedEmail;
+    const isAdmin = bearerToken && adminSessions.get(bearerToken) && adminSessions.get(bearerToken) > Date.now();
+
+    if (!isCustomerMatch && !isAdmin) {
+      return res.status(403).json({ error: "Unauthorized access to receipt" });
+    }
+
+    const fileName = `${orderId}-receipt.pdf`;
+    const filePath = path.join(ORDERS_PDF_DIR, fileName);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "Receipt file not found" });
+    }
+
+    res.download(filePath, fileName, err => {
+      if (err) {
+        console.error("Receipt download error:", err);
+      }
+    });
+  } catch (error) {
+    console.error("Receipt endpoint error:", error);
+    res.status(500).json({ error: "Failed to fetch receipt" });
+  }
+});
 
 /* ===============================
    � GET PRODUCTS
@@ -279,23 +528,30 @@ app.post("/register", (req, res) => {
       return res.status(400).json({ error: "All fields required" });
     }
 
-    let users = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
-    
-    // Check if user already exists
-    if (users.find(u => u.email === email)) {
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const plainPassword = String(password);
+    const trimmedName = String(name).trim();
+
+    if (!normalizedEmail || !plainPassword || !trimmedName) {
+      return res.status(400).json({ error: "All fields required" });
+    }
+
+    const users = readUsers();
+
+    if (users.find(u => String(u.email).trim().toLowerCase() === normalizedEmail)) {
       return res.status(400).json({ error: "Email already registered" });
     }
 
     const newUser = {
       id: Date.now().toString(),
-      email,
-      password: Buffer.from(password).toString("base64"), // Basic encoding (not for production)
-      name,
+      email: normalizedEmail,
+      password: hashUserPassword(plainPassword),
+      name: trimmedName,
       createdAt: new Date().toISOString()
     };
 
     users.push(newUser);
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    writeUsers(users);
 
     res.json({ success: true, message: "User registered successfully", userId: newUser.id });
   } catch (err) {
@@ -315,11 +571,18 @@ app.post("/login", (req, res) => {
       return res.status(400).json({ error: "Email and password required" });
     }
 
-    let users = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
-    const user = users.find(u => u.email === email && u.password === Buffer.from(password).toString("base64"));
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const users = readUsers();
+    const userIndex = users.findIndex(u => String(u.email).trim().toLowerCase() === normalizedEmail);
+    const user = userIndex >= 0 ? users[userIndex] : null;
 
-    if (!user) {
+    if (!user || !verifyUserPassword(password, user.password)) {
       return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    if (!String(user.password).includes(":")) {
+      user.password = hashUserPassword(String(password));
+      writeUsers(users);
     }
 
     res.json({ success: true, userId: user.id, name: user.name, email: user.email });
@@ -338,12 +601,16 @@ app.post("/api/create-order", async (req, res) => {
     const { amount, currency = "INR", receipt, orderId } = req.body;
     const amountInPaise = Number(amount);
 
-    if (!Number.isFinite(amountInPaise) || amountInPaise < 100) {
-      return res.status(400).json({ error: "Amount must be at least 100 paise" });
+    if (!Number.isFinite(amountInPaise) || amountInPaise < 100 || amountInPaise > 100000000) {
+      return res.status(400).json({ error: "Amount must be between 100 paise and 1,000,000 INR" });
     }
 
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       return res.status(401).json({ error: "Razorpay credentials are not configured" });
+    }
+
+    if (typeof receipt !== "string" || !/^UAE[0-9A-Za-z-]+$/.test(receipt)) {
+      return res.status(400).json({ error: "Invalid receipt format" });
     }
 
     const orderPayload = {
@@ -370,7 +637,7 @@ app.post("/api/create-order", async (req, res) => {
   }
 });
 
-app.post("/api/verify-payment", (req, res) => {
+app.post("/api/verify-payment", async (req, res) => {
   try {
     const {
       order_id,
@@ -378,7 +645,9 @@ app.post("/api/verify-payment", (req, res) => {
       payment_id,
       paymentId,
       razorpay_signature,
-      razorpaySignature
+      razorpaySignature,
+      amount,
+      currency
     } = req.body;
 
     const resolvedOrderId = order_id || orderId;
@@ -389,8 +658,12 @@ app.post("/api/verify-payment", (req, res) => {
       return res.status(400).json({ error: "Missing payment verification fields" });
     }
 
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(401).json({ error: "Razorpay secret is not configured" });
+    }
+
     const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "")
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(`${resolvedOrderId}|${resolvedPaymentId}`)
       .digest("hex");
 
@@ -400,6 +673,35 @@ app.post("/api/verify-payment", (req, res) => {
 
     if (!isValid) {
       return res.status(400).json({ success: false, verified: false, error: "Signature mismatch" });
+    }
+
+    const orderAmount = Number(amount);
+    const normalizedCurrency = String(currency || "INR").toUpperCase();
+    const payment = await razorpay.payments.fetch(resolvedPaymentId).catch(() => null);
+
+    if (!payment) {
+      return res.status(404).json({ success: false, verified: false, error: "Payment record not found" });
+    }
+
+    const paymentOrderId = payment.order_id || "";
+    const paymentAmount = Number(payment.amount || 0);
+    const paymentCurrency = String(payment.currency || "").toUpperCase();
+    const capturedStatus = payment.status || "";
+
+    if (paymentOrderId !== resolvedOrderId) {
+      return res.status(400).json({ success: false, verified: false, error: "Payment order mismatch" });
+    }
+
+    if (Number.isFinite(orderAmount) && paymentAmount !== Math.round(orderAmount * 100)) {
+      return res.status(400).json({ success: false, verified: false, error: "Payment amount mismatch" });
+    }
+
+    if (normalizedCurrency !== paymentCurrency) {
+      return res.status(400).json({ success: false, verified: false, error: "Payment currency mismatch" });
+    }
+
+    if (capturedStatus !== "captured") {
+      return res.status(400).json({ success: false, verified: false, error: "Payment is not captured" });
     }
 
     res.json({ success: true, verified: true, message: "Payment signature verified" });
@@ -568,15 +870,30 @@ app.post("/save-order", async (req, res) => {
   try {
     const newOrder = req.body;
 
-    // Validation
-    if (!newOrder || !newOrder.items || newOrder.items.length === 0) {
+    if (!newOrder || !Array.isArray(newOrder.items) || newOrder.items.length === 0) {
       console.error("❌ Invalid order data - no items");
       return res.status(400).json({ error: "No items in order", success: false });
     }
 
-    if (!newOrder.customer || !newOrder.customer.email) {
+    if (!newOrder.customer || !newOrder.customer.email || !newOrder.customer.name || !newOrder.customer.mobile) {
       console.error("❌ Invalid order data - no customer email");
-      return res.status(400).json({ error: "Customer email required", success: false });
+      return res.status(400).json({ error: "Customer name, mobile and email required", success: false });
+    }
+
+    if (!/^\d{10}$/.test(String(newOrder.customer.mobile).replace(/\D/g, ""))) {
+      return res.status(400).json({ error: "Valid 10-digit mobile number required", success: false });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(newOrder.customer.email).trim())) {
+      return res.status(400).json({ error: "Valid email required", success: false });
+    }
+
+    if (!Number.isFinite(Number(newOrder.grand)) || Number(newOrder.grand) <= 0) {
+      return res.status(400).json({ error: "Valid order amount required", success: false });
+    }
+
+    if (String(newOrder.orderId || "").length > 64) {
+      return res.status(400).json({ error: "Invalid order ID length", success: false });
     }
 
     // ✅ Re-validate every item against the live catalog. Prices and totals sent
@@ -617,8 +934,10 @@ app.post("/save-order", async (req, res) => {
     newOrder.subtotal = subtotal;
     newOrder.shipping = shipping;
     newOrder.grand = subtotal + shipping;
+    if (newOrder.paid !== true && newOrder.paymentMethod === "online") {
+      newOrder.paymentStatus = "Pending";
+    }
 
-    // Generate Order ID if not present
     if (!newOrder.orderId) {
       newOrder.orderId = "UAE" + Date.now();
     }
@@ -640,8 +959,13 @@ app.post("/save-order", async (req, res) => {
       orders = [];
     }
 
+    const duplicateOrder = orders.some(order => String(order.orderId || "") === String(newOrder.orderId));
+    if (duplicateOrder) {
+      return res.status(409).json({ error: "Order already exists", success: false });
+    }
+
     orders.push(newOrder);
-    fs.writeFileSync(DATA_FILE, JSON.stringify(orders, null, 2));
+    writeOrders(orders);
 
     console.log("✅ Order saved successfully:", newOrder.orderId);
 
@@ -743,17 +1067,16 @@ app.post("/update-status", requireAdmin, (req, res) => {
    =============================== */
 app.get("/track/:id", (req, res) => {
   try {
-    const id = req.params.id.toLowerCase().trim();
+    const id = normalizeOrderId(req.params.id).toLowerCase();
+    if (!id || id.length < 3 || !/^[a-z0-9-]+$/i.test(id)) {
+      return res.status(400).json({ error: "Invalid order ID" });
+    }
 
     const orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-
-    const order = orders.find(o =>
-      o.orderId?.toLowerCase() === id ||
-      o.orderId?.toLowerCase().includes(id)
-    );
+    const order = orders.find(o => String(o.orderId || "").toLowerCase() === id);
 
     if (!order) {
-      return res.json({ error: "Order not found" });
+      return res.status(404).json({ error: "Order not found" });
     }
 
     res.json(order);
@@ -772,18 +1095,26 @@ const NON_CANCELLABLE_STATUSES = ["Shipped", "Out for Delivery", "Delivered", "C
 
 app.post("/api/cancel-order", (req, res) => {
   try {
-    const { orderId, email } = req.body;
+    const orderId = normalizeOrderId(req.body?.orderId);
+    const email = normalizeEmail(req.body?.email);
+
     if (!orderId || !email) {
       return res.status(400).json({ error: "Order ID and email required" });
     }
 
+    if (!/^[A-Za-z0-9-]+$/.test(orderId)) {
+      return res.status(400).json({ error: "Invalid order ID format" });
+    }
+
     let orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-    const order = orders.find(o => o.orderId === orderId);
+    const order = orders.find(o => String(o.orderId || "") === orderId);
 
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
-    if ((order.customer?.email || "").toLowerCase().trim() !== String(email).toLowerCase().trim()) {
+
+    const storedEmail = normalizeEmail(order.customer?.email);
+    if (storedEmail !== email) {
       return res.status(403).json({ error: "This order doesn't match that email address" });
     }
 
@@ -792,9 +1123,14 @@ app.post("/api/cancel-order", (req, res) => {
       return res.status(409).json({ error: `This order is already "${currentStatus}" and can no longer be cancelled. Please contact support.` });
     }
 
+    const customerIdentifier = String(order.customer?.mobile || "").replace(/\D/g, "");
+    if (!customerIdentifier || customerIdentifier.length < 10) {
+      return res.status(403).json({ error: "Customer order details are incomplete. Please contact support." });
+    }
+
     order.status = "Cancelled";
     order.cancelledAt = new Date().toISOString();
-    fs.writeFileSync(DATA_FILE, JSON.stringify(orders, null, 2));
+    writeOrders(orders);
 
     res.json({ success: true, message: "Order cancelled", status: order.status });
   } catch (err) {
@@ -822,13 +1158,23 @@ app.post("/api/cancel-order", (req, res) => {
 app.post("/generate-pdf", (req, res) => {
   try {
     const orderData = req.body;
-    
+    const authHeader = req.headers.authorization || "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const requesterEmail = normalizeEmail(req.body?.customer?.email || req.query?.email || "");
+
     if (!orderData || !orderData.orderId) {
       console.error("❌ Invalid order data received");
       return res.status(400).json({ error: "Invalid order data" });
     }
 
-    // Ensure Orders directory exists
+    const isAdmin = bearerToken && adminSessions.get(bearerToken) && adminSessions.get(bearerToken) > Date.now();
+    const storedOrder = readOrders().find(item => String(item.orderId || "") === String(orderData.orderId));
+    const isAuthorizedCustomer = !!storedOrder && normalizeEmail(storedOrder.customer?.email || "") === requesterEmail;
+
+    if (!isAdmin && !isAuthorizedCustomer) {
+      return res.status(403).json({ error: "Unauthorized: only the customer or admin can generate receipts" });
+    }
+
     if (!fs.existsSync(ORDERS_PDF_DIR)) {
       console.log("📁 Creating Orders directory:", ORDERS_PDF_DIR);
       fs.mkdirSync(ORDERS_PDF_DIR, { recursive: true });
@@ -1189,6 +1535,12 @@ app.post("/generate-pdf", (req, res) => {
    =============================== */
 app.post("/test-email", async (req, res) => {
   try {
+    const authHeader = req.headers.authorization || "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!bearerToken || !adminSessions.get(bearerToken) || adminSessions.get(bearerToken) <= Date.now()) {
+      return res.status(401).json({ error: "Admin authorization required to send test emails" });
+    }
+
     const { email } = req.body;
 
     if (!email) {
@@ -1267,7 +1619,7 @@ app.get("/email-monitor", (req, res) => {
   res.sendFile(path.join(__dirname, "email-monitor.html"));
 });
 
-app.get("/api/email-queue/status", (req, res) => {
+app.get("/api/email-queue/status", requireAdmin, (req, res) => {
   try {
     const stats = emailQueue.getQueueStats();
     const logs = emailQueue.getEmailLogs(10);
@@ -1281,7 +1633,7 @@ app.get("/api/email-queue/status", (req, res) => {
   }
 });
 
-app.get("/api/email-queue/logs", (req, res) => {
+app.get("/api/email-queue/logs", requireAdmin, (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
     const logs = emailQueue.getEmailLogs(limit);
@@ -1291,7 +1643,7 @@ app.get("/api/email-queue/logs", (req, res) => {
   }
 });
 
-app.post("/api/email-queue/retry-all", (req, res) => {
+app.post("/api/email-queue/retry-all", requireAdmin, (req, res) => {
   try {
     const queue = emailQueue.loadQueue();
     const processedCount = queue.length;
@@ -1311,7 +1663,7 @@ app.post("/api/email-queue/retry-all", (req, res) => {
   }
 });
 
-app.delete("/api/email-queue/clear", (req, res) => {
+app.delete("/api/email-queue/clear", requireAdmin, (req, res) => {
   try {
     emailQueue.saveQueue([]);
     res.json({ message: "Email queue cleared successfully" });
