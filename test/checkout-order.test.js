@@ -2,6 +2,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const crypto = require("node:crypto");
+const vm = require("node:vm");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
@@ -331,6 +332,29 @@ test("checkout frontend uses request timeouts, restores the button, and deduplic
   assert.match(html, /button\.disabled = busy/);
   assert.match(html, /ua_purchase_event_/);
   assert.match(html, /CHECK ORDER STATUS/);
+});
+
+test("server product data retains default gallery images when the API omits them", () => {
+  const html = fs.readFileSync(path.join(projectRoot, "index.html"), "utf8");
+  const helper = html.match(/function mergeServerProductsWithGalleryAssets\(serverProducts\) \{[\s\S]*?\n\}/);
+  assert.ok(helper, "gallery merge helper should be present in the active page");
+  const result = vm.runInNewContext(`(${helper[0]})(serverProducts)`, {
+    defaultProducts: [
+      { id: 1, image: "main-one.webp", images: ["one-1.webp", "one-2.webp", "one-3.webp", "one-4.webp"] },
+      { id: 2, image: "main-two.webp", images: ["two-1.webp", "two-2.webp", "two-3.webp", "two-4.webp"] }
+    ],
+    serverProducts: [
+      { id: 1, name: "Product One", image: "server-one.png" },
+      { id: 2, name: "Product Two", images: ["server-two-1.webp"], image: "server-two.png" },
+      { id: 3, name: "Product Three", image: "server-three.png" }
+    ]
+  });
+
+  assert.deepEqual(Array.from(result[0].images), ["one-1.webp", "one-2.webp", "one-3.webp", "one-4.webp"]);
+  assert.deepEqual(Array.from(result[1].images), ["server-two-1.webp"]);
+  assert.deepEqual(Array.from(result[2].images), ["server-three.png"]);
+  assert.equal(result[0].name, "Product One");
+  assert.equal(result[0].image, "server-one.png");
 });
 
 test("the live root route serves the inline checkout handler, not checkout.js", async () => {
