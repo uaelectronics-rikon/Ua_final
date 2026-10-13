@@ -1,5 +1,7 @@
+// Load environment variables before initializing database/email modules.
+require("dotenv").config();
+
 // ✅ CRITICAL: Force IPv4 DNS BEFORE loading any modules
-// This prevents nodemailer from attempting IPv6 on Render
 const dns = require("dns");
 dns.setDefaultResultOrder("ipv4first");
 
@@ -13,9 +15,7 @@ const sendEmail = require("./email");
 const emailQueue = require("./email-queue");
 const PDFDocument = require("pdfkit");
 const Razorpay = require("razorpay");
-
-// Load environment variables
-require('dotenv').config();
+const db = require("./db");
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -292,23 +292,14 @@ app.post("/api/admin-logout", requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
-const DATA_DIR = process.env.UA_DATA_DIR || path.join(__dirname, "data");
-const DATA_FILE = path.join(DATA_DIR, "orders.json");
-const PAYMENT_INTENTS_FILE = path.join(DATA_DIR, "payment-intents.json");
-const PRODUCTS_FILE = process.env.UA_PRODUCTS_FILE || path.join(__dirname, "data", "products.json");
-const USERS_FILE = path.join(DATA_DIR, "users.json");
 const ORDERS_PDF_DIR = process.env.UA_ORDERS_PDF_DIR || path.join(__dirname, "Orders");
 
-if (require.main === module && process.env.NODE_ENV === "production" && !process.env.UA_DATA_DIR) {
-  throw new Error("UA_DATA_DIR must point to durable storage before production server startup");
+if (require.main === module && process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL must be configured before production server startup");
 }
 
 function readUsers() {
-  try {
-    return JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
-  } catch (err) {
-    return [];
-  }
+  return db.readCollection("users");
 }
 
 function scheduleOrderOutbox() {
@@ -316,102 +307,29 @@ function scheduleOrderOutbox() {
   setImmediate(() => { void processOrderOutbox(); });
 }
 
-function backupSensitiveFile(filePath) {
-  try {
-    if (!fs.existsSync(filePath)) return;
-    const backupPath = `${filePath}.bak-${Date.now()}`;
-    fs.copyFileSync(filePath, backupPath);
-  } catch (err) {
-    console.warn(`⚠️ Failed to back up ${filePath}:`, err.message);
-  }
-}
-
-function writeUsers(users) {
-  backupSensitiveFile(USERS_FILE);
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-}
-
 function readOrders() {
-  try {
-    if (!fs.existsSync(DATA_FILE)) return [];
-    const orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-    if (!Array.isArray(orders)) throw new Error("Orders store must contain an array");
-    return orders;
-  } catch (err) {
-    console.error("Unable to read orders store:", err.message);
-    throw err;
-  }
-}
-
-function writeJsonAtomically(filePath, value) {
-  const directory = path.dirname(filePath);
-  fs.mkdirSync(directory, { recursive: true });
-  const temporaryPath = `${filePath}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
-  const descriptor = fs.openSync(temporaryPath, "wx", 0o600);
-
-  try {
-    fs.writeFileSync(descriptor, JSON.stringify(value, null, 2));
-    fs.fsyncSync(descriptor);
-    fs.closeSync(descriptor);
-    fs.renameSync(temporaryPath, filePath);
-    const directoryDescriptor = fs.openSync(directory, "r");
-    try {
-      fs.fsyncSync(directoryDescriptor);
-    } finally {
-      fs.closeSync(directoryDescriptor);
-    }
-  } catch (error) {
-    try {
-      fs.closeSync(descriptor);
-    } catch (closeError) {
-      // The descriptor may already have been closed before the rename failed.
-    }
-    if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
-    throw error;
-  }
-}
-
-function writeOrders(orders) {
-  writeJsonAtomically(DATA_FILE, orders);
+  return db.readCollection("orders");
 }
 
 function readPaymentIntents() {
-  if (!fs.existsSync(PAYMENT_INTENTS_FILE)) return [];
-  const intents = JSON.parse(fs.readFileSync(PAYMENT_INTENTS_FILE, "utf-8"));
-  if (!Array.isArray(intents)) throw new Error("Payment intent store must contain an array");
-  return intents;
+  return db.readCollection("payment_intents");
 }
 
-function writePaymentIntents(intents) {
-  writeJsonAtomically(PAYMENT_INTENTS_FILE, intents);
-}
-
-// Ensure directories exist
-fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(DATA_FILE)) {
-  writeOrders([]);
-}
-if (!fs.existsSync(USERS_FILE)) {
-  fs.writeFileSync(USERS_FILE, JSON.stringify([]));
-}
 if (!fs.existsSync(ORDERS_PDF_DIR)) {
   fs.mkdirSync(ORDERS_PDF_DIR, { recursive: true });
 }
 
-app.get("/api/receipt/:orderId", (req, res) => {
+app.get("/api/receipt/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
+    if (!/^[A-Za-z0-9_-]{3,80}$/.test(String(orderId || ""))) {
+      return res.status(400).json({ error: "Invalid order ID" });
+    }
     const requestedEmail = String(req.query.email || "").trim().toLowerCase();
     const authHeader = req.headers.authorization || "";
     const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-    let orders = [];
-    try {
-      orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-    } catch (err) {
-      orders = [];
-    }
-
+    const orders = await readOrders();
     const order = orders.find(item => String(item.orderId) === String(orderId));
     if (!order) {
       return res.status(404).json({ error: "Receipt not found" });
@@ -424,17 +342,23 @@ app.get("/api/receipt/:orderId", (req, res) => {
       return res.status(403).json({ error: "Unauthorized access to receipt" });
     }
 
+    const storedReceipt = await db.getReceipt(orderId);
+    if (storedReceipt?.pdf_data) {
+      const safeFileName = `${String(orderId).replace(/[^A-Za-z0-9_-]/g, "_")}-receipt.pdf`;
+      res.type("application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${safeFileName}"`);
+      return res.send(storedReceipt.pdf_data);
+    }
+
+    // Local fallback supports development and any pre-existing receipt not yet imported.
     const fileName = `${orderId}-receipt.pdf`;
     const filePath = path.join(ORDERS_PDF_DIR, fileName);
-
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: "Receipt file not found" });
     }
 
-    res.download(filePath, fileName, err => {
-      if (err) {
-        console.error("Receipt download error:", err);
-      }
+    return res.download(filePath, fileName, err => {
+      if (err) console.error("Receipt download error:", err);
     });
   } catch (error) {
     console.error("Receipt endpoint error:", error);
@@ -445,9 +369,9 @@ app.get("/api/receipt/:orderId", (req, res) => {
 /* ===============================
    � GET PRODUCTS
    =============================== */
-app.get("/products", (req, res) => {
+app.get("/products", async (req, res) => {
   try {
-    const products = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
+    const products = await db.readCollection("products");
     res.json(products);
   } catch (err) {
     console.error("Error reading products:", err);
@@ -458,9 +382,9 @@ app.get("/products", (req, res) => {
 /* ===============================
    📦 GET SINGLE PRODUCT
    =============================== */
-app.get("/product/:id", (req, res) => {
+app.get("/product/:id", async (req, res) => {
   try {
-    const products = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
+    const products = await db.readCollection("products");
     const product = products.find(p => p.id == req.params.id);
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
@@ -478,111 +402,112 @@ app.get("/product/:id", (req, res) => {
 const EDITABLE_PRODUCT_FIELDS = ["price", "mrp", "badge", "inStock", "name", "spec", "image"];
 const VALID_BADGES = ["", "new", "sale", "hot", "bestseller"];
 
-app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
+app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
   try {
     const id = req.params.id;
-    const products = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
-    const product = products.find(p => String(p.id) === String(id));
-    if (!product) return res.status(404).json({ error: "Product not found" });
+    const input = req.body || {};
+    const result = await db.mutateCollection("products", products => {
+      const product = products.find(p => String(p.id) === String(id));
+      if (!product) return { records: products, commit: false, result: { status: 404, body: { error: "Product not found" } } };
 
-    if (req.body.price !== undefined) {
-      const price = Number(req.body.price);
-      if (!Number.isFinite(price) || price <= 0) return res.status(400).json({ error: "Price must be a positive number" });
-      product.price = price;
-    }
-    if (req.body.mrp !== undefined) {
-      const mrp = Number(req.body.mrp);
-      if (!Number.isFinite(mrp) || mrp < 0) return res.status(400).json({ error: "MRP must be a valid number" });
-      product.mrp = mrp;
-    }
-    if (req.body.badge !== undefined) {
-      if (!VALID_BADGES.includes(req.body.badge)) return res.status(400).json({ error: "Invalid badge value" });
-      product.badge = req.body.badge;
-    }
-    if (req.body.inStock !== undefined) {
-      product.inStock = !!req.body.inStock;
-    }
-    if (req.body.name !== undefined && String(req.body.name).trim()) {
-      product.name = String(req.body.name).trim();
-    }
-    if (req.body.spec !== undefined) {
-      product.spec = String(req.body.spec);
-    }
-    if (req.body.image !== undefined) {
-      product.image = String(req.body.image).trim();
-    }
+      if (input.price !== undefined) {
+        const price = Number(input.price);
+        if (!Number.isFinite(price) || price <= 0) return { records: products, commit: false, result: { status: 400, body: { error: "Price must be a positive number" } } };
+        product.price = price;
+      }
+      if (input.mrp !== undefined) {
+        const mrp = Number(input.mrp);
+        if (!Number.isFinite(mrp) || mrp < 0) return { records: products, commit: false, result: { status: 400, body: { error: "MRP must be a valid number" } } };
+        product.mrp = mrp;
+      }
+      if (input.badge !== undefined) {
+        if (!VALID_BADGES.includes(input.badge)) return { records: products, commit: false, result: { status: 400, body: { error: "Invalid badge value" } } };
+        product.badge = input.badge;
+      }
+      if (input.inStock !== undefined) product.inStock = !!input.inStock;
+      if (input.name !== undefined && String(input.name).trim()) product.name = String(input.name).trim();
+      if (input.spec !== undefined) product.spec = String(input.spec);
+      if (input.image !== undefined) product.image = String(input.image).trim();
 
-    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2));
-    res.json({ success: true, product });
+      return { records: products, result: { status: 200, body: { success: true, product } } };
+    });
+    return res.status(result.status).json(result.body);
   } catch (err) {
-    console.error("Update product error:", err);
-    res.status(500).json({ error: "Failed to update product" });
+    console.error("Update product error:", err.message);
+    return res.status(500).json({ error: "Failed to update product" });
   }
 });
 
-/* ===============================
-   🛠 ADMIN: ADD NEW PRODUCT
-   =============================== */
-app.post("/api/admin/products", requireAdmin, (req, res) => {
+app.post("/api/admin/products", requireAdmin, async (req, res) => {
   try {
-    const { name, brand, category, icon, image, price, mrp, spec, badge } = req.body;
+    const { name, brand, category, icon, image, price, mrp, spec, badge } = req.body || {};
     if (!name || !category || !price) {
       return res.status(400).json({ error: "Name, category, and price are required" });
+    }
+    const priceValue = Number(price);
+    const mrpValue = mrp ? Number(mrp) : priceValue;
+    if (!Number.isFinite(priceValue) || priceValue <= 0 || !Number.isFinite(mrpValue) || mrpValue < 0) {
+      return res.status(400).json({ error: "Valid price and MRP are required" });
     }
     if (badge !== undefined && !VALID_BADGES.includes(badge)) {
       return res.status(400).json({ error: "Invalid badge value" });
     }
 
-    const products = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
     const newProduct = {
       id: Date.now(),
       name: String(name).trim(),
       brand: brand ? String(brand).trim() : "UA RIKON",
-      category,
+      category: String(category).trim(),
       icon: icon || "📦",
       image: image ? String(image).trim() : "",
-      price: Number(price),
-      mrp: mrp ? Number(mrp) : Number(price),
+      price: priceValue,
+      mrp: mrpValue,
       spec: spec || "",
       badge: badge || "",
       rating: 4.5,
       reviews: 0,
       inStock: true
     };
-    products.unshift(newProduct);
-    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2));
-    res.json({ success: true, product: newProduct });
+
+    const result = await db.mutateCollection("products", products => {
+      if (products.some(product => String(product.id) === String(newProduct.id))) {
+        return { records: products, commit: false, result: false };
+      }
+      products.unshift(newProduct);
+      return { records: products, result: true };
+    });
+    if (!result) return res.status(409).json({ error: "Could not allocate a unique product ID; retry" });
+    return res.json({ success: true, product: newProduct });
   } catch (err) {
-    console.error("Add product error:", err);
-    res.status(500).json({ error: "Failed to add product" });
+    console.error("Add product error:", err.message);
+    return res.status(500).json({ error: "Failed to add product" });
   }
 });
 
-/* ===============================
-   🛠 ADMIN: DELETE PRODUCT
-   =============================== */
-app.delete("/api/admin/products/:id", requireAdmin, (req, res) => {
+app.delete("/api/admin/products/:id", requireAdmin, async (req, res) => {
   try {
     const id = req.params.id;
-    let products = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
-    const before = products.length;
-    products = products.filter(p => String(p.id) !== String(id));
-    if (products.length === before) return res.status(404).json({ error: "Product not found" });
-    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2));
-    res.json({ success: true });
+    const result = await db.mutateCollection("products", products => {
+      const remaining = products.filter(product => String(product.id) !== String(id));
+      if (remaining.length === products.length) {
+        return { records: products, commit: false, result: false };
+      }
+      return { records: remaining, result: true };
+    });
+    if (!result) return res.status(404).json({ error: "Product not found" });
+    return res.json({ success: true });
   } catch (err) {
-    console.error("Delete product error:", err);
-    res.status(500).json({ error: "Failed to delete product" });
+    console.error("Delete product error:", err.message);
+    return res.status(500).json({ error: "Failed to delete product" });
   }
 });
 
 /* ===============================
    👤 USER REGISTRATION
    =============================== */
-app.post("/register", (req, res) => {
+app.post("/register", async (req, res) => {
   try {
-    const { email, password, name } = req.body;
-
+    const { email, password, name } = req.body || {};
     if (!email || !password || !name) {
       return res.status(400).json({ error: "All fields required" });
     }
@@ -590,64 +515,68 @@ app.post("/register", (req, res) => {
     const normalizedEmail = String(email).trim().toLowerCase();
     const plainPassword = String(password);
     const trimmedName = String(name).trim();
-
-    if (!normalizedEmail || !plainPassword || !trimmedName) {
-      return res.status(400).json({ error: "All fields required" });
-    }
-
-    const users = readUsers();
-
-    if (users.find(u => String(u.email).trim().toLowerCase() === normalizedEmail)) {
-      return res.status(400).json({ error: "Email already registered" });
+    if (!normalizedEmail || !plainPassword || !trimmedName ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ||
+        normalizedEmail.length > 254 || plainPassword.length > 1024 ||
+        trimmedName.length > 120) {
+      return res.status(400).json({ error: "Valid registration details are required" });
     }
 
     const newUser = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       email: normalizedEmail,
       password: hashUserPassword(plainPassword),
       name: trimmedName,
       createdAt: new Date().toISOString()
     };
 
-    users.push(newUser);
-    writeUsers(users);
+    const result = await db.mutateCollection("users", users => {
+      if (users.some(user => String(user.email || "").trim().toLowerCase() === normalizedEmail)) {
+        return { records: users, commit: false, result: false };
+      }
+      users.push(newUser);
+      return { records: users, result: true };
+    });
 
-    res.json({ success: true, message: "User registered successfully", userId: newUser.id });
+    if (!result) return res.status(400).json({ error: "Email already registered" });
+    return res.json({ success: true, message: "User registered successfully", userId: newUser.id });
   } catch (err) {
-    console.error("Register error:", err);
-    res.status(500).json({ error: "Registration failed" });
+    console.error("Register error:", err.message);
+    return res.status(500).json({ error: "Registration failed" });
   }
 });
 
-/* ===============================
-   🔐 USER LOGIN
-   =============================== */
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
-
+    const { email, password } = req.body || {};
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password required" });
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
-    const users = readUsers();
-    const userIndex = users.findIndex(u => String(u.email).trim().toLowerCase() === normalizedEmail);
-    const user = userIndex >= 0 ? users[userIndex] : null;
+    const users = await readUsers();
+    const user = users.find(item => String(item.email || "").trim().toLowerCase() === normalizedEmail);
 
     if (!user || !verifyUserPassword(password, user.password)) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
     if (!String(user.password).includes(":")) {
-      user.password = hashUserPassword(String(password));
-      writeUsers(users);
+      const upgradedPassword = hashUserPassword(String(password));
+      await db.mutateCollection("users", currentUsers => {
+        const currentUser = currentUsers.find(item => String(item.id) === String(user.id));
+        if (currentUser && !String(currentUser.password || "").includes(":") &&
+            verifyUserPassword(password, currentUser.password)) {
+          currentUser.password = upgradedPassword;
+        }
+        return { records: currentUsers, result: true };
+      });
     }
 
-    res.json({ success: true, userId: user.id, name: user.name, email: user.email });
+    return res.json({ success: true, userId: user.id, name: user.name, email: user.email });
   } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ error: "Login failed" });
+    console.error("Login error:", err.message);
+    return res.status(500).json({ error: "Login failed" });
   }
 });
 
@@ -681,13 +610,13 @@ function normalizePaymentMethod(value) {
   return methods[method] || null;
 }
 
-function loadCatalog() {
-  const catalog = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
+async function loadCatalog() {
+  const catalog = await db.readCollection("products");
   if (!Array.isArray(catalog)) throw new Error("Product catalog must contain an array");
   return catalog;
 }
 
-function prepareOrder(requestData) {
+async function prepareOrder(requestData) {
   if (!requestData || typeof requestData !== "object" || Array.isArray(requestData)) {
     throw new OrderRequestError("Invalid order request");
   }
@@ -727,7 +656,7 @@ function prepareOrder(requestData) {
   }
 
   const catalogStartedAt = Date.now();
-  const catalog = loadCatalog();
+  const catalog = await loadCatalog();
   const catalogLoadDurationMs = Date.now() - catalogStartedAt;
   const calculationStartedAt = Date.now();
   const catalogById = new Map(catalog.map(product => [String(product.id), product]));
@@ -868,35 +797,39 @@ function publicOrder(order) {
   return responseOrder;
 }
 
-function savePersistedOrder(order, paymentId = "") {
+async function savePersistedOrder(order, paymentId = "") {
   const fingerprint = orderFingerprint(order, paymentId);
-  const orders = readOrders();
-  const existing = orders.find(item => String(item.orderId) === order.orderId);
-  if (existing) {
-    if (existing._requestFingerprint && existing._requestFingerprint === fingerprint) {
-      return { order: existing, created: false };
+  return db.mutateCollection("orders", orders => {
+    const existing = orders.find(item => String(item.orderId) === String(order.orderId));
+    if (existing) {
+      if (existing._requestFingerprint && existing._requestFingerprint === fingerprint) {
+        return { records: orders, commit: false, result: { order: existing, created: false } };
+      }
+      throw new OrderRequestError(
+        "This order ID is already associated with a different order",
+        409,
+        "ORDER_ID_CONFLICT"
+      );
     }
-    throw new OrderRequestError("This order ID is already associated with a different order", 409, "ORDER_ID_CONFLICT");
-  }
 
-  const storedOrder = {
-    ...order,
-    _requestFingerprint: fingerprint,
-    _postProcessing: {
-      pdf: { status: "pending", attempts: 0, nextAttemptAt: new Date().toISOString() },
-      email: { status: "pending", attempts: 0, nextAttemptAt: new Date().toISOString() }
-    }
-  };
-  const persistStartedAt = Date.now();
-  orders.push(storedOrder);
-  writeOrders(orders);
-  console.info(JSON.stringify({
-    event: "order.persisted",
-    orderId: order.orderId,
-    durationMs: Date.now() - persistStartedAt,
-    source: order._paymentType === "cod" ? "cod" : "online"
-  }));
-  return { order: storedOrder, created: true };
+    const storedOrder = {
+      ...order,
+      _requestFingerprint: fingerprint,
+      _postProcessing: {
+        pdf: { status: "pending", attempts: 0, nextAttemptAt: new Date().toISOString() },
+        email: { status: "pending", attempts: 0, nextAttemptAt: new Date().toISOString() }
+      }
+    };
+    orders.push(storedOrder);
+    return { records: orders, result: { order: storedOrder, created: true } };
+  }).then(result => {
+    console.info(JSON.stringify({
+      event: "order.persisted",
+      orderId: order.orderId,
+      source: order._paymentType === "cod" ? "cod" : "online"
+    }));
+    return result;
+  });
 }
 
 function orderResponse(res, startedAt, status, payload) {
@@ -924,8 +857,8 @@ function buildVerifiedOrder(intent) {
   };
 }
 
-function finalizeVerifiedIntent(intent) {
-  const existing = readOrders().find(order => order.orderId === intent.order.orderId);
+async function finalizeVerifiedIntent(intent) {
+  const existing = (await readOrders()).find(order => order.orderId === intent.order.orderId);
   if (existing) {
     const fingerprint = orderFingerprint(buildVerifiedOrder(intent), intent.paymentId);
     if (existing._requestFingerprint === fingerprint) return { order: existing, created: false };
@@ -943,13 +876,13 @@ app.post("/api/create-order", checkoutLimiter, async (req, res) => {
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       return orderResponse(res, startedAt, 503, { error: "Razorpay is not configured" });
     }
-    const order = prepareOrder(req.body);
+    const order = await prepareOrder(req.body);
     orderId = order.orderId;
     if (order._paymentType !== "online") {
       throw new OrderRequestError("Choose card or UPI to start online payment");
     }
 
-    const intents = readPaymentIntents();
+    const intents = await readPaymentIntents();
     const existing = intents.find(intent => intent.order.orderId === order.orderId);
     const fingerprint = orderFingerprint(order);
     if (existing) {
@@ -997,10 +930,18 @@ app.post("/api/create-order", checkoutLimiter, async (req, res) => {
         status: "pending",
         createdAt: new Date().toISOString()
       };
-      const currentIntents = readPaymentIntents();
-      currentIntents.push(intent);
-      writePaymentIntents(currentIntents);
-      return intent;
+      const persistedIntent = await db.mutateCollection("payment_intents", currentIntents => {
+        const current = currentIntents.find(item => item.order?.orderId === order.orderId);
+        if (current) {
+          if (current.requestFingerprint !== fingerprint) {
+            throw new OrderRequestError("This order ID is already in use", 409, "ORDER_ID_CONFLICT");
+          }
+          return { records: currentIntents, commit: false, result: current };
+        }
+        currentIntents.push(intent);
+        return { records: currentIntents, result: intent };
+      });
+      return persistedIntent;
     })();
     pendingPaymentOrderCreations.set(order.orderId, { fingerprint, promise: creationPromise });
     let intent;
@@ -1060,7 +1001,7 @@ app.post("/api/verify-payment", checkoutLimiter, async (req, res) => {
       });
     }
 
-    const intents = readPaymentIntents();
+    const intents = await readPaymentIntents();
     const intentIndex = intents.findIndex(item => item.razorpayOrderId === razorpayOrderId);
     if (intentIndex < 0) {
       return orderResponse(res, startedAt, 404, { success: false, verified: false, error: "Payment request not found" });
@@ -1083,14 +1024,28 @@ app.post("/api/verify-payment", checkoutLimiter, async (req, res) => {
           payment.status !== "captured") {
         throw new OrderRequestError("Payment amount, currency, order, or capture status did not match", 400, "PAYMENT_MISMATCH");
       }
-      intent.status = "verified";
-      intent.paymentId = paymentId;
-      intent.verifiedAt = new Date().toISOString();
-      intents[intentIndex] = intent;
-      writePaymentIntents(intents);
+      const updatedIntent = await db.mutateCollection("payment_intents", currentIntents => {
+        const idx = currentIntents.findIndex(item => item.razorpayOrderId === razorpayOrderId);
+        if (idx < 0) {
+          return { records: currentIntents, commit: false, result: null };
+        }
+        const current = currentIntents[idx];
+        if (current.status === "verified" && current.paymentId !== paymentId) {
+          throw new OrderRequestError("Payment ID does not match the verified payment", 409, "PAYMENT_ID_CONFLICT");
+        }
+        current.status = "verified";
+        current.paymentId = paymentId;
+        current.verifiedAt = current.verifiedAt || new Date().toISOString();
+        currentIntents[idx] = current;
+        return { records: currentIntents, result: current };
+      });
+      if (!updatedIntent) {
+        return orderResponse(res, startedAt, 404, { success: false, verified: false, error: "Payment request not found" });
+      }
+      Object.assign(intent, updatedIntent);
     }
 
-    const result = finalizeVerifiedIntent(intent);
+    const result = await finalizeVerifiedIntent(intent);
     const body = {
       success: true,
       verified: true,
@@ -1144,7 +1099,8 @@ function generateOrderPDF(orderData) {
         fs.mkdirSync(ORDERS_PDF_DIR, { recursive: true });
       }
 
-      const fileName = `${orderData.orderId}-receipt.pdf`;
+      const safeOrderId = String(orderData.orderId).replace(/[^A-Za-z0-9_-]/g, "_");
+      const fileName = `${safeOrderId}-receipt.pdf`;
       const filePath = path.join(ORDERS_PDF_DIR, fileName);
       
       console.log("📝 Generating PDF:", filePath);
@@ -1154,11 +1110,20 @@ function generateOrderPDF(orderData) {
       
       let resolved = false;
 
-      stream.on("finish", () => {
-        console.log("✅ PDF saved:", filePath);
-        if (!resolved) {
-          resolved = true;
-          resolve({ success: true, fileName, filePath: filePath, urlPath: `/Orders/${fileName}` });
+      stream.on("finish", async () => {
+        try {
+          const pdfBuffer = fs.readFileSync(filePath);
+          await db.saveReceipt(orderData.orderId, fileName, pdfBuffer);
+          console.log("✅ PDF saved to local cache and Neon:", filePath);
+          if (!resolved) {
+            resolved = true;
+            resolve({ success: true, fileName, filePath, urlPath: `/Orders/${fileName}` });
+          }
+        } catch (error) {
+          if (!resolved) {
+            resolved = true;
+            reject(error);
+          }
         }
       });
 
@@ -1279,12 +1244,12 @@ function generateOrderPDF(orderData) {
 }
 
 
-app.post("/save-order", checkoutLimiter, (req, res) => {
+app.post("/save-order", checkoutLimiter, async (req, res) => {
   const startedAt = Date.now();
   let orderId = req.body?.orderId || null;
   try {
     const validationStartedAt = Date.now();
-    const order = prepareOrder(req.body);
+    const order = await prepareOrder(req.body);
     orderId = order.orderId;
     if (order._paymentType !== "cod") {
       throw new OrderRequestError("Online orders must be confirmed through Razorpay verification", 400, "PAYMENT_VERIFICATION_REQUIRED");
@@ -1295,7 +1260,7 @@ app.post("/save-order", checkoutLimiter, (req, res) => {
       durationMs: Date.now() - validationStartedAt
     }));
 
-    const saved = savePersistedOrder(order);
+    const saved = await savePersistedOrder(order);
     const response = orderResponse(res, startedAt, saved.created ? 201 : 200, {
       success: true,
       created: saved.created,
@@ -1327,7 +1292,7 @@ app.post("/save-order", checkoutLimiter, (req, res) => {
   }
 });
 
-app.post("/api/order-status", checkoutLimiter, (req, res) => {
+app.post("/api/order-status", checkoutLimiter, async (req, res) => {
   const orderId = String(req.body?.orderId || "").trim();
   const email = normalizeEmail(req.body?.email);
   const fingerprint = req.body?.order && submittedOrderFingerprint(req.body.order);
@@ -1336,11 +1301,11 @@ app.post("/api/order-status", checkoutLimiter, (req, res) => {
   }
 
   try {
-    const order = readOrders().find(item =>
+    const order = (await readOrders()).find(item =>
       item.orderId === orderId && normalizeEmail(item.customer?.email) === email
     );
     if (order) {
-      const intent = readPaymentIntents().find(item => item.order.orderId === orderId);
+      const intent = (await readPaymentIntents()).find(item => item.order.orderId === orderId);
       const expectedFingerprint = intent?.requestFingerprint || order._requestFingerprint;
       if (expectedFingerprint !== fingerprint) {
         return res.status(409).json({ success: false, error: "Order ID does not match this checkout" });
@@ -1348,7 +1313,7 @@ app.post("/api/order-status", checkoutLimiter, (req, res) => {
       return res.json({ success: true, state: "confirmed", order: publicOrder(order) });
     }
 
-    const intent = readPaymentIntents().find(item =>
+    const intent = (await readPaymentIntents()).find(item =>
       item.order.orderId === orderId && normalizeEmail(item.order.customer.email) === email
     );
     if (!intent) return res.status(404).json({ success: false, state: "not_found" });
@@ -1357,7 +1322,7 @@ app.post("/api/order-status", checkoutLimiter, (req, res) => {
     }
 
     if (intent.status === "verified") {
-      const saved = finalizeVerifiedIntent(intent);
+      const saved = await finalizeVerifiedIntent(intent);
       if (saved.created) scheduleOrderOutbox();
       return res.json({ success: true, state: "confirmed", order: publicOrder(saved.order) });
     }
@@ -1370,13 +1335,15 @@ app.post("/api/order-status", checkoutLimiter, (req, res) => {
 
 let orderOutboxRunning = false;
 
-function updateOrderProcessing(orderId, update) {
-  const orders = readOrders();
-  const order = orders.find(item => item.orderId === orderId);
-  if (!order || !order._postProcessing) return null;
-  update(order._postProcessing);
-  writeOrders(orders);
-  return order;
+async function updateOrderProcessing(orderId, update) {
+  return db.mutateCollection("orders", orders => {
+    const order = orders.find(item => item.orderId === orderId);
+    if (!order || !order._postProcessing) {
+      return { records: orders, commit: false, result: null };
+    }
+    update(order._postProcessing);
+    return { records: orders, result: order };
+  });
 }
 
 async function processOrderOutbox({
@@ -1386,7 +1353,7 @@ async function processOrderOutbox({
   if (orderOutboxRunning) return;
   orderOutboxRunning = true;
   try {
-    const dueOrderIds = readOrders()
+    const dueOrderIds = (await readOrders())
       .filter(order => order._postProcessing && (
         ["pending", "retrying"].includes(order._postProcessing.pdf?.status) ||
         ["pending", "retrying"].includes(order._postProcessing.email?.status)
@@ -1394,7 +1361,7 @@ async function processOrderOutbox({
       .map(order => order.orderId);
 
     for (const orderId of dueOrderIds) {
-      let order = readOrders().find(item => item.orderId === orderId);
+      let order = (await readOrders()).find(item => item.orderId === orderId);
       if (!order?._postProcessing) continue;
       const pdfTask = order._postProcessing.pdf;
       const pdfDue = pdfTask && ["pending", "retrying"].includes(pdfTask.status) &&
@@ -1404,7 +1371,7 @@ async function processOrderOutbox({
         const pdfStartedAt = Date.now();
         try {
           const pdfResult = await pdfGenerator(order);
-          updateOrderProcessing(orderId, state => {
+          await updateOrderProcessing(orderId, state => {
             state.pdf = {
               status: "complete",
               attempts: (state.pdf?.attempts || 0) + 1,
@@ -1420,7 +1387,7 @@ async function processOrderOutbox({
         } catch (error) {
           const attempts = (pdfTask.attempts || 0) + 1;
           const finalFailure = attempts >= 8;
-          updateOrderProcessing(orderId, state => {
+          await updateOrderProcessing(orderId, state => {
             state.pdf = {
               status: finalFailure ? "failed" : "retrying",
               attempts,
@@ -1438,8 +1405,29 @@ async function processOrderOutbox({
         }
       }
 
-      order = readOrders().find(item => item.orderId === orderId);
+      order = (await readOrders()).find(item => item.orderId === orderId);
       if (!order?._postProcessing) continue;
+
+      if (order._postProcessing.pdf?.status === "complete") {
+        const durableReceipt = await db.getReceipt(orderId);
+        if (!durableReceipt) {
+          const cachedPath = order._postProcessing.pdf.filePath;
+          if (cachedPath && fs.existsSync(cachedPath)) {
+            const safeOrderId = String(orderId).replace(/[^A-Za-z0-9_-]/g, "_");
+            await db.saveReceipt(orderId, `${safeOrderId}-receipt.pdf`, fs.readFileSync(cachedPath));
+          } else {
+            await updateOrderProcessing(orderId, state => {
+              state.pdf = {
+                ...state.pdf,
+                status: "retrying",
+                nextAttemptAt: new Date().toISOString()
+              };
+            });
+            continue;
+          }
+        }
+      }
+
       const emailTask = order._postProcessing.email;
       if (!emailTask || !["pending", "retrying"].includes(emailTask.status) ||
           new Date(emailTask.nextAttemptAt || 0).getTime() > Date.now()) continue;
@@ -1450,7 +1438,7 @@ async function processOrderOutbox({
           ? order._postProcessing.pdf.filePath
           : null;
         const sent = await emailSender(order.customer.email, publicOrder(order), pdfPath);
-        updateOrderProcessing(orderId, state => {
+        await updateOrderProcessing(orderId, state => {
           state.email = {
             status: sent ? "sent" : "queued",
             attempts: (state.email?.attempts || 0) + 1,
@@ -1464,7 +1452,7 @@ async function processOrderOutbox({
         }));
       } catch (error) {
         const attempts = (emailTask.attempts || 0) + 1;
-        updateOrderProcessing(orderId, state => {
+        await updateOrderProcessing(orderId, state => {
           state.email = {
             status: "retrying",
             attempts,
@@ -1490,85 +1478,76 @@ async function processOrderOutbox({
 /* ===============================
    📦 GET ALL ORDERS
    =============================== */
-app.get("/orders", requireAdmin, (req, res) => {
+app.get("/orders", requireAdmin, async (req, res) => {
   try {
-    const orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-    res.json(orders);
+    return res.json(await readOrders());
   } catch (err) {
-    console.error("Error reading orders:", err);
-    res.json([]);
+    console.error("Error reading orders:", err.message);
+    return res.status(503).json({ error: "Orders are temporarily unavailable" });
   }
 });
 
-/* ===============================
-   🗑 DELETE ORDER
-   =============================== */
-app.delete("/delete-order/:id", requireAdmin, (req, res) => {
+app.delete("/delete-order/:id", requireAdmin, async (req, res) => {
   try {
     const id = req.params.id;
-
-    let orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-    orders = orders.filter(o => o.orderId !== id);
-
-    fs.writeFileSync(DATA_FILE, JSON.stringify(orders, null, 2));
-
-    res.json({ success: true, message: "Order deleted" });
+    const result = await db.mutateCollection("orders", orders => {
+      const remaining = orders.filter(order => String(order.orderId) !== String(id));
+      if (remaining.length === orders.length) {
+        return { records: orders, commit: false, result: false };
+      }
+      return { records: remaining, result: true };
+    });
+    if (!result) return res.status(404).json({ error: "Order not found" });
+    return res.json({ success: true, message: "Order deleted" });
   } catch (err) {
-    console.error("Delete order error:", err);
-    res.status(500).json({ error: "Failed to delete order" });
+    console.error("Delete order error:", err.message);
+    return res.status(500).json({ error: "Failed to delete order" });
   }
 });
 
 /* ===============================
    ✏️ UPDATE STATUS
    =============================== */
-app.post("/update-status", requireAdmin, (req, res) => {
+app.post("/update-status", requireAdmin, async (req, res) => {
   try {
-    const { orderId, status } = req.body;
-
+    const { orderId, status } = req.body || {};
     if (!orderId || !status) {
       return res.status(400).json({ error: "Order ID and status required" });
     }
+    if (String(status).length > 80) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
 
-    let orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-
-    orders = orders.map(o => {
-      if (o.orderId === orderId) {
-        o.status = status;
-      }
-      return o;
+    const result = await db.mutateCollection("orders", orders => {
+      const order = orders.find(item => String(item.orderId) === String(orderId));
+      if (!order) return { records: orders, commit: false, result: false };
+      order.status = String(status);
+      return { records: orders, result: true };
     });
-
-    fs.writeFileSync(DATA_FILE, JSON.stringify(orders, null, 2));
-
-    res.json({ success: true, message: "Status updated" });
+    if (!result) return res.status(404).json({ error: "Order not found" });
+    return res.json({ success: true, message: "Status updated" });
   } catch (err) {
-    console.error("Update status error:", err);
-    res.status(500).json({ error: "Failed to update status" });
+    console.error("Update status error:", err.message);
+    return res.status(500).json({ error: "Failed to update status" });
   }
 });
 
 /* ===============================
    📦 TRACK ORDER
    =============================== */
-app.get("/track/:id", (req, res) => {
+app.get("/track/:id", async (req, res) => {
   try {
     const id = normalizeOrderId(req.params.id).toLowerCase();
     if (!id || id.length < 3 || !/^[a-z0-9-]+$/i.test(id)) {
       return res.status(400).json({ error: "Invalid order ID" });
     }
-
-    const orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-    const order = orders.find(o => String(o.orderId || "").toLowerCase() === id);
-
-    if (!order) {
-      return res.status(404).json({ error: "Order not found" });
-    }
-
-    res.json(order);
+    const orders = await readOrders();
+    const order = orders.find(item => String(item.orderId || "").toLowerCase() === id);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    return res.json(publicOrder(order));
   } catch (err) {
-    console.error("Track order error:", err);
-    res.status(500).json({ error: "Failed to track order" });
+    console.error("Track order error:", err.message);
+    return res.status(503).json({ error: "Order tracking is temporarily unavailable" });
   }
 });
 
@@ -1579,7 +1558,7 @@ app.get("/track/:id", (req, res) => {
 // email it was placed under — as long as it hasn't shipped yet.
 const NON_CANCELLABLE_STATUSES = ["Shipped", "Out for Delivery", "Delivered", "Cancelled"];
 
-app.post("/api/cancel-order", (req, res) => {
+app.post("/api/cancel-order", async (req, res) => {
   try {
     const orderId = normalizeOrderId(req.body?.orderId);
     const email = normalizeEmail(req.body?.email);
@@ -1587,44 +1566,39 @@ app.post("/api/cancel-order", (req, res) => {
     if (!orderId || !email) {
       return res.status(400).json({ error: "Order ID and email required" });
     }
-
     if (!/^[A-Za-z0-9-]+$/.test(orderId)) {
       return res.status(400).json({ error: "Invalid order ID format" });
     }
 
-    let orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-    const order = orders.find(o => String(o.orderId || "") === orderId);
+    const result = await db.mutateCollection("orders", orders => {
+      const order = orders.find(item => String(item.orderId || "") === orderId);
+      if (!order) return { records: orders, commit: false, result: { status: 404, body: { error: "Order not found" } } };
 
-    if (!order) {
-      return res.status(404).json({ error: "Order not found" });
-    }
+      if (normalizeEmail(order.customer?.email) !== email) {
+        return { records: orders, commit: false, result: { status: 403, body: { error: "This order doesn't match that email address" } } };
+      }
 
-    const storedEmail = normalizeEmail(order.customer?.email);
-    if (storedEmail !== email) {
-      return res.status(403).json({ error: "This order doesn't match that email address" });
-    }
+      const currentStatus = order.status || "Confirmed";
+      if (NON_CANCELLABLE_STATUSES.includes(currentStatus)) {
+        return { records: orders, commit: false, result: { status: 409, body: { error: `This order is already "${currentStatus}" and can no longer be cancelled. Please contact support.` } } };
+      }
 
-    const currentStatus = order.status || "Confirmed";
-    if (NON_CANCELLABLE_STATUSES.includes(currentStatus)) {
-      return res.status(409).json({ error: `This order is already "${currentStatus}" and can no longer be cancelled. Please contact support.` });
-    }
+      const customerIdentifier = String(order.customer?.mobile || "").replace(/\D/g, "");
+      if (!customerIdentifier || customerIdentifier.length < 10) {
+        return { records: orders, commit: false, result: { status: 403, body: { error: "Customer order details are incomplete. Please contact support." } } };
+      }
 
-    const customerIdentifier = String(order.customer?.mobile || "").replace(/\D/g, "");
-    if (!customerIdentifier || customerIdentifier.length < 10) {
-      return res.status(403).json({ error: "Customer order details are incomplete. Please contact support." });
-    }
+      order.status = "Cancelled";
+      order.cancelledAt = new Date().toISOString();
+      return { records: orders, result: { status: 200, body: { success: true, message: "Order cancelled", status: order.status } } };
+    });
 
-    order.status = "Cancelled";
-    order.cancelledAt = new Date().toISOString();
-    writeOrders(orders);
-
-    res.json({ success: true, message: "Order cancelled", status: order.status });
+    return res.status(result.status).json(result.body);
   } catch (err) {
-    console.error("Cancel order error:", err);
-    res.status(500).json({ error: "Failed to cancel order" });
+    console.error("Cancel order error:", err.message);
+    return res.status(500).json({ error: "Failed to cancel order" });
   }
 });
-
 
 /* ===============================
    💳 ONLINE PAYMENTS DISABLED
@@ -1641,9 +1615,9 @@ app.post("/api/cancel-order", (req, res) => {
 /* ===============================
    � GENERATE ORDER PDF
    =============================== */
-app.post("/generate-pdf", (req, res) => {
+app.post("/generate-pdf", async (req, res) => {
   try {
-    const orderData = req.body;
+    let orderData = req.body;
     const authHeader = req.headers.authorization || "";
     const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
     const requesterEmail = normalizeEmail(req.body?.customer?.email || req.query?.email || "");
@@ -1654,19 +1628,27 @@ app.post("/generate-pdf", (req, res) => {
     }
 
     const isAdmin = bearerToken && adminSessions.get(bearerToken) && adminSessions.get(bearerToken) > Date.now();
-    const storedOrder = readOrders().find(item => String(item.orderId || "") === String(orderData.orderId));
-    const isAuthorizedCustomer = !!storedOrder && normalizeEmail(storedOrder.customer?.email || "") === requesterEmail;
+    const storedOrder = (await readOrders()).find(item => String(item.orderId || "") === String(orderData.orderId));
 
+    if (!storedOrder) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const isAuthorizedCustomer = normalizeEmail(storedOrder.customer?.email || "") === requesterEmail;
     if (!isAdmin && !isAuthorizedCustomer) {
       return res.status(403).json({ error: "Unauthorized: only the customer or admin can generate receipts" });
     }
+
+    // Use authoritative totals/items/address from the database, not the request body.
+    orderData = storedOrder;
 
     if (!fs.existsSync(ORDERS_PDF_DIR)) {
       console.log("📁 Creating Orders directory:", ORDERS_PDF_DIR);
       fs.mkdirSync(ORDERS_PDF_DIR, { recursive: true });
     }
 
-    const fileName = `${orderData.orderId}-receipt.pdf`;
+    const safeOrderId = String(orderData.orderId).replace(/[^A-Za-z0-9_-]/g, "_");
+    const fileName = `${safeOrderId}-receipt.pdf`;
     const filePath = path.join(ORDERS_PDF_DIR, fileName);
     
     console.log("📝 Generating PDF:", filePath);
@@ -1678,11 +1660,21 @@ app.post("/generate-pdf", (req, res) => {
     let responsesSent = false;
 
     // Handle stream events FIRST
-    stream.on("finish", () => {
-      console.log("✅ PDF saved successfully:", filePath);
-      if (!responsesSent) {
-        responsesSent = true;
-        res.json({ success: true, fileName, filePath: `/Orders/${fileName}` });
+    stream.on("finish", async () => {
+      try {
+        const pdfBuffer = fs.readFileSync(filePath);
+        await db.saveReceipt(orderData.orderId, fileName, pdfBuffer);
+        console.log("✅ PDF saved to local cache and Neon:", filePath);
+        if (!responsesSent) {
+          responsesSent = true;
+          res.json({ success: true, fileName, filePath: `/Orders/${fileName}` });
+        }
+      } catch (err) {
+        console.error("Receipt persistence failed:", err.message);
+        if (!responsesSent) {
+          responsesSent = true;
+          res.status(500).json({ error: "Failed to save receipt persistently" });
+        }
       }
     });
 
@@ -2105,73 +2097,95 @@ app.get("/email-monitor", (req, res) => {
   res.sendFile(path.join(__dirname, "email-monitor.html"));
 });
 
-app.get("/api/email-queue/status", requireAdmin, (req, res) => {
+app.get("/api/email-queue/status", requireAdmin, async (req, res) => {
   try {
-    const stats = emailQueue.getQueueStats();
-    const logs = emailQueue.getEmailLogs(10);
-    res.json({ 
+    const stats = await emailQueue.getQueueStats();
+    const logs = await emailQueue.getEmailLogs(10);
+    return res.json({
       queueStats: stats,
       recentLogs: logs,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(503).json({ error: "Email queue is temporarily unavailable" });
   }
 });
 
-app.get("/api/email-queue/logs", requireAdmin, (req, res) => {
+app.get("/api/email-queue/logs", requireAdmin, async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 50;
-    const logs = emailQueue.getEmailLogs(limit);
-    res.json({ logs, count: logs.length });
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const logs = await emailQueue.getEmailLogs(limit);
+    return res.json({ logs, count: logs.length });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(503).json({ error: "Email logs are temporarily unavailable" });
   }
 });
 
-app.post("/api/email-queue/retry-all", requireAdmin, (req, res) => {
+app.post("/api/email-queue/retry-all", requireAdmin, async (req, res) => {
   try {
-    const queue = emailQueue.loadQueue();
-    const processedCount = queue.length;
-    
-    queue.forEach(item => {
-      item.nextRetry = new Date().toISOString();
-      item.status = 'pending';
+    const result = await db.mutateCollection("email_queue", queue => {
+      const processedCount = queue.length;
+      for (const item of queue) {
+        item.nextRetry = new Date().toISOString();
+        item.status = "pending";
+      }
+      return { records: queue, result: { processedCount } };
     });
-    
-    emailQueue.saveQueue(queue);
-    res.json({ 
-      message: `${processedCount} emails marked for immediate retry`,
-      queued: processedCount
+    return res.json({
+      message: `${result.processedCount} emails marked for immediate retry`,
+      queued: result.processedCount
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(503).json({ error: "Could not update the email queue" });
   }
 });
 
-app.delete("/api/email-queue/clear", requireAdmin, (req, res) => {
+app.delete("/api/email-queue/clear", requireAdmin, async (req, res) => {
   try {
-    emailQueue.saveQueue([]);
-    res.json({ message: "Email queue cleared successfully" });
+    await emailQueue.saveQueue([]);
+    return res.json({ message: "Email queue cleared successfully" });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(503).json({ error: "Could not clear the email queue" });
   }
 });
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log("\n" + "=".repeat(50));
-    console.log("🚀 UA ELECTRONICS SERVER STARTED");
-    console.log("=".repeat(50));
-    console.log(`📱 Server running on port: ${PORT}`);
-    console.log(`📧 Email: ${process.env.EMAIL_USER ? "✅ Configured" : "❌ Not configured"}`);
-    console.log(`💳 Payment Method: ✅ Razorpay Standard Checkout + COD available`);
-    console.log(`📄 PDF Order Receipts: ✅ Auto-generated and stored in /Orders folder`);
-    console.log("=".repeat(50) + "\n");
-    scheduleOrderOutbox();
+  db.verifySchema().then(() => {
+    const server = app.listen(PORT, () => {
+      console.log("\n" + "=".repeat(50));
+      console.log("🚀 UA ELECTRONICS SERVER STARTED");
+      console.log("=".repeat(50));
+      console.log(`📱 Server running on port: ${PORT}`);
+      console.log(`📧 Email: ${process.env.EMAIL_USER && process.env.EMAIL_PASS ? "✅ Configured" : "❌ Not configured"}`);
+      console.log("💳 Payment Method: Razorpay Standard Checkout + COD");
+      console.log("🗄️ Persistent application data: Neon PostgreSQL");
+      console.log("📄 Receipt PDFs: stored in Neon PostgreSQL with local cache");
+      console.log("=".repeat(50) + "\n");
+      scheduleOrderOutbox();
+    });
+
+    const outboxTimer = setInterval(() => { void processOrderOutbox(); }, 10000);
+    outboxTimer.unref();
+
+    const shutdown = async () => {
+      server.close(async () => {
+        try {
+          clearInterval(outboxTimer);
+          await db.close();
+          process.exit(0);
+        } catch (error) {
+          console.error("Shutdown error:", error.message);
+          process.exit(1);
+        }
+      });
+    };
+    process.once("SIGTERM", shutdown);
+    process.once("SIGINT", shutdown);
+  }).catch(async error => {
+    console.error("❌ Database startup check failed:", error.message);
+    try { await db.close(); } catch (_) {}
+    process.exitCode = 1;
   });
-  const outboxTimer = setInterval(() => { void processOrderOutbox(); }, 10000);
-  outboxTimer.unref();
 }
 
 module.exports = { app, processOrderOutbox, razorpay };

@@ -1,72 +1,66 @@
-const { google } = require('googleapis');
+const nodemailer = require("nodemailer");
 const fs = require('fs');
 const path = require('path');
 
 require('dotenv').config();
 const emailQueue = require("./email-queue");
+const db = require("./db");
 
 const GMAIL_USER = process.env.EMAIL_USER;
-const GMAIL_REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const EMAIL_PASS = String(process.env.EMAIL_PASS || "").replace(/\s+/g, "");
+const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
+const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
+const SMTP_SECURE = process.env.SMTP_SECURE === undefined
+  ? SMTP_PORT === 465
+  : String(process.env.SMTP_SECURE).toLowerCase() === "true";
 
-// ============================================
-// VALIDATION
-// ============================================
+let transporter = null;
+
 if (!GMAIL_USER) {
-  console.error("\n❌ EMAIL_USER not set (e.g., rikon@uaelectronicsindia.com)");
+  console.error("❌ EMAIL_USER is not set");
 }
 
-if (!GMAIL_REFRESH_TOKEN || !GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-  console.error("\n❌ Gmail API credentials missing!");
-  console.error("   Required environment variables:");
-  console.error("   - GMAIL_REFRESH_TOKEN");
-  console.error("   - GOOGLE_CLIENT_ID");
-  console.error("   - GOOGLE_CLIENT_SECRET");
-  console.error("\n📚 Setup guide: See 'Gmail API Setup' section below");
+if (!EMAIL_PASS) {
+  console.error("❌ EMAIL_PASS is not set (Google App Password required)");
 }
 
-// ============================================
-// GMAIL API OAUTH CLIENT
-// ============================================
-let oauth2Client = null;
-let gmail = null;
-
-function initializeGmailAPI() {
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN) {
-    console.error("❌ Cannot initialize Gmail API — credentials missing");
-    return false;
-  }
-
-  try {
-    oauth2Client = new google.auth.OAuth2(
-      GOOGLE_CLIENT_ID,
-      GOOGLE_CLIENT_SECRET,
-      'http://localhost:3000/oauth2callback' // Redirect URI (not used in this flow)
-    );
-
-    oauth2Client.setCredentials({
-      refresh_token: GMAIL_REFRESH_TOKEN,
-    });
-
-    gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-    console.log("✅ Gmail API initialized");
-    return true;
-  } catch (error) {
-    console.error("❌ Gmail API initialization failed:", error.message);
-    return false;
-  }
+if (!Number.isInteger(SMTP_PORT) || SMTP_PORT < 1 || SMTP_PORT > 65535) {
+  console.error("❌ SMTP_PORT must be a valid TCP port");
 }
 
-// Initialize on startup
-if (GMAIL_USER && GMAIL_REFRESH_TOKEN && GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
-  initializeGmailAPI();
-  console.log("📧 Email service: Gmail API (Google Workspace)");
+if (
+  GMAIL_USER &&
+  EMAIL_PASS &&
+  Number.isInteger(SMTP_PORT) &&
+  SMTP_PORT >= 1 &&
+  SMTP_PORT <= 65535
+) {
+  transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    auth: {
+      user: GMAIL_USER,
+      pass: EMAIL_PASS
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000
+  });
+
+  console.log("📧 Email service: SMTP");
   console.log("📧 Account: " + GMAIL_USER);
-  console.log("📧 Method: Gmail API v1 (no SMTP needed)");
-  console.log("✅ EMAIL SERVICE READY\n");
+
+  transporter.verify()
+    .then(() => console.log("✅ SMTP connection and authentication verified"))
+    .catch(error => {
+      console.error(
+        "❌ SMTP verification failed:",
+        error.code || error.message
+      );
+    });
 } else {
-  console.error("❌ FATAL: Gmail API not configured — missing credentials\n");
+  console.error("❌ SMTP email service is not configured");
 }
 
 // ============================================
@@ -84,110 +78,44 @@ function encodeBase64(text) {
 // ============================================
 // SEND EMAIL WITH GMAIL API
 // ============================================
-async function sendEmailWithGmailAPI(mailOptions, retries = 5, delay = 3000) {
+async function sendEmailWithSMTP(mailOptions, retries = 3, delay = 1500) {
+  if (!transporter) {
+    const error = new Error("SMTP email transport is not configured");
+    error.code = "EMAIL_PROVIDER_UNAVAILABLE";
+    throw error;
+  }
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`📤 Sending email (Attempt ${attempt}/${retries})...`);
+      console.log(`📤 Sending email via SMTP (Attempt ${attempt}/${retries})...`);
       console.log(`   Subject: ${mailOptions.subject}`);
 
-      if (!gmail) {
-        throw new Error("Gmail API not initialized — check credentials");
-      }
+      const result = await transporter.sendMail(mailOptions);
 
-      // Define these here so both the simple and multipart paths use the same values
-      const messageId = `<${Date.now()}.${Math.random().toString(36).slice(2)}@uaelectronicsindia.com>`;
-      const timestamp = new Date().toUTCString();
+      console.log("✅ Email sent successfully");
+      if (result.messageId) console.log("   Message ID:", result.messageId);
 
-      // Build MIME message
-      let mimeMessage = `From: ${mailOptions.from}\r\n`;
-mimeMessage += `To: ${mailOptions.to}\r\n`;
-mimeMessage += `Subject: =?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=\r\n`;
-mimeMessage += `Date: ${timestamp}\r\n`;
-mimeMessage += `Message-ID: ${messageId}\r\n`;
-mimeMessage += `MIME-Version: 1.0\r\n`;
-mimeMessage += `Content-Type: text/html; charset="UTF-8"\r\n`;
-mimeMessage += `Reply-To: ${GMAIL_USER}\r\n`;
-mimeMessage += `\r\n`;
-mimeMessage += mailOptions.html;
-
-      // Add attachments if present
-     if (mailOptions.attachments && mailOptions.attachments.length > 0) {
-  const boundary = '===============boundary' + Date.now() + '==';
-  const encodedSubject = `=?UTF-8?B?${Buffer.from(mailOptions.subject).toString('base64')}?=`;
-
-mimeMessage = [
-  `From: ${mailOptions.from}`,
-  `To: ${mailOptions.to}`,
-  `Subject: ${encodedSubject}`,
-  `Date: ${timestamp}`,
-  `Message-ID: ${messageId}`,
-  `MIME-Version: 1.0`,
-  `Content-Type: multipart/mixed; boundary="${boundary}"`,
-  `Reply-To: ${GMAIL_USER}`,
-  ``,
-  `--${boundary}`,
-  `Content-Type: text/html; charset="UTF-8"`,
-  `Content-Transfer-Encoding: base64`,
-  ``,
-  Buffer.from(mailOptions.html).toString('base64'),
-  ``
-].join('\r\n');
-
-  for (const attachment of mailOptions.attachments) {
-    const fileContent = fs.readFileSync(attachment.path);
-    const base64Content = fileContent.toString('base64');
-    mimeMessage += [
-      `--${boundary}`,
-      `Content-Type: ${attachment.contentType}`,
-      `Content-Disposition: attachment; filename="${attachment.filename}"`,
-      `Content-Transfer-Encoding: base64`,
-      ``,
-      base64Content,
-      ``
-    ].join('\r\n');
-  }
-
-  mimeMessage += `--${boundary}--`;
-}
-
-      // Encode message
-      const encodedMessage = encodeBase64(mimeMessage);
-
-      // Send via Gmail API
-      const result = await gmail.users.messages.send({
-        userId: 'me',
-        requestBody: {
-          raw: encodedMessage,
-        },
-      });
-
-      console.log(`✅ Email sent on attempt ${attempt}`);
-      console.log(`   Message ID: ${result.data.id}`);
-      return { success: true, messageId: result.data.id };
-
+      return { success: true, messageId: result.messageId };
     } catch (error) {
-      console.error(`\n❌ Attempt ${attempt} FAILED`);
-      console.error(`   Error: ${error.message}`);
-      console.error(`   Code: ${error.code || 'N/A'}`);
+      console.error(`❌ SMTP send attempt ${attempt} failed:`,
+        error.code || error.message);
 
-      // Authentication failed — no point retrying
-      if (error.message.includes('invalid_grant') || error.message.includes('UNAUTHENTICATED')) {
-        console.error("🔧 AUTH FAILED: Check GMAIL_REFRESH_TOKEN in Render env vars");
-        throw error;
-      }
+      const authFailure =
+        error.code === "EAUTH" ||
+        [534, 535].includes(Number(error.responseCode)) ||
+        /authentication failed|invalid login|bad credentials/i.test(
+          String(error.message)
+        );
 
-      if (attempt < retries) {
-        const waitTime = delay * Math.pow(2, attempt - 1);
-        console.log(`⏳ Retrying in ${waitTime / 1000}s...`);
-        await new Promise(r => setTimeout(r, waitTime));
-      } else {
-        console.error("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        console.error("❌ All email attempts FAILED");
-        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-        throw error;
-      }
+      if (authFailure || attempt === retries) throw error;
+
+      await new Promise(resolve =>
+        setTimeout(resolve, delay * Math.pow(2, attempt - 1))
+      );
     }
   }
+
+  throw new Error("SMTP email delivery failed");
 }
 
 // ============================================
@@ -816,17 +744,17 @@ async function sendEmail(to, orderData, pdfFilePath = null, enqueueOnFailure = t
       console.error(`❌ Invalid email address for order ${orderData.orderId}`);
       const error = new Error("Invalid recipient address");
       error.code = "INVALID_RECIPIENT";
-      emailQueue.logEmail(to, orderData, false, error);
-      if (enqueueOnFailure) emailQueue.addToQueue(to, orderData, pdfFilePath);
+      await emailQueue.logEmail(to, orderData, false, error);
+      if (enqueueOnFailure) await emailQueue.addToQueue(to, orderData, pdfFilePath);
       return false;
     }
 
-    if (!gmail) {
-      console.error("❌ Gmail API not initialized");
-      const error = new Error("Gmail API not initialized");
+    if (!transporter) {
+      console.error("❌ SMTP email transport not initialized");
+      const error = new Error("SMTP email transport not initialized");
       error.code = "EMAIL_PROVIDER_UNAVAILABLE";
-      emailQueue.logEmail(to, orderData, false, error);
-      if (enqueueOnFailure) emailQueue.addToQueue(to, orderData, pdfFilePath);
+      await emailQueue.logEmail(to, orderData, false, error);
+      if (enqueueOnFailure) await emailQueue.addToQueue(to, orderData, pdfFilePath);
       return false;
     }
 
@@ -858,18 +786,29 @@ subject: `Order Confirmation - ${orderData.orderId}`,      html: buildEmailHTML(
       attachments: []
     };
 
-    // Add PDF if provided
-    if (pdfFilePath && fs.existsSync(pdfFilePath)) {
+    // Prefer the local cache when present. After a Render restart, load the
+    // durable receipt bytes from Neon so queued emails can still include the PDF.
+    if (typeof pdfFilePath === "string" && pdfFilePath && fs.existsSync(pdfFilePath)) {
       mailOptions.attachments.push({
         filename: `${orderData.orderId}-receipt.pdf`,
         path: pdfFilePath,
-        contentType: 'application/pdf'
+        contentType: "application/pdf"
       });
-      console.log(`📎 PDF attached: ${pdfFilePath}`);
+      console.log(`📎 PDF attached from local cache: ${pdfFilePath}`);
+    } else {
+      const storedReceipt = await db.getReceipt(orderData.orderId);
+      if (storedReceipt?.pdf_data) {
+        mailOptions.attachments.push({
+          filename: storedReceipt.filename || `${orderData.orderId}-receipt.pdf`,
+          content: storedReceipt.pdf_data,
+          contentType: "application/pdf"
+        });
+        console.log(`📎 PDF attached from persistent storage for order ${orderData.orderId}`);
+      }
     }
 
-    await sendEmailWithGmailAPI(mailOptions);
-    emailQueue.logEmail(to, orderData, true);
+    await sendEmailWithSMTP(mailOptions);
+    await emailQueue.logEmail(to, orderData, true);
     console.log(`\n✅ ORDER EMAIL SENT — Order: ${orderData.orderId}\n`);
     return true;
 
@@ -877,8 +816,8 @@ subject: `Order Confirmation - ${orderData.orderId}`,      html: buildEmailHTML(
     console.error(`\n❌ EMAIL FAILED for order: ${orderData.orderId}`);
     console.error(`   Error code: ${error.code || "EMAIL_DELIVERY_FAILED"}\n`);
 
-    emailQueue.logEmail(to, orderData, false, error);
-    if (enqueueOnFailure) emailQueue.addToQueue(to, orderData, pdfFilePath);
+    await emailQueue.logEmail(to, orderData, false, error);
+    if (enqueueOnFailure) await emailQueue.addToQueue(to, orderData, pdfFilePath);
     return false;
   }
 }
@@ -893,7 +832,7 @@ async function processEmailQueue() {
   emailQueueProcessing = true;
   const startedAt = Date.now();
   try {
-  const queue = emailQueue.loadQueue();
+  const queue = await emailQueue.loadQueue();
   if (queue.length === 0) return;
 
   const pending = queue.filter(item => item.status === 'pending' && new Date(item.nextRetry) <= new Date());
@@ -924,7 +863,20 @@ async function processEmailQueue() {
     }
   }
 
-  emailQueue.saveQueue(queue.filter(item => item.status !== 'sent'));
+  const updatedById = new Map(queue.map(item => [item.id, item]));
+  await db.mutateCollection("email_queue", currentQueue => {
+    const merged = [];
+    for (const currentItem of currentQueue) {
+      const updated = updatedById.get(currentItem.id);
+      if (!updated) {
+        // Preserve queue entries added while this retry batch was sending.
+        merged.push(currentItem);
+      } else if (updated.status !== "sent") {
+        merged.push(updated);
+      }
+    }
+    return { records: merged, result: undefined };
+  });
   console.info(JSON.stringify({
     event: "email.queue_processed",
     attempted: pending.length,
