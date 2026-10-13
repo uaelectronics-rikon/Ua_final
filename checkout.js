@@ -11,8 +11,18 @@ const API_BASE = window.location.origin;
 
 // Load saved state on page load
 if (typeof window !== "undefined") {
-  currentUser = JSON.parse(localStorage.getItem("currentUser")) || null;
-  cartItems = JSON.parse(localStorage.getItem("cartItems")) || [];
+  try { currentUser = JSON.parse(localStorage.getItem("currentUser")) || null; } catch (_) { currentUser = null; }
+  try {
+    const savedCart = JSON.parse(localStorage.getItem("cartItems"));
+    cartItems = Array.isArray(savedCart) ? savedCart
+      .filter(item => item && typeof item === "object" && Number.isSafeInteger(Number(item.id)) &&
+        Number.isFinite(Number(item.price)) && Number(item.price) >= 0)
+      .map(item => {
+        const price = Number(item.price);
+        const qty = Math.max(1, Math.min(99, Number.parseInt(item.qty, 10) || 1));
+        return { ...item, id: Number(item.id), price, qty, subtotal: price * qty };
+      }) : [];
+  } catch (_) { cartItems = []; }
   
   // Update UI if user is logged in
   if (currentUser) {
@@ -135,6 +145,14 @@ function updateUserUI() {
   }
 }
 
+// Escape untrusted values before inserting them into HTML templates. Cart state
+// is client-controlled and must not be treated as trusted markup.
+function escapeCheckoutHtml(value) {
+  return String(value == null ? "" : value).replace(/[&<>\"']/g, character => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '\"': "&quot;", "'": "&#39;"
+  })[character]);
+}
+
 // ======================== CART MANAGEMENT ========================
 /**
  * Add product to cart
@@ -173,7 +191,7 @@ function addToCart(product) {
 function updateCartQty(productId, qty) {
   const item = cartItems.find(item => item.id == productId);
   if (item) {
-    item.qty = parseInt(qty) || 1;
+    item.qty = Math.max(1, Math.min(99, parseInt(qty, 10) || 1));
     item.subtotal = item.price * item.qty;
     saveCart();
     updateCartUI();
@@ -247,10 +265,10 @@ function updateCartUI() {
       } else {
         cartBody.innerHTML = cartItems.map(item => `
           <div class="c-item" data-id="${item.id}">
-            <div class="c-item-img">${item.icon || "📦"}</div>
+            <div class="c-item-img">${escapeCheckoutHtml(item.icon || "📦")}</div>
             <div class="c-item-info">
-              <div class="c-item-brand">${item.brand || "Product"}</div>
-              <div class="c-item-name">${item.name}</div>
+              <div class="c-item-brand">${escapeCheckoutHtml(item.brand || "Product")}</div>
+              <div class="c-item-name">${escapeCheckoutHtml(item.name)}</div>
               <div class="c-item-price">₹${item.price.toLocaleString("en-IN")}</div>
               <div class="qty-row">
                 <button class="q-btn" onclick="updateCartQty(${item.id}, ${Math.max(1, item.qty - 1)})">−</button>
@@ -502,7 +520,7 @@ function showOrderConfirmation(order, orderId) {
   // Build product items HTML
   const itemsHTML = order.items.map(item => `
     <tr style="border-bottom: 1px solid var(--border2);">
-      <td style="padding: 12px 8px; font-weight: 600; color: var(--text);">${item.name}</td>
+      <td style="padding: 12px 8px; font-weight: 600; color: var(--text);">${escapeCheckoutHtml(item.name)}</td>
       <td style="padding: 12px 8px; text-align: center; color: var(--text);">×${item.qty}</td>
       <td style="padding: 12px 8px; text-align: right; color: var(--gold2); font-weight: 700;">₹${(item.price * item.qty).toLocaleString('en-IN')}</td>
     </tr>

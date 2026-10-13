@@ -331,11 +331,36 @@
     
     <script>
         const API_URL = '/api/email-queue';
+        const adminToken = localStorage.getItem('ua_admin_token') || '';
+
+        function authHeaders(extra = {}) {
+            return Object.assign({ 'Authorization': 'Bearer ' + adminToken }, extra);
+        }
+
+        function escapeHtml(value) {
+            return String(value == null ? '' : value).replace(/[&<>\"']/g, character => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;'
+            })[character]);
+        }
+
+        function ensureAdminToken() {
+            if (adminToken) return true;
+            showAlert('Admin login required. Sign in through the website admin panel, then reopen this page.', 'error');
+            document.getElementById('stats-loading').innerHTML = '<p style="color:#ef4444;">Admin login required.</p>';
+            document.getElementById('logs-loading').innerHTML = '<p style="color:#ef4444;">Admin login required.</p>';
+            return false;
+        }
         
         async function loadStatus() {
             try {
-                const response = await fetch(`${API_URL}/status`);
-                const data = await response.json();
+                if (!ensureAdminToken()) return;
+                const response = await fetch(`${API_URL}/status`, { headers: authHeaders() });
+                const data = await response.json().catch(() => ({}));
+                if (response.status === 401 || response.status === 403) {
+                    showAlert('Your admin session is invalid or expired. Sign in again and reopen this page.', 'error');
+                    return;
+                }
+                if (!response.ok) throw new Error(data.error || 'Request failed');
                 
                 document.getElementById('stats-loading').style.display = 'none';
                 document.getElementById('stats-container').style.display = 'block';
@@ -395,9 +420,9 @@
                             ${log.success ? '✅ Success' : '❌ Failed'}
                         </span>
                     </td>
-                    <td>${log.to}</td>
-                    <td><strong>${log.orderId}</strong></td>
-                    <td>${log.error ? '<code style="font-size: 11px;">' + log.error + '</code>' : '—'}</td>
+                    <td>${escapeHtml(log.to)}</td>
+                    <td><strong>${escapeHtml(log.orderId)}</strong></td>
+                    <td>${log.error ? '<code style="font-size: 11px;">' + escapeHtml(log.error) + '</code>' : '—'}</td>
                 </tr>
             `).join('');
         }
@@ -406,9 +431,11 @@
             if (!confirm('Retry all failed emails? This will mark them for immediate retry.')) return;
             
             try {
-                const response = await fetch(`${API_URL}/retry-all`, { method: 'POST' });
-                const data = await response.json();
-                showAlert(data.message, 'success');
+                if (!ensureAdminToken()) return;
+                const response = await fetch(`${API_URL}/retry-all`, { method: 'POST', headers: authHeaders() });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(data.error || 'Request failed');
+                showAlert(data.message || 'Retry request submitted', 'success');
                 setTimeout(loadStatus, 1000);
             } catch (error) {
                 showAlert('Failed to retry emails: ' + error.message, 'error');
@@ -419,9 +446,11 @@
             if (!confirm('Are you sure? This will clear ALL queued emails (failed and pending).')) return;
             
             try {
-                const response = await fetch(`${API_URL}/clear`, { method: 'DELETE' });
-                const data = await response.json();
-                showAlert(data.message, 'success');
+                if (!ensureAdminToken()) return;
+                const response = await fetch(`${API_URL}/clear`, { method: 'DELETE', headers: authHeaders() });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(data.error || 'Request failed');
+                showAlert(data.message || 'Queue cleared', 'success');
                 setTimeout(loadStatus, 1000);
             } catch (error) {
                 showAlert('Failed to clear queue: ' + error.message, 'error');

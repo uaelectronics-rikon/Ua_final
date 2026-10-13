@@ -7507,6 +7507,23 @@ function scrollToProducts() {
 /* ============================================================
    PRODUCTS — RENDER & FILTER
    ============================================================ */
+function escapeHTML(value) {
+  return String(value == null ? '' : value).replace(/[&<>\"']/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;'
+  })[character]);
+}
+
+function safeMediaURL(value) {
+  const raw = String(value == null ? '' : value).trim();
+  if (!raw || (/^[a-z][a-z0-9+.-]*:/i.test(raw) && !/^https?:\/\//i.test(raw))) return '';
+  return escapeHTML(raw);
+}
+
+function safeInlineString(value) {
+  // Percent-encode values inserted into a quoted inline-handler argument.
+  return encodeURIComponent(String(value == null ? '' : value)).replace(/'/g, '%27');
+}
+
 function renderProducts(prods) {
   console.log('🎨 renderProducts() called with', prods ? prods.length : 0, 'products');
   
@@ -7547,14 +7564,14 @@ function renderProducts(prods) {
     const wl = wishlist.includes(p.id);
     const outOfStock = p.inStock === false;
     return `<div class="p-card" itemscope itemtype="https://schema.org/Product">
-      ${outOfStock ? `<div class="p-badge" style="background:#6b7280">OUT OF STOCK</div>` : p.badge ? `<div class="p-badge badge-${p.badge}">${p.badge.toUpperCase()}</div>` : ''}
+      ${outOfStock ? `<div class="p-badge" style="background:#6b7280">OUT OF STOCK</div>` : p.badge ? `<div class="p-badge badge-${escapeHTML(p.badge)}">${escapeHTML(String(p.badge).toUpperCase())}</div>` : ''}
       <div class="p-img" aria-hidden="true" onclick="openGallery(${p.id})" role="button" tabindex="0" style="cursor:pointer">
-        ${p.video ? `<video class="p-video-preview" width="100%" height="100%" style="object-fit:contain;padding:.5rem" muted loop playsinline preload="metadata"><source src="${p.video}" type="video/mp4"></video><div class="gallery-video-play-indicator">▶</div>` : p.image ? `<img itemprop="image" src="${p.image}" alt="${p.name}" width="300" height="300" style="width:100%;height:100%;object-fit:contain;padding:.5rem" loading="lazy" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:3rem">${p.icon || '📦'}</span>` : `<span itemprop="image" style="display:inline-block;width:100%;text-align:center;padding:2rem;font-size:3rem">${p.icon || '📦'}</span>`}
+        ${p.video ? `<video class="p-video-preview" width="100%" height="100%" style="object-fit:contain;padding:.5rem" muted loop playsinline preload="metadata"><source src="${safeMediaURL(p.video)}" type="video/mp4"></video><div class="gallery-video-play-indicator">▶</div>` : p.image ? `<img itemprop="image" src="${safeMediaURL(p.image)}" alt="${escapeHTML(p.name)}" width="300" height="300" style="width:100%;height:100%;object-fit:contain;padding:.5rem" loading="lazy" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:3rem">${escapeHTML(p.icon || '📦')}</span>` : `<span itemprop="image" style="display:inline-block;width:100%;text-align:center;padding:2rem;font-size:3rem">${escapeHTML(p.icon || '📦')}</span>`}
         <div class="p-wl ${wl?'active':''}" onclick="toggleWishlist(${p.id},event)" role="button" aria-label="${wl?'Remove from':'Add to'} wishlist">${wl?'❤️':'🤍'}</div>
       </div>
       <div class="p-info">
-        <div class="p-brand">${p.brand}</div>
-        <div class="p-name" itemprop="name">${p.name}</div>
+        <div class="p-brand">${escapeHTML(p.brand)}</div>
+        <div class="p-name" itemprop="name">${escapeHTML(p.name)}</div>
         <div class="p-rating" itemprop="aggregateRating" itemscope itemtype="https://schema.org/AggregateRating">
           <span class="p-stars">${'★'.repeat(Math.floor(p.rating))}${'☆'.repeat(5-Math.floor(p.rating))}</span>
           <span class="p-rnum" itemprop="ratingValue">${p.rating}</span>
@@ -7564,7 +7581,7 @@ function renderProducts(prods) {
           <span class="p-price" itemprop="price">₹${p.price.toLocaleString('en-IN')}</span>
           ${p.mrp>p.price?`<span class="p-mrp">₹${p.mrp.toLocaleString('en-IN')}</span><span class="p-off">${disc}% off</span>`:''}
         </div>
-        ${p.spec ? `<div class="p-spec">${p.spec}</div>` : ''}
+        ${p.spec ? `<div class="p-spec">${escapeHTML(p.spec)}</div>` : ''}
         <button class="p-add" id="padd-${p.id}" ${outOfStock ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''} onclick="${outOfStock ? '' : `addToCart(${p.id})`}">${outOfStock ? 'OUT OF STOCK' : 'ADD TO CART'}</button>
       </div>
     </div>`;
@@ -7643,7 +7660,7 @@ function handleSearch() {
     (p.spec||'').toLowerCase().includes(q)
   );
   document.getElementById('productsTag').textContent = 'SEARCH RESULTS';
-  document.getElementById('productsTitle').innerHTML = `Results for <span>"${q}"</span>`;
+  document.getElementById('productsTitle').innerHTML = `Results for <span>"${escapeHTML(q)}"</span>`;
   showPage('home');
   setTimeout(() => { renderProducts(res); document.getElementById('products').scrollIntoView({behavior:'smooth'}); }, 100);
 }
@@ -7876,14 +7893,17 @@ function renderCart() {
     totalQty += it.qty;
     const imgSrc = it.image || '';
     const disc = it.mrp > it.price ? Math.round((1 - it.price/it.mrp)*100) : 0;
-    const itemIdAttr = `${it.id}-${colorKey || 'default'}`;
+    const safeItemId = Number(it.id);
+    if (!Number.isSafeInteger(safeItemId)) return '';
+    const safeColorArg = safeInlineString(colorKey);
+    const itemIdAttr = `${safeItemId}-${escapeHTML(colorKey || 'default')}`;
     return `<div class="c-item" id="cart-item-${itemIdAttr}">
-      <div class="c-item-img">${imgSrc ? `<img src="${imgSrc}" alt="${it.name}">` : it.icon || '📦'}</div>
+      <div class="c-item-img">${imgSrc ? `<img src="${safeMediaURL(imgSrc)}" alt="${escapeHTML(it.name)}">` : escapeHTML(it.icon || '📦')}</div>
       <div class="c-item-info">
-        <div class="c-item-brand">${it.brand}</div>
-        <div class="c-item-name">${it.name.substring(0, 45)}${it.name.length > 45 ? '...' : ''}</div>
-        ${it.spec ? `<div class="c-item-spec">${it.spec}</div>` : ''}
-        ${it.color ? `<div class="c-item-color">Color: <strong>${it.color}</strong></div>` : ''}
+        <div class="c-item-brand">${escapeHTML(it.brand)}</div>
+        <div class="c-item-name">${escapeHTML(String(it.name || '').substring(0, 45))}${String(it.name || '').length > 45 ? '...' : ''}</div>
+        ${it.spec ? `<div class="c-item-spec">${escapeHTML(it.spec)}</div>` : ''}
+        ${it.color ? `<div class="c-item-color">Color: <strong>${escapeHTML(it.color)}</strong></div>` : ''}
         <div style="display:flex;gap:1rem;align-items:center;margin-top:.5rem">
           <div>
             <div class="c-item-price">₹${(it.price * it.qty).toLocaleString('en-IN')}</div>
@@ -7891,12 +7911,12 @@ function renderCart() {
           </div>
         </div>
         <div class="qty-row">
-          <button class="q-btn" onclick="changeQty(${it.id},-1,'${colorKey}')" title="Decrease quantity">−</button>
-          <input type="number" class="q-input" id="qty-${itemIdAttr}" value="${it.qty}" min="1" max="99" onchange="setQty(${it.id},this.value,'${colorKey}')" title="Enter quantity">
-          <button class="q-btn" onclick="changeQty(${it.id},1,'${colorKey}')" title="Increase quantity">+</button>
+          <button class="q-btn" onclick="changeQty(${safeItemId},-1,decodeURIComponent('${safeColorArg}'))" title="Decrease quantity">−</button>
+          <input type="number" class="q-input" id="qty-${itemIdAttr}" value="${Math.max(1, Math.min(99, Number(it.qty) || 1))}" min="1" max="99" onchange="setQty(${safeItemId},this.value,decodeURIComponent('${safeColorArg}'))" title="Enter quantity">
+          <button class="q-btn" onclick="changeQty(${safeItemId},1,decodeURIComponent('${safeColorArg}'))" title="Increase quantity">+</button>
         </div>
       </div>
-      <button class="c-rm" onclick="removeItem(${it.id},'${colorKey}')" title="Remove item">🗑</button>
+      <button class="c-rm" onclick="removeItem(${safeItemId},decodeURIComponent('${safeColorArg}'))" title="Remove item">🗑</button>
     </div>`;
   }).join('');
   document.getElementById('cartTotal').textContent = `₹${total.toLocaleString('en-IN')}`;
@@ -8735,7 +8755,7 @@ function trackOrderById() {
       el.innerHTML = `
         <div style="border:1px solid var(--border2);border-radius:10px;padding:1.25rem;background:var(--black3)">
           <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.35rem">
-            <div style="color:var(--gold2);font-weight:700">Order #${o.orderId}</div>
+            <div style="color:var(--gold2);font-weight:700">Order #${escapeHTML(o.orderId)}</div>
             <div style="color:var(--text3);font-size:.8rem">${dt}</div>
           </div>
           <div style="color:var(--text2);font-size:.85rem">Total: ₹${(o.grand || 0).toLocaleString('en-IN')} · ${o.paid ? '✅ Paid' : '💵 ' + (o.paymentMethod || 'COD')}</div>
@@ -8784,7 +8804,7 @@ function renderOrders() {
 
     c.innerHTML = merged.map(o => {
       const dt = new Date(o.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-      const items = (o.items || []).map(i => `<div class="oc-item-chip">${i.icon || '📦'} ${i.name} ×${i.qty}</div>`).join('');
+      const items = (o.items || []).map(i => `<div class="oc-item-chip">${escapeHTML(i.icon || '📦')} ${escapeHTML(i.name)} ×${Number(i.qty) || 1}</div>`).join('');
       const status = o.status || 'Confirmed';
       const nonCancellable = ['Shipped', 'Out for Delivery', 'Delivered', 'Cancelled'].includes(status);
       return `<div class="order-card" style="margin-bottom:1.25rem">
@@ -8802,7 +8822,7 @@ function renderOrders() {
         ${renderTrackingTimeline(o)}
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-top:1rem">
           <div class="oc-total">₹${(o.grand || 0).toLocaleString('en-IN')}</div>
-          <div class="oc-addr">📍 ${o.customer?.addr1 || ''}, ${o.customer?.city || ''}, ${o.customer?.state || ''} - ${o.customer?.pin || ''}</div>
+          <div class="oc-addr">📍 ${escapeHTML(o.customer?.addr1 || '')}, ${escapeHTML(o.customer?.city || '')}, ${escapeHTML(o.customer?.state || '')} - ${escapeHTML(o.customer?.pin || '')}</div>
         </div>
         ${!nonCancellable ? `<div style="margin-top:.85rem;text-align:right">
           <button class="btn-outline" style="padding:.5rem 1rem;font-size:.75rem;color:#ef4444;border-color:#ef4444" onclick="cancelOrder('${o.orderId}')">✕ Cancel Order</button>
@@ -8871,17 +8891,17 @@ function renderAdminDash() {
         const dt = new Date(o.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
         const pill = o.paid ? 'pill-paid' : o.paymentMethod?.includes('COD') ? 'pill-cod' : 'pill-pending';
         const status = o.paid ? '✅ Paid' : '💵 COD';
-        const itemNames = (o.items||[]).map(i=>i.name).join(', ').substring(0,40) + ((o.items||[]).length>1?'...':'');
+        const itemNames = escapeHTML((o.items||[]).map(i=>String(i.name || '')).join(', ').substring(0,40)) + ((o.items||[]).length>1?'...':'');
         const currentTracking = o.status || 'Confirmed';
         const trackingOptions = trackingStatuses.map(s => `<option value="${s}" ${s===currentTracking?'selected':''}>${s}</option>`).join('');
 
         return `<tr>
           <td style="color:var(--gold);font-family:'Oswald',sans-serif;font-size:.72rem">#${o.orderId}</td>
-          <td style="color:var(--text)">${o.customer?.name||'—'}</td>
-          <td>${o.customer?.mobile||'—'}</td>
+          <td style="color:var(--text)">${escapeHTML(o.customer?.name||'—')}</td>
+          <td>${escapeHTML(o.customer?.mobile||'—')}</td>
           <td style="max-width:180px;font-size:.75rem">${itemNames}</td>
           <td style="color:var(--gold2);font-family:'Playfair Display',serif;font-weight:800">₹${(o.grand||0).toLocaleString('en-IN')}</td>
-          <td>${o.paymentMethod||'—'}</td>
+          <td>${escapeHTML(o.paymentMethod||'—')}</td>
           <td><span class="pill ${pill}">${status}</span></td>
           <td>${dt}</td>
           <td>
@@ -8959,11 +8979,11 @@ function renderManageProducts() {
     return `<tr data-pid="${p.id}">
       <td style="max-width:200px">
         <div style="display:flex;align-items:center;gap:.5rem">
-          <span style="font-size:1.1rem">${p.icon || '📦'}</span>
-          <span style="font-size:.78rem;color:var(--text)">${p.name}</span>
+          <span style="font-size:1.1rem">${escapeHTML(p.icon || '📦')}</span>
+          <span style="font-size:.78rem;color:var(--text)">${escapeHTML(p.name)}</span>
         </div>
       </td>
-      <td><input type="text" class="mp-image" value="${p.image || ''}" placeholder="Image URL" style="width:150px;background:var(--black3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:.35rem .5rem;font-size:.72rem"/></td>
+      <td><input type="text" class="mp-image" value="${escapeHTML(p.image || '')}" placeholder="Image URL" style="width:150px;background:var(--black3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:.35rem .5rem;font-size:.72rem"/></td>
       <td><input type="number" class="mp-price" value="${p.price}" min="1" style="width:90px;background:var(--black3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:.35rem .5rem;font-size:.75rem"/></td>
       <td><input type="number" class="mp-mrp" value="${p.mrp || p.price}" min="0" style="width:90px;background:var(--black3);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:.35rem .5rem;font-size:.75rem"/></td>
       <td>
@@ -9096,9 +9116,9 @@ function renderMyListings() {
   if (!mine.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = 'block';
   grid.innerHTML = mine.map(p => `<div class="my-item">
-    <div class="my-item-icon">${p.icon||'📦'}</div>
+    <div class="my-item-icon">${escapeHTML(p.icon||'📦')}</div>
     <div class="my-item-info">
-      <div class="my-item-name">${p.name}</div>
+      <div class="my-item-name">${escapeHTML(p.name)}</div>
       <div class="my-item-price">₹${p.price.toLocaleString('en-IN')}</div>
     </div>
     <button class="my-item-del" onclick="deleteProduct(${p.id})" aria-label="Delete product">🗑</button>
@@ -9673,7 +9693,7 @@ if (product.specifications && product.specifications.length) {
     <div class="gallery-spec-list">
       ${product.specifications.map(item => `
         <div class="gallery-spec-item">
-          <div class="gallery-spec-value">${item}</div>
+          <div class="gallery-spec-value">${escapeHTML(item)}</div>
         </div>
       `).join('')}
     </div>
@@ -9688,7 +9708,7 @@ if (product.specifications && product.specifications.length) {
     item.className = 'gallery-spec-item';
     item.innerHTML = `
       <div class="gallery-spec-label">Feature</div>
-      <div class="gallery-spec-value">${spec}</div>
+      <div class="gallery-spec-value">${escapeHTML(spec)}</div>
     `;
     specDiv.appendChild(item);
   });
@@ -9701,7 +9721,7 @@ if (product.specifications && product.specifications.length) {
   if (product.colors && product.colors.length > 0) {
     colorSection.style.display = 'block';
     colorOptionsDiv.innerHTML = product.colors.map((color, idx) => `
-      <button class="color-btn ${idx === 0 ? 'active' : ''}" onclick="selectColor('${color}', this)">${color}</button>
+      <button class="color-btn ${idx === 0 ? 'active' : ''}" onclick="selectColor(decodeURIComponent('${safeInlineString(color)}'), this)">${escapeHTML(color)}</button>
     `).join('');
     currentGalleryProduct.selectedColor = product.colors[0];
   } else {
@@ -9751,7 +9771,7 @@ if (specsContainer) {
         <h3>Key Details & Features</h3>
         <ul class="modal-specs-list">
           ${product.specs.map(spec => `
-            <li>${spec}</li>
+            <li>${escapeHTML(spec)}</li>
           `).join('')}
         </ul>
       </div>
@@ -9783,17 +9803,17 @@ function updateGalleryMainImage() {
   // If viewing the video (index 0), show video
   if (currentGalleryImageIndex === 0 && currentGalleryProduct.video) {
     currentGalleryIsVideo = true;
-    mainImageDiv.innerHTML = `<video width="100%" height="100%" style="object-fit:contain;background:rgba(0,0,0,0.3);" autoplay muted loop><source src="${currentGalleryProduct.video}" type="video/mp4"></video>`;
+    mainImageDiv.innerHTML = `<video width="100%" height="100%" style="object-fit:contain;background:rgba(0,0,0,0.3);" autoplay muted loop><source src="${safeMediaURL(currentGalleryProduct.video)}" type="video/mp4"></video>`;
   } else {
     currentGalleryIsVideo = false;
     // Display image
     const currentImage = images[currentGalleryImageIndex - 1] || images[0];
     if (currentImage && !currentImage.includes('undefined')) {
-      mainImageDiv.innerHTML = `<img src="${currentImage}" alt="${currentGalleryProduct.name}" style="width:100%;height:100%;object-fit:contain;padding:1rem;max-width:100%">`;
+      mainImageDiv.innerHTML = `<img src="${safeMediaURL(currentImage)}" alt="${escapeHTML(currentGalleryProduct.name)}" style="width:100%;height:100%;object-fit:contain;padding:1rem;max-width:100%">`;
     } else if (currentGalleryProduct.image) {
-      mainImageDiv.innerHTML = `<img src="${currentGalleryProduct.image}" alt="${currentGalleryProduct.name}" style="width:100%;height:100%;object-fit:contain;padding:1rem">`;
+      mainImageDiv.innerHTML = `<img src="${safeMediaURL(currentGalleryProduct.image)}" alt="${escapeHTML(currentGalleryProduct.name)}" style="width:100%;height:100%;object-fit:contain;padding:1rem">`;
     } else {
-      mainImageDiv.innerHTML = currentGalleryProduct.icon || '📦';
+      mainImageDiv.textContent = currentGalleryProduct.icon || '📦';
     }
   }
   

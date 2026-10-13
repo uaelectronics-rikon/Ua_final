@@ -26,11 +26,7 @@ const app = express();
 const PUBLIC_DIR = path.join(__dirname, "public");
 const ALLOWED_CORS_ORIGINS = [
   "https://uaelectronicsindia.com",
-  "https://www.uaelectronicsindia.com",
-  "http://localhost:3000",
-  "http://localhost:8080",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:8080"
+  "https://www.uaelectronicsindia.com"
 ];
 const ASSET_HEADS = [
   ["/checkout.js", path.join(__dirname, "checkout.js")],
@@ -41,10 +37,6 @@ const ASSET_HEADS = [
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
-if (fs.existsSync(PUBLIC_DIR)) {
-  app.use(express.static(PUBLIC_DIR));
-}
-
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin || ALLOWED_CORS_ORIGINS.includes(origin)) {
@@ -52,7 +44,7 @@ app.use(cors({
       return;
     }
 
-    if (/^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin)) {
+    if (process.env.NODE_ENV !== "production" && /^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin)) {
       callback(null, true);
       return;
     }
@@ -86,6 +78,28 @@ const checkoutLimiter = rateLimit({
   message: { error: "Too many checkout requests. Please wait a moment and try again." }
 });
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many authentication attempts. Please wait and try again." }
+});
+const trackingLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many order lookup requests. Please try again shortly." }
+});
+const customerActionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please wait before trying again." }
+});
+
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
@@ -99,7 +113,12 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ limit: "100kb", extended: true }));
 
-app.use("/Image", express.static(path.join(__dirname, "Image")));
+// Static files are deliberately mounted only after the security headers and
+// request limits middleware so HTML, JS, images, and other assets receive the same baseline protections.
+if (fs.existsSync(PUBLIC_DIR)) {
+  app.use(express.static(PUBLIC_DIR, { dotfiles: "deny", index: false, fallthrough: true }));
+}
+app.use("/Image", express.static(path.join(__dirname, "Image"), { dotfiles: "deny", index: false }));
 
 ASSET_HEADS.forEach(([route, filePath]) => {
   if (fs.existsSync(filePath)) {
@@ -151,7 +170,9 @@ function verifyPassword(password, storedPassword) {
   }
 
   const legacyEncoded = Buffer.from(String(password)).toString("base64");
-  return storedPassword === legacyEncoded;
+  const expected = Buffer.from(legacyEncoded);
+  const actual = Buffer.from(storedPassword);
+  return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
 }
 
 function hashUserPassword(password) {
@@ -168,7 +189,9 @@ function verifyUserPassword(password, storedPassword) {
   }
 
   const legacyEncoded = Buffer.from(String(password)).toString("base64");
-  return storedPassword === legacyEncoded;
+  const expected = Buffer.from(legacyEncoded);
+  const actual = Buffer.from(storedPassword);
+  return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
 }
 
 function verifyAdminPassword(password) {
@@ -189,9 +212,9 @@ function normalizeOrderId(value) {
 }
 
 function getClientIdentifier(req) {
-  const forwarded = req.headers["x-forwarded-for"];
-  const rawIp = Array.isArray(forwarded) ? forwarded[0] : forwarded || req.ip || "unknown";
-  return String(rawIp).split(",")[0].trim() || "unknown";
+  // Express resolves req.ip using the configured trusted-proxy setting. Do not
+  // read X-Forwarded-For directly: clients can spoof that header.
+  return String(req.ip || req.socket?.remoteAddress || "unknown").trim() || "unknown";
 }
 
 const requestRateLimits = new Map();
@@ -207,6 +230,14 @@ function enforceRateLimit(key, windowMs, maxRequests, message) {
 
   recent.push(now);
   requestRateLimits.set(key, recent);
+
+  // Bound memory used by custom buckets if an attacker submits many unique emails.
+  if (requestRateLimits.size > 2000) {
+    for (const [bucketKey, timestamps] of requestRateLimits) {
+      if (!timestamps.some(timestamp => now - timestamp < windowMs)) requestRateLimits.delete(bucketKey);
+      if (requestRateLimits.size <= 1500) break;
+    }
+  }
   return true;
 }
 
@@ -219,9 +250,17 @@ const adminLoginAttempts = new Map();
 function checkAdminLoginRateLimit(email) {
   const key = String(email || "").trim().toLowerCase();
   const now = Date.now();
+
+  // Prune stale account buckets and keep the in-memory map bounded.
+  if (adminLoginAttempts.size > 2000) {
+    for (const [attemptKey, timestamps] of adminLoginAttempts) {
+      if (!timestamps.some(ts => now - ts < ADMIN_LOGIN_WINDOW_MS)) adminLoginAttempts.delete(attemptKey);
+      if (adminLoginAttempts.size <= 1500) break;
+    }
+  }
+
   const attempts = adminLoginAttempts.get(key) || [];
   const recent = attempts.filter(ts => now - ts < ADMIN_LOGIN_WINDOW_MS);
-
   if (recent.length >= ADMIN_LOGIN_MAX_ATTEMPTS) {
     adminLoginAttempts.set(key, recent);
     return false;
@@ -260,7 +299,8 @@ app.post("/api/admin-login", (req, res) => {
     }
 
     const clientKey = `${getClientIdentifier(req)}:${email}`;
-    if (!enforceRateLimit(clientKey, ADMIN_LOGIN_WINDOW_MS, ADMIN_LOGIN_MAX_ATTEMPTS, "Too many failed admin login attempts.")) {
+    if (!checkAdminLoginRateLimit(email) ||
+        !enforceRateLimit(clientKey, ADMIN_LOGIN_WINDOW_MS, ADMIN_LOGIN_MAX_ATTEMPTS, "Too many failed admin login attempts.")) {
       return res.status(429).json({ error: "Too many failed admin login attempts. Please try again later." });
     }
 
@@ -319,12 +359,13 @@ if (!fs.existsSync(ORDERS_PDF_DIR)) {
   fs.mkdirSync(ORDERS_PDF_DIR, { recursive: true });
 }
 
-app.get("/api/receipt/:orderId", async (req, res) => {
+app.get("/api/receipt/:orderId", trackingLimiter, async (req, res) => {
   try {
     const { orderId } = req.params;
     if (!/^[A-Za-z0-9_-]{3,80}$/.test(String(orderId || ""))) {
       return res.status(400).json({ error: "Invalid order ID" });
     }
+    res.setHeader("Cache-Control", "no-store, private");
     const requestedEmail = String(req.query.email || "").trim().toLowerCase();
     const authHeader = req.headers.authorization || "";
     const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
@@ -425,9 +466,22 @@ app.put("/api/admin/products/:id", requireAdmin, async (req, res) => {
         product.badge = input.badge;
       }
       if (input.inStock !== undefined) product.inStock = !!input.inStock;
-      if (input.name !== undefined && String(input.name).trim()) product.name = String(input.name).trim();
-      if (input.spec !== undefined) product.spec = String(input.spec);
-      if (input.image !== undefined) product.image = String(input.image).trim();
+      if (input.name !== undefined) {
+        const name = String(input.name).trim();
+        if (!name || name.length > 160) return { records: products, commit: false, result: { status: 400, body: { error: "Product name must be 1–160 characters" } } };
+        product.name = name;
+      }
+      if (input.spec !== undefined) {
+        const spec = String(input.spec);
+        if (spec.length > 2000) return { records: products, commit: false, result: { status: 400, body: { error: "Product specifications are too long" } } };
+        product.spec = spec;
+      }
+      if (input.image !== undefined) {
+        const image = String(input.image).trim();
+        const hasUnsafeMediaScheme = /^[a-z][a-z0-9+.-]*:/i.test(image) && !/^https?:\/\//i.test(image);
+        if (image.length > 2048 || hasUnsafeMediaScheme) return { records: products, commit: false, result: { status: 400, body: { error: "Unsupported image URL" } } };
+        product.image = image;
+      }
 
       return { records: products, result: { status: 200, body: { success: true, product } } };
     });
@@ -444,6 +498,18 @@ app.post("/api/admin/products", requireAdmin, async (req, res) => {
     if (!name || !category || !price) {
       return res.status(400).json({ error: "Name, category, and price are required" });
     }
+    const nameValue = String(name).trim();
+    const brandValue = brand ? String(brand).trim() : "UA RIKON";
+    const categoryValue = String(category).trim();
+    const imageValue = image ? String(image).trim() : "";
+    const specValue = spec == null ? "" : String(spec);
+    const iconValue = icon ? String(icon) : "📦";
+    const hasUnsafeMediaScheme = value => /^[a-z][a-z0-9+.-]*:/i.test(value) && !/^https?:\/\//i.test(value);
+    if (nameValue.length > 160 || brandValue.length > 100 || categoryValue.length > 80 ||
+        imageValue.length > 2048 || specValue.length > 2000 || iconValue.length > 32 ||
+        hasUnsafeMediaScheme(imageValue)) {
+      return res.status(400).json({ error: "Product details are too long or contain an unsupported image URL" });
+    }
     const priceValue = Number(price);
     const mrpValue = mrp ? Number(mrp) : priceValue;
     if (!Number.isFinite(priceValue) || priceValue <= 0 || !Number.isFinite(mrpValue) || mrpValue < 0) {
@@ -455,14 +521,14 @@ app.post("/api/admin/products", requireAdmin, async (req, res) => {
 
     const newProduct = {
       id: Date.now(),
-      name: String(name).trim(),
-      brand: brand ? String(brand).trim() : "UA RIKON",
-      category: String(category).trim(),
-      icon: icon || "📦",
-      image: image ? String(image).trim() : "",
+      name: nameValue,
+      brand: brandValue,
+      category: categoryValue,
+      icon: iconValue,
+      image: imageValue,
       price: priceValue,
       mrp: mrpValue,
-      spec: spec || "",
+      spec: specValue,
       badge: badge || "",
       rating: 4.5,
       reviews: 0,
@@ -505,7 +571,7 @@ app.delete("/api/admin/products/:id", requireAdmin, async (req, res) => {
 /* ===============================
    👤 USER REGISTRATION
    =============================== */
-app.post("/register", async (req, res) => {
+app.post("/register", authLimiter, async (req, res) => {
   try {
     const { email, password, name } = req.body || {};
     if (!email || !password || !name) {
@@ -546,7 +612,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
-app.post("/login", async (req, res) => {
+app.post("/login", authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (!email || !password) {
@@ -795,6 +861,20 @@ function publicOrder(order) {
   delete responseOrder._requestFingerprint;
   delete responseOrder._paymentType;
   return responseOrder;
+}
+
+function publicTrackingOrder(order) {
+  // The order-ID tracking page is public. Return only fields needed to show
+  // status; never expose customer name, email, phone, address, or item details.
+  return {
+    orderId: String(order.orderId || ""),
+    date: order.date || null,
+    grand: Number(order.grand) || 0,
+    paid: Boolean(order.paid),
+    paymentMethod: String(order.paymentMethod || "COD"),
+    paymentStatus: String(order.paymentStatus || "Pending"),
+    status: String(order.status || "Confirmed")
+  };
 }
 
 async function savePersistedOrder(order, paymentId = "") {
@@ -1508,14 +1588,15 @@ app.delete("/delete-order/:id", requireAdmin, async (req, res) => {
 /* ===============================
    ✏️ UPDATE STATUS
    =============================== */
+const VALID_ORDER_STATUSES = ["Confirmed", "Shipped", "Out for Delivery", "Delivered", "Cancelled"];
 app.post("/update-status", requireAdmin, async (req, res) => {
   try {
     const { orderId, status } = req.body || {};
     if (!orderId || !status) {
       return res.status(400).json({ error: "Order ID and status required" });
     }
-    if (String(status).length > 80) {
-      return res.status(400).json({ error: "Invalid status" });
+    if (!VALID_ORDER_STATUSES.includes(String(status))) {
+      return res.status(400).json({ error: "Invalid order status" });
     }
 
     const result = await db.mutateCollection("orders", orders => {
@@ -1535,7 +1616,7 @@ app.post("/update-status", requireAdmin, async (req, res) => {
 /* ===============================
    📦 TRACK ORDER
    =============================== */
-app.get("/track/:id", async (req, res) => {
+app.get("/track/:id", trackingLimiter, async (req, res) => {
   try {
     const id = normalizeOrderId(req.params.id).toLowerCase();
     if (!id || id.length < 3 || !/^[a-z0-9-]+$/i.test(id)) {
@@ -1544,7 +1625,8 @@ app.get("/track/:id", async (req, res) => {
     const orders = await readOrders();
     const order = orders.find(item => String(item.orderId || "").toLowerCase() === id);
     if (!order) return res.status(404).json({ error: "Order not found" });
-    return res.json(publicOrder(order));
+    res.setHeader("Cache-Control", "no-store, private");
+    return res.json(publicTrackingOrder(order));
   } catch (err) {
     console.error("Track order error:", err.message);
     return res.status(503).json({ error: "Order tracking is temporarily unavailable" });
@@ -1558,7 +1640,7 @@ app.get("/track/:id", async (req, res) => {
 // email it was placed under — as long as it hasn't shipped yet.
 const NON_CANCELLABLE_STATUSES = ["Shipped", "Out for Delivery", "Delivered", "Cancelled"];
 
-app.post("/api/cancel-order", async (req, res) => {
+app.post("/api/cancel-order", customerActionLimiter, async (req, res) => {
   try {
     const orderId = normalizeOrderId(req.body?.orderId);
     const email = normalizeEmail(req.body?.email);
@@ -1615,7 +1697,7 @@ app.post("/api/cancel-order", async (req, res) => {
 /* ===============================
    � GENERATE ORDER PDF
    =============================== */
-app.post("/generate-pdf", async (req, res) => {
+app.post("/generate-pdf", customerActionLimiter, async (req, res) => {
   try {
     let orderData = req.body;
     const authHeader = req.headers.authorization || "";
@@ -1682,7 +1764,7 @@ app.post("/generate-pdf", async (req, res) => {
       console.error("❌ Stream error:", err);
       if (!responsesSent) {
         responsesSent = true;
-        res.status(500).json({ error: "Failed to write PDF: " + err.message });
+        res.status(500).json({ error: "Failed to write PDF" });
       }
     });
 
@@ -1691,7 +1773,7 @@ app.post("/generate-pdf", async (req, res) => {
       stream.destroy();
       if (!responsesSent) {
         responsesSent = true;
-        res.status(500).json({ error: "Failed to generate PDF: " + err.message });
+        res.status(500).json({ error: "Failed to generate PDF" });
       }
     });
 
@@ -2094,6 +2176,8 @@ const PORT = process.env.PORT || 3000;
    📧 EMAIL QUEUE MANAGEMENT
    =============================== */
 app.get("/email-monitor", (req, res) => {
+  res.setHeader("Cache-Control", "no-store, private");
+  res.setHeader("Pragma", "no-cache");
   res.sendFile(path.join(__dirname, "email-monitor.html"));
 });
 
@@ -2113,7 +2197,8 @@ app.get("/api/email-queue/status", requireAdmin, async (req, res) => {
 
 app.get("/api/email-queue/logs", requireAdmin, async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit, 10) || 50;
+    const requestedLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(requestedLimit) ? Math.min(100, Math.max(1, requestedLimit)) : 50;
     const logs = await emailQueue.getEmailLogs(limit);
     return res.json({ logs, count: logs.length });
   } catch (error) {
