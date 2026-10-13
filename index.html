@@ -5748,7 +5748,7 @@ footer .footer-seal b{
         <div style="text-align:center;margin-bottom:1.5rem">
           <div style="font-size:3.5rem;margin-bottom:.5rem">✅</div>
           <div class="cs-title" style="color:var(--success)">Order Confirmed!</div>
-          <p style="color:var(--text2);margin-top:.5rem;font-size:.95rem">Thank you for your order. Your payment has been received successfully.</p>
+          <p style="color:var(--text2);margin-top:.5rem;font-size:.95rem">Your order has been safely saved. Payment status is shown below.</p>
         </div>
       </div>
 
@@ -5811,7 +5811,7 @@ footer .footer-seal b{
       <!-- EMAIL NOTIFICATION -->
       <div class="checkout-section">
         <div style="background:rgba(201,162,39,0.1);border:1px solid rgba(201,162,39,0.2);border-radius:10px;padding:1rem;text-align:center;font-size:.9rem">
-          <div style="margin-bottom:.35rem">📧 <strong>Confirmation email sent!</strong></div>
+          <div style="margin-bottom:.35rem">📧 <strong id="coConfEmailStatus">Receipt email is queued for delivery</strong></div>
           <div style="color:var(--text2);font-size:.85rem" id="coConfEmail">—</div>
           <p style="color:var(--text3);font-size:.75rem;margin-top:.5rem">Check your email for order details and tracking information.</p>
         </div>
@@ -6984,6 +6984,22 @@ let currentUser = null;
 let udOpen = false;
 let selectedPayment = '';
 let pendingOrderInfo = null;
+let pendingOrderSubmission = null;
+let pendingPaymentVerification = null;
+let pendingOrderNeedsStatusCheck = false;
+let orderSubmissionBusy = false;
+try {
+  const storedCheckout = JSON.parse(sessionStorage.getItem('ua_pending_checkout') || 'null');
+  if (storedCheckout?.order?.orderId && storedCheckout.order.customer?.email) {
+    pendingOrderSubmission = storedCheckout.order;
+    pendingPaymentVerification = storedCheckout.paymentVerification || null;
+    pendingOrderNeedsStatusCheck = storedCheckout.needsStatusCheck === true;
+    selectedPayment = pendingOrderSubmission.paymentMethod;
+    pendingOrderInfo = pendingOrderSubmission.customer;
+  }
+} catch (storageError) {
+  console.warn('Could not restore pending checkout state:', storageError.message);
+}
 console.log('✓ State variables initialized', {allProducts: allProducts.length, cart: cart.length});
 
 /* ============================================================
@@ -8045,10 +8061,47 @@ function fmtExp(el) {
   el.value = v;
 }
 
-function placeOrder() {
+async function placeOrder() {
+  if (orderSubmissionBusy) return;
   const err = document.getElementById('coErr2');
   err.textContent = '';
+  if (pendingOrderNeedsStatusCheck && pendingOrderSubmission) {
+    setOrderSubmissionBusy(true, 'Checking order status...');
+    try {
+      const status = await checkOrderStatus(pendingOrderSubmission);
+      if (status.state === 'confirmed') {
+        pendingOrderNeedsStatusCheck = false;
+        finishOrderConfirmationUI(status.order);
+        return;
+      }
+      if (status.state === 'payment_pending') {
+        pendingOrderNeedsStatusCheck = false;
+        err.textContent = pendingPaymentVerification
+          ? 'Payment status is not confirmed yet. Do not pay again; click PLACE ORDER to retry secure verification.'
+          : 'Your payment request is ready. Click PLACE ORDER to safely reopen the existing payment request.';
+        return;
+      }
+      pendingOrderNeedsStatusCheck = false;
+      err.textContent = 'No order was saved. You can safely retry this same order.';
+    } catch (statusError) {
+      err.textContent = 'Order status is still unknown. Please check the order status again before retrying.';
+      return;
+    } finally {
+      setOrderSubmissionBusy(false);
+    }
+    return;
+  }
+
+  if (pendingPaymentVerification && pendingOrderSubmission) {
+    await verifyAndConfirmPayment(pendingOrderSubmission, pendingPaymentVerification);
+    return;
+  }
+
   if (!selectedPayment) { err.textContent = '❌ Please choose a payment method'; return; }
+  if (pendingOrderSubmission && selectedPayment !== pendingOrderSubmission.paymentMethod) {
+    err.textContent = 'Resolve or safely retry the existing order with its original payment method before switching.';
+    return;
+  }
 
   // Validate payment-specific fields
   if (selectedPayment === 'card') {
@@ -8070,60 +8123,150 @@ function placeOrder() {
     if (!sel) { err.textContent = '❌ Please select a UPI app'; return; }
   }
 
-  const orderId = 'UAE' + Date.now();
-  const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
-  const shipping = total >= 999 ? 0 : 49;
-  const grand = total + shipping;
+  if (!pendingOrderSubmission) {
+    const orderId = 'UAE' + Date.now() + '-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+    const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
+    const shipping = total >= 999 ? 0 : 49;
+    pendingOrderSubmission = {
+      orderId,
+      date: new Date().toISOString(),
+      customer: { ...pendingOrderInfo },
+      items: cart.map(c => ({
+        id: c.id,
+        name: c.name,
+        brand: c.brand,
+        icon: c.icon,
+        price: c.price,
+        qty: c.qty,
+        subtotal: c.price * c.qty
+      })),
+      subtotal: total,
+      shipping,
+      grand: total + shipping,
+      paymentMethod: selectedPayment,
+      paymentStatus: 'Pending',
+      paid: false,
+      status: 'Confirmed'
+    };
+    persistPendingCheckoutState();
+  }
 
   if (selectedPayment === 'cod') {
-    completeOrderPlacement(orderId, grand, true);
+    await completeOrderPlacement(pendingOrderSubmission);
     return;
   }
 
-  // Use the working local Razorpay flow for all online payments.
-  showPaymentGateway(orderId, grand);
+  await processRazorpayPayment(pendingOrderSubmission);
 }
 
-function showPaymentGateway(orderId, amount) {
-  // Create payment page overlay
-  const paymentOverlay = `
-    <div class="overlay open" id="paymentOverlay" style="display:flex;z-index:9999">
-      <div class="modal" style="max-width:500px;padding:2rem">
-        <div class="modal-x" onclick="closePaymentGateway()">✕</div>
-        <div class="modal-pre">SECURE PAYMENT</div>
-        <div class="modal-h">Order #${orderId}</div>
-        <div style="margin:2rem 0;padding:1.5rem;background:var(--card);border-radius:10px;border:2px solid var(--gold)">
-          <div style="font-size:0.85rem;color:var(--text2)">Total Amount</div>
-          <div style="font-size:2rem;color:var(--gold);font-weight:bold;margin:0.5rem 0">₹${amount.toLocaleString('en-IN')}</div>
-          <div style="font-size:0.75rem;color:var(--text3)">Including shipping & taxes</div>
-        </div>
-        
-        <div style="background:#f0f0f0;padding:1rem;border-radius:8px;margin:1.5rem 0;text-align:center">
-          <div style="font-size:0.85rem;color:#333;margin-bottom:0.5rem">🔒 Secure Payment Processing</div>
-          <div style="font-size:0.75rem;color:#666">Powered by Razorpay • SSL Encrypted</div>
-        </div>
-        
-        <button class="btn-gold" onclick="processRazorpayPayment('${orderId}', ${amount})" style="width:100%;padding:1rem;font-size:1rem;margin-bottom:0.5rem">
-          💳 PROCEED TO PAYMENT
-        </button>
-        <button class="btn-outline" onclick="closePaymentGateway()" style="width:100%;padding:1rem">
-          ← BACK
-        </button>
-      </div>
-    </div>
-  `;
-  
-  document.body.insertAdjacentHTML('beforeend', paymentOverlay);
+function setOrderSubmissionBusy(busy, label = 'Placing order...') {
+  orderSubmissionBusy = busy;
+  const button = document.getElementById('placeOrderBtn');
+  if (!button) return;
+  button.disabled = busy;
+  button.textContent = busy ? label : pendingOrderNeedsStatusCheck
+    ? 'CHECK ORDER STATUS'
+    : pendingPaymentVerification ? 'RETRY PAYMENT VERIFICATION' : 'PLACE ORDER 🎉';
 }
 
-function closePaymentGateway() {
-  const overlay = document.getElementById('paymentOverlay');
-  if (overlay) overlay.remove();
-}
-
-async function processRazorpayPayment(orderId, amount) {
+function persistPendingCheckoutState() {
   try {
-    const configResponse = await fetch('/api/razorpay-config');
+    if (!pendingOrderSubmission) {
+      sessionStorage.removeItem('ua_pending_checkout');
+      return;
+    }
+    sessionStorage.setItem('ua_pending_checkout', JSON.stringify({
+      order: pendingOrderSubmission,
+      paymentVerification: pendingPaymentVerification,
+      needsStatusCheck: pendingOrderNeedsStatusCheck
+    }));
+  } catch (storageError) {
+    console.warn('Could not persist pending checkout state:', storageError.message);
+  }
+}
+
+async function checkoutRequest(url, body, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(data.error || 'Checkout request failed');
+      error.statusCode = response.status;
+      error.code = data.code;
+      error.responseData = data;
+      throw error;
+    }
+    return data;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function checkOrderStatus(order) {
+  try {
+    return await checkoutRequest('/api/order-status', {
+      orderId: order.orderId,
+      email: order.customer.email,
+      order
+    }, 5000);
+  } catch (error) {
+    if (error.statusCode === 404) return { success: false, state: 'not_found' };
+    if (error.statusCode === 202) return { success: true, state: 'payment_pending' };
+    throw error;
+  }
+}
+
+async function verifyAndConfirmPayment(order, paymentResponse) {
+  const err = document.getElementById('coErr2');
+  setOrderSubmissionBusy(true, 'Verifying payment...');
+  try {
+    const result = await checkoutRequest('/api/verify-payment', {
+      order_id: paymentResponse.razorpay_order_id,
+      payment_id: paymentResponse.razorpay_payment_id,
+      razorpay_signature: paymentResponse.razorpay_signature
+    }, 20000);
+    if (!result.success || !result.order) {
+      throw new Error(result.error || 'Payment verification did not confirm the order');
+    }
+    pendingOrderSubmission = null;
+    pendingPaymentVerification = null;
+    pendingOrderNeedsStatusCheck = false;
+    persistPendingCheckoutState();
+    finishOrderConfirmationUI(result.order);
+  } catch (error) {
+    try {
+      const status = await checkOrderStatus(order);
+      if (status.state === 'confirmed') {
+        pendingOrderSubmission = null;
+        pendingPaymentVerification = null;
+        pendingOrderNeedsStatusCheck = false;
+        persistPendingCheckoutState();
+        finishOrderConfirmationUI(status.order);
+        return;
+      }
+    } catch (statusError) {
+      console.warn('Unable to resolve payment status yet:', statusError.message);
+    }
+    pendingPaymentVerification = paymentResponse;
+    persistPendingCheckoutState();
+    err.textContent = 'Payment status is unknown. Do not pay again; use “PLACE ORDER” to safely retry verification.';
+    toast('Payment status is being checked. Do not submit another payment.', 'gold');
+  } finally {
+    setOrderSubmissionBusy(false);
+  }
+}
+
+async function processRazorpayPayment(order) {
+  setOrderSubmissionBusy(true, 'Opening secure payment...');
+  try {
+    const configResponse = await fetch('/api/razorpay-config', { signal: AbortSignal.timeout(10000) });
     const configData = await configResponse.json();
 
     if (!configData.keyId) {
@@ -8134,16 +8277,23 @@ async function processRazorpayPayment(orderId, amount) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        amount: Math.round(amount * 100),
-        currency: 'INR',
-        receipt: orderId,
-        orderId
-      })
+        orderId: order.orderId,
+        customer: order.customer,
+        items: order.items,
+        subtotal: order.subtotal,
+        shipping: order.shipping,
+        grand: order.grand,
+        paymentMethod: order.paymentMethod
+      }),
+      signal: AbortSignal.timeout(15000)
     });
 
     const razorpayOrder = await createOrderResponse.json();
     if (!createOrderResponse.ok || !razorpayOrder.order_id) {
-      throw new Error(razorpayOrder.error || 'Failed to create Razorpay order');
+      const error = new Error(razorpayOrder.error || 'Failed to create Razorpay order');
+      error.statusCode = createOrderResponse.status;
+      error.code = razorpayOrder.code;
+      throw error;
     }
 
     const options = {
@@ -8151,35 +8301,17 @@ async function processRazorpayPayment(orderId, amount) {
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
       name: 'UA Electronics',
-      description: 'Order #' + orderId,
+      description: 'Order #' + order.orderId,
       order_id: razorpayOrder.order_id,
-      handler: async function (response) {
-        try {
-          const verifyResponse = await fetch('/api/verify-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              order_id: response.razorpay_order_id,
-              payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature
-            })
-          });
-
-          const verifyData = await verifyResponse.json();
-          if (!verifyResponse.ok || !verifyData.success) {
-            throw new Error(verifyData.error || 'Payment verification failed');
-          }
-
-          closePaymentGateway();
-          completeOrderPlacement(orderId, amount, false, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature);
-        } catch (error) {
-          console.error('Razorpay verification error:', error);
-          toast('⚠️ Payment verification failed. Please contact support.', 'red');
-        }
+      handler: function (response) {
+        pendingPaymentVerification = response;
+        persistPendingCheckoutState();
+        void verifyAndConfirmPayment(order, response);
       },
       modal: {
         ondismiss: function () {
-          closePaymentGateway();
+          setOrderSubmissionBusy(false);
+          persistPendingCheckoutState();
           toast('Payment cancelled. Your order was not placed.', 'gold');
         }
       },
@@ -8193,7 +8325,6 @@ async function processRazorpayPayment(orderId, amount) {
       }
     };
 
-    closePaymentGateway();
     toast('💳 Opening secure payment modal...', 'gold');
 
     function loadRazorpayScript(onSuccess, onFail, isRetry) {
@@ -8215,6 +8346,7 @@ async function processRazorpayPayment(orderId, amount) {
       loadRazorpayScript(
         () => { new window.Razorpay(options).open(); },
         () => {
+          setOrderSubmissionBusy(false);
           toast('⚠️ Could not load the payment gateway. Please disable any ad-blocker/privacy extension for this site, check your internet connection, and try again.', 'red');
         }
       );
@@ -8223,58 +8355,98 @@ async function processRazorpayPayment(orderId, amount) {
     }
   } catch (error) {
     console.error('Razorpay checkout error:', error);
-    toast('⚠️ ' + error.message, 'red');
+    const err = document.getElementById('coErr2');
+    err.textContent = error.name === 'AbortError' || error.name === 'TimeoutError'
+      ? 'Payment request timed out. Check your order status, then retry safely.'
+      : '⚠️ ' + error.message;
+    pendingOrderNeedsStatusCheck = true;
+    persistPendingCheckoutState();
+    setOrderSubmissionBusy(false);
   }
 }
 
-function completeOrderPlacement(orderId, grand, isCOD, paymentId = null, razorpayOrderId = null, razorpaySignature = null) {
-  const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
-  const shipping = grand - total;
-  const pmLabel = {cod:'Cash on Delivery',card:'Card Payment',upiapp:'UPI App',upiid:'UPI ID'}[selectedPayment];
-  
-  const orderData = {
-    orderId,
-    date: new Date().toISOString(),
-    customer: pendingOrderInfo,
-    items: cart.map(c => ({id:c.id,name:c.name,brand:c.brand,icon:c.icon,price:c.price,qty:c.qty,subtotal:c.price*c.qty})),
-    subtotal: total,
-    shipping,
-    grand,
-    paymentMethod: pmLabel,
-    paymentStatus: isCOD ? 'Pending' : 'Paid',
-    paymentId: paymentId,
-    razorpayOrderId,
-    razorpaySignature,
-    paid: !isCOD,
-    status: 'Confirmed'
-  };
+async function completeOrderPlacement(order = pendingOrderSubmission) {
+  if (orderSubmissionBusy || !order) return;
+  const errorElement = document.getElementById('coErr2');
+  setOrderSubmissionBusy(true);
+  toast("📤 Saving your order...", 'gold');
 
-  const placeBtn = document.getElementById('placeOrderBtn');
-  if (placeBtn) { placeBtn.disabled = true; placeBtn.textContent = 'Placing order...'; }
-  toast("📤 Processing your order...", 'gold');
+  try {
+    const savedOrder = await saveOrder(order);
+    pendingOrderSubmission = null;
+    pendingPaymentVerification = null;
+    pendingOrderNeedsStatusCheck = false;
+    persistPendingCheckoutState();
+    finishOrderConfirmationUI(savedOrder);
+  } catch (error) {
+    console.error("Order submission issue:", error.message);
+    let recoveredOrder = null;
+    const shouldCheckStatus = error.name === 'AbortError' ||
+      error.name === 'TimeoutError' || !error.statusCode || error.statusCode >= 500;
+    if (shouldCheckStatus) {
+      try {
+        const status = await checkOrderStatus(order);
+        if (status.state === 'confirmed') recoveredOrder = status.order;
+        else if (status.state === 'payment_pending') {
+          errorElement.textContent = 'Payment status is not confirmed yet. Do not pay again; check again shortly.';
+          pendingOrderNeedsStatusCheck = true;
+          persistPendingCheckoutState();
+        } else {
+          pendingOrderNeedsStatusCheck = false;
+          persistPendingCheckoutState();
+          errorElement.textContent = 'No order was saved. You can safely retry this same order.';
+        }
+      } catch (statusError) {
+        pendingOrderNeedsStatusCheck = true;
+        persistPendingCheckoutState();
+        errorElement.textContent = 'Order status is unknown. Check the order status before retrying; the same order ID will be reused.';
+      }
+    } else {
+      errorElement.textContent = '❌ ' + error.message;
+      pendingOrderSubmission = null;
+      pendingOrderNeedsStatusCheck = false;
+      persistPendingCheckoutState();
+    }
 
-  // Wait for the server to confirm — it revalidates stock and prices before
-  // anything is saved. Only on success do we clear the cart and show the
-  // confirmation screen, so a rejected order (e.g. an item just went out of
-  // stock) leaves the customer's cart intact instead of silently losing it.
-  saveOrder(orderData).then(confirmedOrder => {
-    finishOrderConfirmationUI(confirmedOrder, orderId, isCOD, paymentId);
-  }).catch(err => {
-    console.error("❌ Order could not be placed:", err);
-    const err2 = document.getElementById('coErr2');
-    if (err2) err2.textContent = '❌ ' + err.message;
-    toast('❌ ' + err.message, 'red');
-    if (placeBtn) { placeBtn.disabled = false; placeBtn.textContent = 'PLACE ORDER'; }
-    // Refresh the cart display in case an item needs to be removed
-    renderCart();
-  });
+    if (recoveredOrder) {
+      pendingOrderSubmission = null;
+      pendingOrderNeedsStatusCheck = false;
+      finishOrderConfirmationUI(recoveredOrder);
+    } else {
+      toast(errorElement.textContent, 'red');
+      if (!pendingOrderSubmission && error.code !== 'ORDER_ID_CONFLICT') {
+        renderCart();
+      }
+    }
+  } finally {
+    setOrderSubmissionBusy(false);
+  }
 }
 
-function finishOrderConfirmationUI(orderData, orderId, isCOD, paymentId) {
-  const grand = orderData.grand;
+function finishOrderConfirmationUI(orderData) {
+  if (!orderData || !orderData.orderId) return;
+  const orderId = orderData.orderId;
+  const isCOD = !orderData.paid;
+  const paymentId = orderData.paymentId || orderData.razorpayPaymentId || '';
+  const grand = Number(orderData.grand);
+  const purchaseEventKey = 'ua_purchase_event_' + orderId;
+  pendingOrderSubmission = null;
+  pendingPaymentVerification = null;
+  pendingOrderNeedsStatusCheck = false;
+  persistPendingCheckoutState();
 
   // Store last order for success page
   ls('ua_last_order', JSON.stringify(orderData));
+  if (currentUser) {
+    const uk = 'ua_orders_' + currentUser.email.replace(/[^a-z0-9]/gi,'_');
+    try {
+      const existing = JSON.parse(ls(uk) || '[]');
+      if (!existing.some(saved => saved.orderId === orderId)) existing.unshift(orderData);
+      ls(uk, JSON.stringify(existing));
+    } catch (historyError) {
+      console.warn('Could not update local order history:', historyError.message);
+    }
+  }
 
   // Clear cart
   cart = [];
@@ -8307,9 +8479,10 @@ function finishOrderConfirmationUI(orderData, orderId, isCOD, paymentId) {
     
     // Payment status message
     const payStatusHTML = isCOD
-      ? `<div style="color:#ff6f00;font-weight:600">📦 Amount: <strong>₹${grand.toLocaleString('en-IN')}</strong> to be paid on delivery</div><p style="margin-top:.5rem;font-size:.8rem;color:var(--text3)">Please keep exact change ready for the delivery personnel.</p>`
-      : `<div style="color:var(--success);font-weight:600">✅ Payment Successful!</div><div style="margin-top:.35rem;font-size:.9rem">Amount paid: <strong>₹${grand.toLocaleString('en-IN')}</strong></div><div style="font-size:.8rem;color:var(--text3);margin-top:.35rem">Payment ID: ${paymentId}</div>`;
+      ? `<div style="color:#ff6f00;font-weight:600">📦 ${orderData.paymentMethod}: <strong>₹${grand.toLocaleString('en-IN')}</strong> due on delivery</div><div style="margin-top:.35rem;font-size:.85rem">Payment status: ${orderData.paymentStatus}</div><p style="margin-top:.5rem;font-size:.8rem;color:var(--text3)">Please keep exact change ready for the delivery personnel.</p>`
+      : `<div style="color:var(--success);font-weight:600">✅ ${orderData.paymentMethod}: ${orderData.paymentStatus}</div><div style="margin-top:.35rem;font-size:.9rem">Amount paid: <strong>₹${grand.toLocaleString('en-IN')}</strong></div><div style="font-size:.8rem;color:var(--text3);margin-top:.35rem">Payment ID: ${paymentId}</div>`;
     document.getElementById('coConfPayStatus').innerHTML = payStatusHTML;
+    document.getElementById('coConfEmailStatus').textContent = 'Receipt email is queued for delivery';
     console.log('✓ Payment status populated');
     
     // Order items
@@ -8343,32 +8516,34 @@ function finishOrderConfirmationUI(orderData, orderId, isCOD, paymentId) {
     alert('Error showing confirmation. Please contact support.');
   }
 
-  // Conversion tracking
-  if (typeof gtag !== 'undefined') {
-    gtag('event', 'purchase', {
-      'transaction_id': orderId,
-      'value': grand,
-      'currency': 'INR',
-      'tax': 0,
-      'shipping': orderData.shipping,
-      'items': orderData.items.map(item => ({
-        'item_id': item.id,
-        'item_name': item.name,
-        'quantity': item.qty,
-        'price': item.price,
-        'item_category': item.brand
-      }))
-    });
-  }
-  
-  if (typeof fbq !== 'undefined') {
-    fbq('track', 'Purchase', {
-      value: grand,
-      currency: 'INR',
-      content_name: 'Order #' + orderId,
-      content_type: 'product',
-      content_ids: orderData.items.map(i => i.id)
-    });
+  // Persist the event key before dispatch so retries in this browser do not double-count.
+  if (ls(purchaseEventKey) !== '1') {
+    ls(purchaseEventKey, '1');
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'purchase', {
+        'transaction_id': orderId,
+        'value': grand,
+        'currency': 'INR',
+        'tax': 0,
+        'shipping': orderData.shipping,
+        'items': orderData.items.map(item => ({
+          'item_id': item.id,
+          'item_name': item.name,
+          'quantity': item.qty,
+          'price': item.price,
+          'item_category': item.brand
+        }))
+      });
+    }
+    if (typeof fbq !== 'undefined') {
+      fbq('track', 'Purchase', {
+        value: grand,
+        currency: 'INR',
+        content_name: 'Order #' + orderId,
+        content_type: 'product',
+        content_ids: orderData.items.map(i => i.id)
+      });
+    }
   }
   
   toast('✅ Order placed successfully!', 'green');
@@ -8377,47 +8552,15 @@ function finishOrderConfirmationUI(orderData, orderId, isCOD, paymentId) {
 /* ============================================================
    ORDER STORAGE — organised, persistent
    ============================================================ */
-function saveOrder(order) {
+async function saveOrder(order) {
   if (!order || !order.orderId) {
-    console.error("❌ Invalid order data");
-    return Promise.reject(new Error("Invalid order data"));
+    throw new Error("Invalid order data");
   }
-
-  console.log("📤 Sending order to server...", order.orderId);
-
-  return fetch("/save-order", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(order)
-  })
-  .then(res => res.json().then(data => ({ ok: res.ok, data })))
-  .then(({ ok, data }) => {
-    if (!ok || !data.success) {
-      throw new Error(data.error || 'Order could not be placed');
-    }
-
-    console.log("✅ Order saved successfully:", order.orderId);
-    // Server recomputes prices/totals from the live catalog — adopt whatever
-    // it sent back so the confirmation screen and PDF show the real charged amount.
-    if (data.order) Object.assign(order, data.order);
-
-    // Save to user's local order history
-    if (currentUser) {
-      const uk = 'ua_orders_' + currentUser.email.replace(/[^a-z0-9]/gi,'_');
-      const existing = JSON.parse(ls(uk) || '[]');
-      existing.unshift(order); // newest first
-      ls(uk, JSON.stringify(existing));
-    }
-    // Generate PDF after order is saved
-    setTimeout(() => {
-      generateOrderPDF(order);
-    }, 500);
-
-    console.log("📧 Confirmation email will be sent to:", order.customer?.email);
-    return order;
-  });
+  const response = await checkoutRequest('/save-order', order, 15000);
+  if (!response.success || !response.order) {
+    throw new Error(response.error || 'Order could not be placed');
+  }
+  return response.order;
 }
 
 function generateOrderPDF(order) {
@@ -9244,50 +9387,6 @@ function cbQuick(q) {
   cbSend();
 }
 
-function startPayment() {
-  const err = document.getElementById('coErr2');
-
-  if (!selectedPayment) {
-    err.textContent = 'Please choose a payment method';
-    return;
-  }
-
-  if (selectedPayment === 'card') {
-    const num = (document.getElementById('cardNum').value||'').replace(/\s/g,'');
-    const exp = document.getElementById('cardExp').value;
-    const cvv = document.getElementById('cardCVV').value;
-    const cname = document.getElementById('cardName').value.trim();
-    if (num.length < 16) { err.textContent = 'Please enter a valid 16-digit card number'; return; }
-    if (!/^\d{2}\/\d{2}$/.test(exp)) { err.textContent = 'Please enter a valid expiry date (MM/YY)'; return; }
-    if (cvv.length < 3) { err.textContent = 'Please enter a valid CVV'; return; }
-    if (!cname) { err.textContent = 'Please enter the name on card'; return; }
-  }
-
-  if (selectedPayment === 'upiid') {
-    const uid = (document.getElementById('upiId').value||'').trim();
-    if (!uid || !uid.includes('@')) { err.textContent = 'Please enter a valid UPI ID (e.g. name@upi)'; return; }
-  }
-
-  if (selectedPayment === 'upiapp') {
-    const sel = document.querySelector('.upi-app.sel');
-    if (!sel) { err.textContent = 'Please select a UPI app'; return; }
-  }
-
-  if (selectedPayment === 'cod') {
-    const orderId = 'UAE' + Date.now();
-    const total = cart.reduce((s,c) => s + c.price*c.qty, 0);
-    const shipping = total >= 999 ? 0 : 49;
-    completeOrderPlacement(orderId, total + shipping, true);
-    return;
-  }
-
-  const totalAmount = cart.reduce((s,c) => s + c.price*c.qty, 0);
-  const shipping = totalAmount >= 999 ? 0 : 49;
-  const grand = totalAmount + shipping;
-  const orderId = 'UAE' + Date.now();
-
-  showPaymentGateway(orderId, grand);
-}
 /* ============================================================
    FAQ
    ============================================================ */

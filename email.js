@@ -88,7 +88,6 @@ async function sendEmailWithGmailAPI(mailOptions, retries = 5, delay = 3000) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       console.log(`📤 Sending email (Attempt ${attempt}/${retries})...`);
-      console.log(`   To: ${mailOptions.to}`);
       console.log(`   Subject: ${mailOptions.subject}`);
 
       if (!gmail) {
@@ -811,15 +810,23 @@ u + .body .gmail { width: 100vw; }
 // ============================================
 // MAIN SEND EMAIL FUNCTION
 // ============================================
-async function sendEmail(to, orderData, pdfFilePath = null) {
+async function sendEmail(to, orderData, pdfFilePath = null, enqueueOnFailure = true) {
   try {
     if (!validateEmail(to)) {
-      console.error(`❌ Invalid email address: ${to}`);
+      console.error(`❌ Invalid email address for order ${orderData.orderId}`);
+      const error = new Error("Invalid recipient address");
+      error.code = "INVALID_RECIPIENT";
+      emailQueue.logEmail(to, orderData, false, error);
+      if (enqueueOnFailure) emailQueue.addToQueue(to, orderData, pdfFilePath);
       return false;
     }
 
     if (!gmail) {
       console.error("❌ Gmail API not initialized");
+      const error = new Error("Gmail API not initialized");
+      error.code = "EMAIL_PROVIDER_UNAVAILABLE";
+      emailQueue.logEmail(to, orderData, false, error);
+      if (enqueueOnFailure) emailQueue.addToQueue(to, orderData, pdfFilePath);
       return false;
     }
 
@@ -863,15 +870,15 @@ subject: `Order Confirmation - ${orderData.orderId}`,      html: buildEmailHTML(
 
     await sendEmailWithGmailAPI(mailOptions);
     emailQueue.logEmail(to, orderData, true);
-    console.log(`\n✅ ORDER EMAIL SENT — Order: ${orderData.orderId} → ${to}\n`);
+    console.log(`\n✅ ORDER EMAIL SENT — Order: ${orderData.orderId}\n`);
     return true;
 
   } catch (error) {
     console.error(`\n❌ EMAIL FAILED for order: ${orderData.orderId}`);
-    console.error(`   To: ${to} | Error: ${error.message}\n`);
+    console.error(`   Error code: ${error.code || "EMAIL_DELIVERY_FAILED"}\n`);
 
     emailQueue.logEmail(to, orderData, false, error);
-    emailQueue.addToQueue(to, orderData, pdfFilePath);
+    if (enqueueOnFailure) emailQueue.addToQueue(to, orderData, pdfFilePath);
     return false;
   }
 }
@@ -879,7 +886,13 @@ subject: `Order Confirmation - ${orderData.orderId}`,      html: buildEmailHTML(
 // ============================================
 // QUEUE PROCESSING
 // ============================================
+let emailQueueProcessing = false;
+
 async function processEmailQueue() {
+  if (emailQueueProcessing) return;
+  emailQueueProcessing = true;
+  const startedAt = Date.now();
+  try {
   const queue = emailQueue.loadQueue();
   if (queue.length === 0) return;
 
@@ -891,28 +904,45 @@ async function processEmailQueue() {
   for (const item of pending) {
     try {
       console.log(`📧 Retrying email for order: ${item.orderData.orderId}`);
-      const success = await sendEmail(item.to, item.orderData, item.pdfFilePath);
+      const success = await sendEmail(item.to, item.orderData, item.pdfFilePath, false);
 
       if (success) {
-        emailQueue.removeFromQueue(item.id);
-        console.log(`✅ Queued email sent successfully`);
+        item.status = 'sent';
+        item.completedAt = new Date().toISOString();
+        console.log(`✅ Queued email sent successfully (Order: ${item.orderData.orderId})`);
       } else {
         item.attempts = (item.attempts || 0) + 1;
         const delayMinutes = Math.min(300, Math.pow(2, item.attempts));
         item.nextRetry = new Date(Date.now() + delayMinutes * 60000).toISOString();
         if (item.attempts >= 10) {
           item.status = 'failed';
-          console.error(`❌ Email permanently failed after 10 attempts: ${item.to}`);
+          console.error(`❌ Email permanently failed after 10 attempts (Order: ${item.orderData.orderId})`);
         }
       }
     } catch (error) {
-      console.error(`❌ Queue processing error: ${error.message}`);
+      console.error(`❌ Queue processing error (Order: ${item.orderData.orderId}): ${error.code || "EMAIL_QUEUE_ITEM_FAILED"}`);
     }
   }
 
-  emailQueue.saveQueue(queue);
+  emailQueue.saveQueue(queue.filter(item => item.status !== 'sent'));
+  console.info(JSON.stringify({
+    event: "email.queue_processed",
+    attempted: pending.length,
+    durationMs: Date.now() - startedAt
+  }));
+  } finally {
+    emailQueueProcessing = false;
+  }
 }
 
-setInterval(processEmailQueue, 5 * 60 * 1000);
+const emailQueueTimer = setInterval(() => {
+  processEmailQueue().catch(error => {
+    console.error(JSON.stringify({
+      event: "email.queue_processing_failed",
+      errorCode: error.code || "EMAIL_QUEUE_PROCESSING_FAILED"
+    }));
+  });
+}, 5 * 60 * 1000);
+emailQueueTimer.unref();
 
 module.exports = sendEmail;

@@ -78,6 +78,14 @@ const generalLimiter = rateLimit({
 
 app.use(generalLimiter);
 
+const checkoutLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many checkout requests. Please wait a moment and try again." }
+});
+
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
@@ -88,8 +96,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ limit: "10mb", extended: true }));
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ limit: "100kb", extended: true }));
 
 app.use("/Image", express.static(path.join(__dirname, "Image")));
 
@@ -284,10 +292,16 @@ app.post("/api/admin-logout", requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
-const DATA_FILE = path.join(__dirname, "data", "orders.json");
-const PRODUCTS_FILE = path.join(__dirname, "data", "products.json");
-const USERS_FILE = path.join(__dirname, "data", "users.json");
-const ORDERS_PDF_DIR = path.join(__dirname, "Orders");
+const DATA_DIR = process.env.UA_DATA_DIR || path.join(__dirname, "data");
+const DATA_FILE = path.join(DATA_DIR, "orders.json");
+const PAYMENT_INTENTS_FILE = path.join(DATA_DIR, "payment-intents.json");
+const PRODUCTS_FILE = process.env.UA_PRODUCTS_FILE || path.join(__dirname, "data", "products.json");
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+const ORDERS_PDF_DIR = process.env.UA_ORDERS_PDF_DIR || path.join(__dirname, "Orders");
+
+if (require.main === module && process.env.NODE_ENV === "production" && !process.env.UA_DATA_DIR) {
+  throw new Error("UA_DATA_DIR must point to durable storage before production server startup");
+}
 
 function readUsers() {
   try {
@@ -295,6 +309,11 @@ function readUsers() {
   } catch (err) {
     return [];
   }
+}
+
+function scheduleOrderOutbox() {
+  if (process.env.NODE_ENV === "test") return;
+  setImmediate(() => { void processOrderOutbox(); });
 }
 
 function backupSensitiveFile(filePath) {
@@ -314,23 +333,63 @@ function writeUsers(users) {
 
 function readOrders() {
   try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+    if (!fs.existsSync(DATA_FILE)) return [];
+    const orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+    if (!Array.isArray(orders)) throw new Error("Orders store must contain an array");
+    return orders;
   } catch (err) {
-    return [];
+    console.error("Unable to read orders store:", err.message);
+    throw err;
+  }
+}
+
+function writeJsonAtomically(filePath, value) {
+  const directory = path.dirname(filePath);
+  fs.mkdirSync(directory, { recursive: true });
+  const temporaryPath = `${filePath}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
+  const descriptor = fs.openSync(temporaryPath, "wx", 0o600);
+
+  try {
+    fs.writeFileSync(descriptor, JSON.stringify(value, null, 2));
+    fs.fsyncSync(descriptor);
+    fs.closeSync(descriptor);
+    fs.renameSync(temporaryPath, filePath);
+    const directoryDescriptor = fs.openSync(directory, "r");
+    try {
+      fs.fsyncSync(directoryDescriptor);
+    } finally {
+      fs.closeSync(directoryDescriptor);
+    }
+  } catch (error) {
+    try {
+      fs.closeSync(descriptor);
+    } catch (closeError) {
+      // The descriptor may already have been closed before the rename failed.
+    }
+    if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
+    throw error;
   }
 }
 
 function writeOrders(orders) {
-  backupSensitiveFile(DATA_FILE);
-  fs.writeFileSync(DATA_FILE, JSON.stringify(orders, null, 2));
+  writeJsonAtomically(DATA_FILE, orders);
+}
+
+function readPaymentIntents() {
+  if (!fs.existsSync(PAYMENT_INTENTS_FILE)) return [];
+  const intents = JSON.parse(fs.readFileSync(PAYMENT_INTENTS_FILE, "utf-8"));
+  if (!Array.isArray(intents)) throw new Error("Payment intent store must contain an array");
+  return intents;
+}
+
+function writePaymentIntents(intents) {
+  writeJsonAtomically(PAYMENT_INTENTS_FILE, intents);
 }
 
 // Ensure directories exist
-if (!fs.existsSync(DATA_FILE.split("/").slice(0, -1).join("/"))) {
-  fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
-}
+fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(DATA_FILE)) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify([]));
+  writeOrders([]);
 }
 if (!fs.existsSync(USERS_FILE)) {
   fs.writeFileSync(USERS_FILE, JSON.stringify([]));
@@ -596,118 +655,472 @@ app.get("/api/razorpay-config", (req, res) => {
   res.json({ keyId: process.env.RAZORPAY_KEY_ID || "" });
 });
 
-app.post("/api/create-order", async (req, res) => {
+class OrderRequestError extends Error {
+  constructor(message, status = 400, code = "INVALID_ORDER", details = {}) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
+function normalizePaymentMethod(value) {
+  const method = String(value || "").trim().toLowerCase();
+  const methods = {
+    cod: { type: "cod", label: "Cash on Delivery" },
+    "cash on delivery": { type: "cod", label: "Cash on Delivery" },
+    "cash on delivery (cod)": { type: "cod", label: "Cash on Delivery" },
+    online: { type: "online", label: "Online (Razorpay)" },
+    card: { type: "online", label: "Card Payment" },
+    "card payment": { type: "online", label: "Card Payment" },
+    upiapp: { type: "online", label: "UPI App" },
+    "upi app": { type: "online", label: "UPI App" },
+    upiid: { type: "online", label: "UPI ID" },
+    "upi id": { type: "online", label: "UPI ID" }
+  };
+  return methods[method] || null;
+}
+
+function loadCatalog() {
+  const catalog = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
+  if (!Array.isArray(catalog)) throw new Error("Product catalog must contain an array");
+  return catalog;
+}
+
+function prepareOrder(requestData) {
+  if (!requestData || typeof requestData !== "object" || Array.isArray(requestData)) {
+    throw new OrderRequestError("Invalid order request");
+  }
+  const orderId = String(requestData.orderId || "").trim();
+  if (!/^UAE[A-Za-z0-9-]{1,61}$/.test(orderId)) {
+    throw new OrderRequestError("Invalid order ID");
+  }
+
+  const customerInput = requestData.customer;
+  if (!customerInput || typeof customerInput !== "object" || Array.isArray(customerInput)) {
+    throw new OrderRequestError("Customer delivery details are required");
+  }
+  const customer = {
+    name: String(customerInput.name || "").trim(),
+    mobile: String(customerInput.mobile || "").trim(),
+    email: String(customerInput.email || "").trim().toLowerCase(),
+    addr1: String(customerInput.addr1 || "").trim(),
+    addr2: String(customerInput.addr2 || "").trim(),
+    city: String(customerInput.city || "").trim(),
+    state: String(customerInput.state || "").trim(),
+    pin: String(customerInput.pin || "").trim(),
+    notes: String(customerInput.notes || "").trim()
+  };
+  const digits = customer.mobile.replace(/\D/g, "");
+  const mobileIsValid = /^\d{10}$/.test(digits) || /^91\d{10}$/.test(digits);
+  if (!customer.name || customer.name.length > 120 || !mobileIsValid ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email) || customer.email.length > 254 ||
+      !customer.addr1 || !customer.addr2 || !customer.city || !customer.state ||
+      !/^\d{6}$/.test(customer.pin) || customer.notes.length > 500) {
+    throw new OrderRequestError("Valid customer and delivery details are required");
+  }
+
+  const method = normalizePaymentMethod(requestData.paymentMethod);
+  if (!method) throw new OrderRequestError("Select a supported payment method");
+  if (!Array.isArray(requestData.items) || requestData.items.length === 0 || requestData.items.length > 100) {
+    throw new OrderRequestError("Order must contain between 1 and 100 items");
+  }
+
+  const catalogStartedAt = Date.now();
+  const catalog = loadCatalog();
+  const catalogLoadDurationMs = Date.now() - catalogStartedAt;
+  const calculationStartedAt = Date.now();
+  const catalogById = new Map(catalog.map(product => [String(product.id), product]));
+  const seenIds = new Set();
+  const items = [];
+  let subtotal = 0;
+
+  for (const submittedItem of requestData.items) {
+    const id = String(submittedItem?.id ?? "").trim();
+    if (!id || seenIds.has(id)) throw new OrderRequestError("Invalid or repeated product ID");
+    seenIds.add(id);
+    const product = catalogById.get(id);
+    if (!product) {
+      throw new OrderRequestError("A product in your cart is no longer available", 409, "ITEMS_MISSING");
+    }
+    const qty = submittedItem.qty;
+    if (!Number.isInteger(qty) || qty < 1 || qty > 99) {
+      throw new OrderRequestError("Product quantities must be whole numbers between 1 and 99");
+    }
+    const stockCount = Number(product.stock ?? product.stockQuantity ?? product.quantity);
+    if (product.inStock === false || (Number.isFinite(stockCount) && stockCount < qty)) {
+      throw new OrderRequestError(`${product.name} is out of stock`, 409, "OUT_OF_STOCK");
+    }
+    const price = Number(product.price);
+    if (!Number.isFinite(price) || price < 0) {
+      throw new Error(`Invalid catalog price for product ${id}`);
+    }
+    const itemSubtotal = Math.round(price * qty * 100) / 100;
+    if (Number(submittedItem.price) !== price ||
+        (submittedItem.subtotal !== undefined && Number(submittedItem.subtotal) !== itemSubtotal)) {
+      throw new OrderRequestError("A product price has changed. Review your cart and try again.", 409, "PRICE_CHANGED");
+    }
+    items.push({
+      id: product.id,
+      name: String(product.name || "Product"),
+      brand: String(product.brand || ""),
+      icon: String(product.icon || "📦"),
+      price,
+      qty,
+      subtotal: itemSubtotal
+    });
+    subtotal += itemSubtotal;
+  }
+
+  subtotal = Math.round(subtotal * 100) / 100;
+  const shipping = subtotal >= 999 ? 0 : 49;
+  const grand = Math.round((subtotal + shipping) * 100) / 100;
+  for (const key of ["subtotal", "shipping", "grand"]) {
+    const amount = Number(requestData[key]);
+    const expected = { subtotal, shipping, grand }[key];
+    if (!Number.isFinite(amount) || amount !== expected) {
+      throw new OrderRequestError(
+        "Your order total has changed. Review the updated total and try again.",
+        409,
+        "TOTAL_CHANGED",
+        { subtotal, shipping, grand }
+      );
+    }
+  }
+
+  console.info(JSON.stringify({
+    event: "order.catalog_loaded",
+    orderId,
+    durationMs: catalogLoadDurationMs,
+    catalogSize: catalog.length
+  }));
+  console.info(JSON.stringify({
+    event: "order.price_calculated",
+    orderId,
+    durationMs: Date.now() - calculationStartedAt,
+    itemCount: items.length,
+    subtotal,
+    shipping,
+    grand
+  }));
+
+  const date = new Date().toISOString();
+  return {
+    orderId,
+    date,
+    customer,
+    items,
+    subtotal,
+    shipping,
+    grand,
+    paymentMethod: method.label,
+    paymentStatus: method.type === "cod" ? "Pending" : "Pending",
+    paid: false,
+    status: "Confirmed",
+    _paymentType: method.type
+  };
+}
+
+function orderFingerprint(order, paymentId = "") {
+  const canonical = {
+    orderId: order.orderId,
+    customer: order.customer,
+    items: order.items.map(item => ({ id: item.id, qty: item.qty, price: item.price })),
+    subtotal: order.subtotal,
+    shipping: order.shipping,
+    grand: order.grand,
+    paymentMethod: order.paymentMethod,
+    paymentId
+  };
+  return crypto.createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
+}
+
+function submittedOrderFingerprint(requestData) {
+  const method = normalizePaymentMethod(requestData.paymentMethod);
+  if (!method || !requestData.customer || !Array.isArray(requestData.items)) return null;
+  const customer = {};
+  for (const key of ["name", "mobile", "email", "addr1", "addr2", "city", "state", "pin", "notes"]) {
+    const value = String(requestData.customer[key] || "").trim();
+    customer[key] = key === "email" ? value.toLowerCase() : value;
+  }
+  const canonical = {
+    orderId: String(requestData.orderId || "").trim(),
+    customer,
+    items: requestData.items.map(item => ({
+      id: item.id,
+      qty: item.qty,
+      price: Number(item.price)
+    })),
+    subtotal: Number(requestData.subtotal),
+    shipping: Number(requestData.shipping),
+    grand: Number(requestData.grand),
+    paymentMethod: method.label,
+    paymentId: ""
+  };
+  return crypto.createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
+}
+
+function publicOrder(order) {
+  const responseOrder = { ...order };
+  delete responseOrder._postProcessing;
+  delete responseOrder._requestFingerprint;
+  delete responseOrder._paymentType;
+  return responseOrder;
+}
+
+function savePersistedOrder(order, paymentId = "") {
+  const fingerprint = orderFingerprint(order, paymentId);
+  const orders = readOrders();
+  const existing = orders.find(item => String(item.orderId) === order.orderId);
+  if (existing) {
+    if (existing._requestFingerprint && existing._requestFingerprint === fingerprint) {
+      return { order: existing, created: false };
+    }
+    throw new OrderRequestError("This order ID is already associated with a different order", 409, "ORDER_ID_CONFLICT");
+  }
+
+  const storedOrder = {
+    ...order,
+    _requestFingerprint: fingerprint,
+    _postProcessing: {
+      pdf: { status: "pending", attempts: 0, nextAttemptAt: new Date().toISOString() },
+      email: { status: "pending", attempts: 0, nextAttemptAt: new Date().toISOString() }
+    }
+  };
+  const persistStartedAt = Date.now();
+  orders.push(storedOrder);
+  writeOrders(orders);
+  console.info(JSON.stringify({
+    event: "order.persisted",
+    orderId: order.orderId,
+    durationMs: Date.now() - persistStartedAt,
+    source: order._paymentType === "cod" ? "cod" : "online"
+  }));
+  return { order: storedOrder, created: true };
+}
+
+function orderResponse(res, startedAt, status, payload) {
+  res.once("finish", () => {
+    console.info(JSON.stringify({
+      event: "order.http_response",
+      orderId: payload.orderId || null,
+      statusCode: res.statusCode,
+      durationMs: Date.now() - startedAt
+    }));
+  });
+  return res.status(status).json(payload);
+}
+
+function buildVerifiedOrder(intent) {
+  return {
+    ...intent.order,
+    paymentStatus: "Paid",
+    paid: true,
+    paymentId: intent.paymentId,
+    razorpayPaymentId: intent.paymentId,
+    razorpayOrderId: intent.razorpayOrderId,
+    status: "Confirmed",
+    _paymentType: "online"
+  };
+}
+
+function finalizeVerifiedIntent(intent) {
+  const existing = readOrders().find(order => order.orderId === intent.order.orderId);
+  if (existing) {
+    const fingerprint = orderFingerprint(buildVerifiedOrder(intent), intent.paymentId);
+    if (existing._requestFingerprint === fingerprint) return { order: existing, created: false };
+    throw new OrderRequestError("Order ID conflicts with an existing order", 409, "ORDER_ID_CONFLICT");
+  }
+  return savePersistedOrder(buildVerifiedOrder(intent), intent.paymentId);
+}
+
+const pendingPaymentOrderCreations = new Map();
+
+app.post("/api/create-order", checkoutLimiter, async (req, res) => {
+  const startedAt = Date.now();
+  let orderId = req.body?.orderId;
   try {
-    const { amount, currency = "INR", receipt, orderId } = req.body;
-    const amountInPaise = Number(amount);
-
-    if (!Number.isFinite(amountInPaise) || amountInPaise < 100 || amountInPaise > 100000000) {
-      return res.status(400).json({ error: "Amount must be between 100 paise and 1,000,000 INR" });
-    }
-
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      return res.status(401).json({ error: "Razorpay credentials are not configured" });
+      return orderResponse(res, startedAt, 503, { error: "Razorpay is not configured" });
+    }
+    const order = prepareOrder(req.body);
+    orderId = order.orderId;
+    if (order._paymentType !== "online") {
+      throw new OrderRequestError("Choose card or UPI to start online payment");
     }
 
-    if (typeof receipt !== "string" || !/^UAE[0-9A-Za-z-]+$/.test(receipt)) {
-      return res.status(400).json({ error: "Invalid receipt format" });
+    const intents = readPaymentIntents();
+    const existing = intents.find(intent => intent.order.orderId === order.orderId);
+    const fingerprint = orderFingerprint(order);
+    if (existing) {
+      if (existing.requestFingerprint !== fingerprint) {
+        throw new OrderRequestError("This order ID is already in use", 409, "ORDER_ID_CONFLICT");
+      }
+      return orderResponse(res, startedAt, 200, {
+        order_id: existing.razorpayOrderId,
+        amount: existing.amount,
+        currency: existing.currency,
+        receipt: order.orderId
+      });
     }
 
-    const orderPayload = {
-      amount: Math.round(amountInPaise),
-      currency,
-      receipt: receipt || orderId || `order-${Date.now()}`
-    };
+    const inProgress = pendingPaymentOrderCreations.get(order.orderId);
+    if (inProgress) {
+      if (inProgress.fingerprint !== fingerprint) {
+        throw new OrderRequestError("This order ID is already in use", 409, "ORDER_ID_CONFLICT");
+      }
+      const intent = await inProgress.promise;
+      return orderResponse(res, startedAt, 200, {
+        order_id: intent.razorpayOrderId,
+        amount: intent.amount,
+        currency: intent.currency,
+        receipt: order.orderId
+      });
+    }
 
-    const razorpayOrder = await razorpay.orders.create(orderPayload);
-
-    res.json({
-      order_id: razorpayOrder.id,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
-      receipt: razorpayOrder.receipt
+    const amount = Math.round(order.grand * 100);
+    if (amount < 100 || amount > 100000000) {
+      throw new OrderRequestError("Order amount is outside the supported payment range");
+    }
+    const creationPromise = (async () => {
+      const razorpayOrder = await razorpay.orders.create({
+        amount,
+        currency: "INR",
+        receipt: order.orderId
+      });
+      const intent = {
+        requestFingerprint: fingerprint,
+        order,
+        razorpayOrderId: razorpayOrder.id,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        status: "pending",
+        createdAt: new Date().toISOString()
+      };
+      const currentIntents = readPaymentIntents();
+      currentIntents.push(intent);
+      writePaymentIntents(currentIntents);
+      return intent;
+    })();
+    pendingPaymentOrderCreations.set(order.orderId, { fingerprint, promise: creationPromise });
+    let intent;
+    try {
+      intent = await creationPromise;
+    } finally {
+      pendingPaymentOrderCreations.delete(order.orderId);
+    }
+    return orderResponse(res, startedAt, 200, {
+      order_id: intent.razorpayOrderId,
+      amount: intent.amount,
+      currency: intent.currency,
+      receipt: order.orderId
     });
   } catch (error) {
-    console.error("Razorpay create order error:", error);
-    const statusCode = error.statusCode === 401 ? 401 : 500;
-    res.status(statusCode).json({
-      error: "Failed to create Razorpay order",
-      details: error.error?.description || error.message
-    });
+    console.error(JSON.stringify({
+      event: "payment.order_create_failed",
+      orderId: orderId || null,
+      errorCode: error.code || "PAYMENT_ORDER_CREATE_FAILED",
+      durationMs: Date.now() - startedAt
+    }));
+    if (error instanceof OrderRequestError) {
+      return orderResponse(res, startedAt, error.status, {
+        error: error.message,
+        code: error.code,
+        ...error.details
+      });
+    }
+    return orderResponse(res, startedAt, 502, { error: "Could not create the payment request. Please retry safely." });
   }
 });
 
-app.post("/api/verify-payment", async (req, res) => {
+app.post("/api/verify-payment", checkoutLimiter, async (req, res) => {
+  const startedAt = Date.now();
+  const razorpayOrderId = String(req.body?.order_id || req.body?.razorpay_order_id || "").trim();
+  const paymentId = String(req.body?.payment_id || req.body?.razorpay_payment_id || "").trim();
+  const signature = String(req.body?.razorpay_signature || "").trim();
+  let internalOrderId = null;
   try {
-    const {
-      order_id,
-      orderId,
-      payment_id,
-      paymentId,
-      razorpay_signature,
-      razorpaySignature,
-      amount,
-      currency
-    } = req.body;
-
-    const resolvedOrderId = order_id || orderId;
-    const resolvedPaymentId = payment_id || paymentId;
-    const resolvedSignature = razorpay_signature || razorpaySignature;
-
-    if (!resolvedOrderId || !resolvedPaymentId || !resolvedSignature) {
-      return res.status(400).json({ error: "Missing payment verification fields" });
+    if (!razorpayOrderId || !paymentId || !/^[a-f0-9]{64}$/i.test(signature)) {
+      throw new OrderRequestError("Missing or invalid payment verification fields");
     }
-
     if (!process.env.RAZORPAY_KEY_SECRET) {
-      return res.status(401).json({ error: "Razorpay secret is not configured" });
+      return orderResponse(res, startedAt, 503, { error: "Razorpay verification is not configured" });
     }
-
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-      .update(`${resolvedOrderId}|${resolvedPaymentId}`)
-      .digest("hex");
-
-    const providedSignature = String(resolvedSignature);
-    const isValid = providedSignature.length === expectedSignature.length &&
-      crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(providedSignature));
-
-    if (!isValid) {
-      return res.status(400).json({ success: false, verified: false, error: "Signature mismatch" });
+      .update(`${razorpayOrderId}|${paymentId}`)
+      .digest();
+    const providedSignature = Buffer.from(signature, "hex");
+    if (providedSignature.length !== expectedSignature.length ||
+        !crypto.timingSafeEqual(expectedSignature, providedSignature)) {
+      return orderResponse(res, startedAt, 400, {
+        success: false,
+        verified: false,
+        error: "Payment signature did not match"
+      });
     }
 
-    const orderAmount = Number(amount);
-    const normalizedCurrency = String(currency || "INR").toUpperCase();
-    const payment = await razorpay.payments.fetch(resolvedPaymentId).catch(() => null);
+    const intents = readPaymentIntents();
+    const intentIndex = intents.findIndex(item => item.razorpayOrderId === razorpayOrderId);
+    if (intentIndex < 0) {
+      return orderResponse(res, startedAt, 404, { success: false, verified: false, error: "Payment request not found" });
+    }
+    const intent = intents[intentIndex];
+    internalOrderId = intent.order.orderId;
 
-    if (!payment) {
-      return res.status(404).json({ success: false, verified: false, error: "Payment record not found" });
+    if (intent.status === "verified") {
+      if (intent.paymentId !== paymentId) {
+        throw new OrderRequestError("Payment ID does not match the verified payment", 409, "PAYMENT_ID_CONFLICT");
+      }
+    } else {
+      const payment = await razorpay.payments.fetch(paymentId);
+      if (!payment) {
+        return orderResponse(res, startedAt, 404, { success: false, verified: false, error: "Payment record not found" });
+      }
+      if (payment.order_id !== intent.razorpayOrderId ||
+          Number(payment.amount) !== Number(intent.amount) ||
+          String(payment.currency || "").toUpperCase() !== String(intent.currency || "").toUpperCase() ||
+          payment.status !== "captured") {
+        throw new OrderRequestError("Payment amount, currency, order, or capture status did not match", 400, "PAYMENT_MISMATCH");
+      }
+      intent.status = "verified";
+      intent.paymentId = paymentId;
+      intent.verifiedAt = new Date().toISOString();
+      intents[intentIndex] = intent;
+      writePaymentIntents(intents);
     }
 
-    const paymentOrderId = payment.order_id || "";
-    const paymentAmount = Number(payment.amount || 0);
-    const paymentCurrency = String(payment.currency || "").toUpperCase();
-    const capturedStatus = payment.status || "";
-
-    if (paymentOrderId !== resolvedOrderId) {
-      return res.status(400).json({ success: false, verified: false, error: "Payment order mismatch" });
-    }
-
-    if (Number.isFinite(orderAmount) && paymentAmount !== Math.round(orderAmount * 100)) {
-      return res.status(400).json({ success: false, verified: false, error: "Payment amount mismatch" });
-    }
-
-    if (normalizedCurrency !== paymentCurrency) {
-      return res.status(400).json({ success: false, verified: false, error: "Payment currency mismatch" });
-    }
-
-    if (capturedStatus !== "captured") {
-      return res.status(400).json({ success: false, verified: false, error: "Payment is not captured" });
-    }
-
-    res.json({ success: true, verified: true, message: "Payment signature verified" });
+    const result = finalizeVerifiedIntent(intent);
+    const body = {
+      success: true,
+      verified: true,
+      message: "Payment verified and order saved",
+      orderId: result.order.orderId,
+      order: publicOrder(result.order)
+    };
+    const response = orderResponse(res, startedAt, result.created ? 201 : 200, body);
+    if (result.created) scheduleOrderOutbox();
+    return response;
   } catch (error) {
-    console.error("Razorpay verify signature error:", error);
-    res.status(500).json({ error: "Failed to verify Razorpay payment" });
+    console.error(JSON.stringify({
+      event: "payment.verification_failed",
+      orderId: internalOrderId,
+      errorCode: error.code || "PAYMENT_VERIFICATION_FAILED",
+      durationMs: Date.now() - startedAt
+    }));
+    if (error instanceof OrderRequestError) {
+      return orderResponse(res, startedAt, error.status, {
+        success: false,
+        verified: false,
+        error: error.message,
+        code: error.code
+      });
+    }
+    return orderResponse(res, startedAt, 502, {
+      success: false,
+      verified: false,
+      error: "Payment verification is temporarily unavailable. Check order status before retrying."
+    });
   }
 });
 
@@ -866,140 +1279,213 @@ function generateOrderPDF(orderData) {
 }
 
 
-app.post("/save-order", async (req, res) => {
+app.post("/save-order", checkoutLimiter, (req, res) => {
+  const startedAt = Date.now();
+  let orderId = req.body?.orderId || null;
   try {
-    const newOrder = req.body;
-
-    if (!newOrder || !Array.isArray(newOrder.items) || newOrder.items.length === 0) {
-      console.error("❌ Invalid order data - no items");
-      return res.status(400).json({ error: "No items in order", success: false });
+    const validationStartedAt = Date.now();
+    const order = prepareOrder(req.body);
+    orderId = order.orderId;
+    if (order._paymentType !== "cod") {
+      throw new OrderRequestError("Online orders must be confirmed through Razorpay verification", 400, "PAYMENT_VERIFICATION_REQUIRED");
     }
+    console.info(JSON.stringify({
+      event: "order.validated",
+      orderId,
+      durationMs: Date.now() - validationStartedAt
+    }));
 
-    if (!newOrder.customer || !newOrder.customer.email || !newOrder.customer.name || !newOrder.customer.mobile) {
-      console.error("❌ Invalid order data - no customer email");
-      return res.status(400).json({ error: "Customer name, mobile and email required", success: false });
+    const saved = savePersistedOrder(order);
+    const response = orderResponse(res, startedAt, saved.created ? 201 : 200, {
+      success: true,
+      created: saved.created,
+      orderId: saved.order.orderId,
+      message: "Order placed successfully",
+      order: publicOrder(saved.order)
+    });
+    if (saved.created) scheduleOrderOutbox();
+    return response;
+  } catch (error) {
+    console.error(JSON.stringify({
+      event: "order.save_failed",
+      orderId,
+      errorCode: error.code || "ORDER_SAVE_FAILED",
+      durationMs: Date.now() - startedAt
+    }));
+    if (error instanceof OrderRequestError) {
+      return orderResponse(res, startedAt, error.status, {
+        success: false,
+        error: error.message,
+        code: error.code,
+        ...error.details
+      });
     }
-
-    if (!/^\d{10}$/.test(String(newOrder.customer.mobile).replace(/\D/g, ""))) {
-      return res.status(400).json({ error: "Valid 10-digit mobile number required", success: false });
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(newOrder.customer.email).trim())) {
-      return res.status(400).json({ error: "Valid email required", success: false });
-    }
-
-    if (!Number.isFinite(Number(newOrder.grand)) || Number(newOrder.grand) <= 0) {
-      return res.status(400).json({ error: "Valid order amount required", success: false });
-    }
-
-    if (String(newOrder.orderId || "").length > 64) {
-      return res.status(400).json({ error: "Invalid order ID length", success: false });
-    }
-
-    // ✅ Re-validate every item against the live catalog. Prices and totals sent
-    // by the browser are never trusted — this recomputes them from products.json
-    // so a stale cart or a tampered request can't under-charge or sell something
-    // that's out of stock.
-    let catalog = [];
-    try {
-      catalog = JSON.parse(fs.readFileSync(PRODUCTS_FILE, "utf-8"));
-    } catch (e) {
-      catalog = [];
-    }
-
-    const outOfStock = [];
-    const missing = [];
-    let subtotal = 0;
-
-    for (const item of newOrder.items) {
-      const product = catalog.find(p => String(p.id) === String(item.id));
-      if (!product) { missing.push(item.name || item.id); continue; }
-      if (product.inStock === false) { outOfStock.push(product.name); continue; }
-      const qty = Math.max(1, Math.min(99, parseInt(item.qty) || 1));
-      item.qty = qty;
-      item.price = product.price; // server price wins, always
-      item.name = product.name;
-      item.subtotal = product.price * qty;
-      subtotal += item.subtotal;
-    }
-
-    if (missing.length) {
-      return res.status(409).json({ error: `No longer available: ${missing.join(", ")}. Please remove from your cart.`, success: false, code: "ITEMS_MISSING" });
-    }
-    if (outOfStock.length) {
-      return res.status(409).json({ error: `Out of stock: ${outOfStock.join(", ")}. Please remove from your cart.`, success: false, code: "OUT_OF_STOCK" });
-    }
-
-    const shipping = subtotal >= 999 ? 0 : 49;
-    newOrder.subtotal = subtotal;
-    newOrder.shipping = shipping;
-    newOrder.grand = subtotal + shipping;
-    if (newOrder.paid !== true && newOrder.paymentMethod === "online") {
-      newOrder.paymentStatus = "Pending";
-    }
-
-    if (!newOrder.orderId) {
-      newOrder.orderId = "UAE" + Date.now();
-    }
-
-    // Add timestamp if not present
-    if (!newOrder.date) {
-      newOrder.date = new Date().toISOString();
-    }
-
-    // New orders always start in the "Confirmed" tracking stage
-    newOrder.status = "Confirmed";
-
-    console.log("📝 Saving order:", newOrder.orderId);
-
-    let orders = [];
-    try {
-      orders = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-    } catch (e) {
-      orders = [];
-    }
-
-    const duplicateOrder = orders.some(order => String(order.orderId || "") === String(newOrder.orderId));
-    if (duplicateOrder) {
-      return res.status(409).json({ error: "Order already exists", success: false });
-    }
-
-    orders.push(newOrder);
-    writeOrders(orders);
-
-    console.log("✅ Order saved successfully:", newOrder.orderId);
-
-    // � Generate PDF FIRST - before sending email
-    let pdfFilePath = null;
-    try {
-      if (newOrder.orderId) {
-        const pdfResult = await generateOrderPDF(newOrder);
-        pdfFilePath = pdfResult.filePath;
-        console.log("✅ PDF generated successfully:", pdfFilePath);
-      }
-    } catch (pdfError) {
-      console.error("⚠️ PDF generation error:", pdfError.message);
-      // Continue with email even if PDF generation fails
-    }
-
-    // 📩 Send Email with PDF attachment
-    if (newOrder.customer?.email) {
-      const emailSent = await sendEmail(newOrder.customer.email, newOrder, pdfFilePath);
-      if (emailSent) {
-        console.log("✅ Order confirmation email sent successfully:", newOrder.orderId);
-      } else {
-        console.warn("⚠️ Email send failed but order was saved. Customer may not receive confirmation.");
-      }
-    } else {
-      console.warn("⚠️ No customer email provided - skipping email notification");
-    }
-
-    res.json({ success: true, orderId: newOrder.orderId, message: "Order placed successfully", order: newOrder });
-  } catch (err) {
-    console.error("❌ Order save error:", err);
-    res.status(500).json({ error: "Failed to save order", details: err.message, success: false });
+    return orderResponse(res, startedAt, 503, {
+      success: false,
+      error: "Order storage is temporarily unavailable. Check the order status before retrying."
+    });
   }
 });
+
+app.post("/api/order-status", checkoutLimiter, (req, res) => {
+  const orderId = String(req.body?.orderId || "").trim();
+  const email = normalizeEmail(req.body?.email);
+  const fingerprint = req.body?.order && submittedOrderFingerprint(req.body.order);
+  if (!/^UAE[A-Za-z0-9-]{1,61}$/.test(orderId) || !email || !fingerprint) {
+    return res.status(400).json({ error: "A valid order ID, email, and order details are required" });
+  }
+
+  try {
+    const order = readOrders().find(item =>
+      item.orderId === orderId && normalizeEmail(item.customer?.email) === email
+    );
+    if (order) {
+      const intent = readPaymentIntents().find(item => item.order.orderId === orderId);
+      const expectedFingerprint = intent?.requestFingerprint || order._requestFingerprint;
+      if (expectedFingerprint !== fingerprint) {
+        return res.status(409).json({ success: false, error: "Order ID does not match this checkout" });
+      }
+      return res.json({ success: true, state: "confirmed", order: publicOrder(order) });
+    }
+
+    const intent = readPaymentIntents().find(item =>
+      item.order.orderId === orderId && normalizeEmail(item.order.customer.email) === email
+    );
+    if (!intent) return res.status(404).json({ success: false, state: "not_found" });
+    if (intent.requestFingerprint !== fingerprint) {
+      return res.status(409).json({ success: false, error: "Order ID does not match this checkout" });
+    }
+
+    if (intent.status === "verified") {
+      const saved = finalizeVerifiedIntent(intent);
+      if (saved.created) scheduleOrderOutbox();
+      return res.json({ success: true, state: "confirmed", order: publicOrder(saved.order) });
+    }
+    return res.status(202).json({ success: true, state: "payment_pending" });
+  } catch (error) {
+    console.error(JSON.stringify({ event: "order.status_lookup_failed", orderId, errorCode: "STATUS_LOOKUP_FAILED" }));
+    return res.status(503).json({ error: "Order status is temporarily unavailable" });
+  }
+});
+
+let orderOutboxRunning = false;
+
+function updateOrderProcessing(orderId, update) {
+  const orders = readOrders();
+  const order = orders.find(item => item.orderId === orderId);
+  if (!order || !order._postProcessing) return null;
+  update(order._postProcessing);
+  writeOrders(orders);
+  return order;
+}
+
+async function processOrderOutbox({
+  pdfGenerator = generateOrderPDF,
+  emailSender = sendEmail
+} = {}) {
+  if (orderOutboxRunning) return;
+  orderOutboxRunning = true;
+  try {
+    const dueOrderIds = readOrders()
+      .filter(order => order._postProcessing && (
+        ["pending", "retrying"].includes(order._postProcessing.pdf?.status) ||
+        ["pending", "retrying"].includes(order._postProcessing.email?.status)
+      ))
+      .map(order => order.orderId);
+
+    for (const orderId of dueOrderIds) {
+      let order = readOrders().find(item => item.orderId === orderId);
+      if (!order?._postProcessing) continue;
+      const pdfTask = order._postProcessing.pdf;
+      const pdfDue = pdfTask && ["pending", "retrying"].includes(pdfTask.status) &&
+        new Date(pdfTask.nextAttemptAt || 0).getTime() <= Date.now();
+
+      if (pdfDue) {
+        const pdfStartedAt = Date.now();
+        try {
+          const pdfResult = await pdfGenerator(order);
+          updateOrderProcessing(orderId, state => {
+            state.pdf = {
+              status: "complete",
+              attempts: (state.pdf?.attempts || 0) + 1,
+              filePath: pdfResult?.filePath || null,
+              completedAt: new Date().toISOString()
+            };
+          });
+          console.info(JSON.stringify({
+            event: "order.pdf_complete",
+            orderId,
+            durationMs: Date.now() - pdfStartedAt
+          }));
+        } catch (error) {
+          const attempts = (pdfTask.attempts || 0) + 1;
+          const finalFailure = attempts >= 8;
+          updateOrderProcessing(orderId, state => {
+            state.pdf = {
+              status: finalFailure ? "failed" : "retrying",
+              attempts,
+              nextAttemptAt: new Date(Date.now() + Math.min(1800000, 1000 * (2 ** attempts))).toISOString()
+            };
+          });
+          console.error(JSON.stringify({
+            event: "order.pdf_failed",
+            orderId,
+            attempts,
+            finalFailure,
+            durationMs: Date.now() - pdfStartedAt,
+            error: error.message
+          }));
+        }
+      }
+
+      order = readOrders().find(item => item.orderId === orderId);
+      if (!order?._postProcessing) continue;
+      const emailTask = order._postProcessing.email;
+      if (!emailTask || !["pending", "retrying"].includes(emailTask.status) ||
+          new Date(emailTask.nextAttemptAt || 0).getTime() > Date.now()) continue;
+
+      const emailStartedAt = Date.now();
+      try {
+        const pdfPath = order._postProcessing.pdf?.status === "complete"
+          ? order._postProcessing.pdf.filePath
+          : null;
+        const sent = await emailSender(order.customer.email, publicOrder(order), pdfPath);
+        updateOrderProcessing(orderId, state => {
+          state.email = {
+            status: sent ? "sent" : "queued",
+            attempts: (state.email?.attempts || 0) + 1,
+            completedAt: new Date().toISOString()
+          };
+        });
+        console.info(JSON.stringify({
+          event: sent ? "order.email_sent" : "order.email_queued",
+          orderId,
+          durationMs: Date.now() - emailStartedAt
+        }));
+      } catch (error) {
+        const attempts = (emailTask.attempts || 0) + 1;
+        updateOrderProcessing(orderId, state => {
+          state.email = {
+            status: "retrying",
+            attempts,
+            nextAttemptAt: new Date(Date.now() + Math.min(1800000, 1000 * (2 ** attempts))).toISOString()
+          };
+        });
+        console.error(JSON.stringify({
+          event: "order.email_failed",
+          orderId,
+          attempts,
+          durationMs: Date.now() - emailStartedAt,
+          error: error.message
+        }));
+      }
+    }
+  } catch (error) {
+    console.error(JSON.stringify({ event: "order.outbox_failed", error: error.message }));
+  } finally {
+    orderOutboxRunning = false;
+  }
+}
 
 /* ===============================
    📦 GET ALL ORDERS
@@ -1672,13 +2158,20 @@ app.delete("/api/email-queue/clear", requireAdmin, (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log("\n" + "=".repeat(50));
-  console.log("🚀 UA ELECTRONICS SERVER STARTED");
-  console.log("=".repeat(50));
-  console.log(`📱 Server running on port: ${PORT}`);
-  console.log(`📧 Email: ${process.env.EMAIL_USER ? "✅ Configured" : "❌ Not configured"}`);
-  console.log(`💳 Payment Method: ✅ Razorpay Standard Checkout + COD available`);
-  console.log(`📄 PDF Order Receipts: ✅ Auto-generated and stored in /Orders folder`);
-  console.log("=".repeat(50) + "\n");
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log("\n" + "=".repeat(50));
+    console.log("🚀 UA ELECTRONICS SERVER STARTED");
+    console.log("=".repeat(50));
+    console.log(`📱 Server running on port: ${PORT}`);
+    console.log(`📧 Email: ${process.env.EMAIL_USER ? "✅ Configured" : "❌ Not configured"}`);
+    console.log(`💳 Payment Method: ✅ Razorpay Standard Checkout + COD available`);
+    console.log(`📄 PDF Order Receipts: ✅ Auto-generated and stored in /Orders folder`);
+    console.log("=".repeat(50) + "\n");
+    scheduleOrderOutbox();
+  });
+  const outboxTimer = setInterval(() => { void processOrderOutbox(); }, 10000);
+  outboxTimer.unref();
+}
+
+module.exports = { app, processOrderOutbox, razorpay };

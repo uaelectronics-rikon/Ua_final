@@ -7,13 +7,15 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
-const QUEUE_FILE = path.join(__dirname, 'data', 'email-queue.json');
-const LOG_FILE = path.join(__dirname, 'data', 'email-log.json');
+const DATA_DIR = process.env.UA_DATA_DIR || path.join(__dirname, 'data');
+const QUEUE_FILE = path.join(DATA_DIR, 'email-queue.json');
+const LOG_FILE = path.join(DATA_DIR, 'email-log.json');
 
 // Ensure data directory exists
-if (!fs.existsSync(path.join(__dirname, 'data'))) {
-  fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
 // ============================================
@@ -24,19 +26,38 @@ function loadQueue() {
   try {
     if (fs.existsSync(QUEUE_FILE)) {
       const data = fs.readFileSync(QUEUE_FILE, 'utf-8');
-      return JSON.parse(data);
+      const queue = JSON.parse(data);
+      if (!Array.isArray(queue)) throw new Error('Email queue must contain an array');
+      return queue;
     }
+    return [];
   } catch (e) {
     console.error('❌ Error loading email queue:', e.message);
+    throw e;
   }
-  return [];
 }
 
 function saveQueue(queue) {
+  const temporaryPath = `${QUEUE_FILE}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`;
+  let descriptor;
   try {
-    fs.writeFileSync(QUEUE_FILE, JSON.stringify(queue, null, 2));
+    descriptor = fs.openSync(temporaryPath, 'wx', 0o600);
+    fs.writeFileSync(descriptor, JSON.stringify(queue, null, 2));
+    fs.fsyncSync(descriptor);
+    fs.closeSync(descriptor);
+    descriptor = undefined;
+    fs.renameSync(temporaryPath, QUEUE_FILE);
+    const directoryDescriptor = fs.openSync(path.dirname(QUEUE_FILE), 'r');
+    try {
+      fs.fsyncSync(directoryDescriptor);
+    } finally {
+      fs.closeSync(directoryDescriptor);
+    }
   } catch (e) {
+    if (descriptor !== undefined) fs.closeSync(descriptor);
+    if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath);
     console.error('❌ Error saving email queue:', e.message);
+    throw e;
   }
 }
 
@@ -56,7 +77,7 @@ function addToQueue(to, orderData, pdfFilePath) {
   queue.push(queueItem);
   saveQueue(queue);
   
-  console.log(`📧 Email queued for retry: ${to} (Order: ${orderData.orderId})`);
+  console.log(`📧 Email queued for retry (Order: ${orderData.orderId})`);
   return queueItem;
 }
 
@@ -93,7 +114,6 @@ function logEmail(to, orderData, success, error = null) {
 
     logs.push({
       timestamp: new Date().toISOString(),
-      to,
       orderId: orderData.orderId,
       success,
       error: error ? error.message : null,
